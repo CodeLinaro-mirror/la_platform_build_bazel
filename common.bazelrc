@@ -1,0 +1,15 @@
+# Lock down the PATH variable in actions to /usr/bin and /usr/local/bin.
+build --experimental_strict_action_env
+
+# Explicitly allow unresolved symlinks (it's an experimental Bazel feature)
+build --experimental_allow_unresolved_symlinks
+
+# Enable usage of cc_shared_library build APIs
+build --experimental_cc_shared_library
+
+# Enable building targets in //external:__subpackages__.
+common --experimental_sibling_repository_layout
+common --experimental_disable_external_package
+
+# Enable toplevel_output_directories and Ninja executor in Bazel
+common --experimental_ninja_actions
