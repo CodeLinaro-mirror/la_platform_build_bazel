@@ -13,3 +13,20 @@ common --experimental_disable_external_package
 
 # Enable toplevel_output_directories and Ninja executor in Bazel
 common --experimental_ninja_actions
+
+# Increase refresh rate of command line UI for improved perceived responsiveness.
+common --show_progress_rate_limit=0.05
+
+# These are disabled when running under soong_ui (default = auto). Force enable them here.
+common --color=yes
+common --curses=yes
+
+# Show the full set of flags for observability and debuggability.
+common --announce_rc
+
+# Run bazel query from the workspace, without cd'ing into out/soong/queryview
+# Note that this hardcodes the output dir. It will not work if $OUT_DIR != out.
+common:queryview --package_path=%workspace%/out/soong/queryview
+
+# Support a local user-specific bazelrc file.
+try-import %workspace%/user.bazelrc

@@ -2,7 +2,10 @@ _CAPTURED_ENV_VARS = [
     "PWD",
     "TARGET_PRODUCT",
     "TARGET_BUILD_VARIANT",
-    "OUT",
+    "COMBINED_NINJA",
+    "KATI_NINJA",
+    "PACKAGE_NINJA",
+    "SOONG_NINJA",
 ]
 
 _ALLOWED_SPECIAL_CHARACTERS = [
@@ -10,6 +13,7 @@ _ALLOWED_SPECIAL_CHARACTERS = [
     "_",
     "-",
     "'",
+    ".",
 ]
 
 # Since we write the env var value literally into a .bzl file, ensure that the string
@@ -25,7 +29,7 @@ def _validate_env_value(env_var, env_value):
         fail("The value of " +
              env_var +
              " can only consist of alphanumeric and " +
-             _ALLOWED_SPECIAL_CHARACTERS +
+             str(_ALLOWED_SPECIAL_CHARACTERS) +
              " characters: " +
              str(env_value))
 

@@ -1,17 +1,23 @@
-load("@lunch//:env.bzl", "TARGET_PRODUCT", "TARGET_BUILD_VARIANT")
+load(
+  "@lunch//:env.bzl",
+  "TARGET_PRODUCT",
+  "TARGET_BUILD_VARIANT",
+  "COMBINED_NINJA",
+  "KATI_NINJA",
+  "PACKAGE_NINJA",
+  "SOONG_NINJA"
+)
 
 ninja_graph(
     name = "combined_graph",
-    # TODO: Stop hardcoding "out/".
-    # TODO(b/172302866): the actual suffix comes from getKatiSuffix, which may not necessarily
-    #       just be TARGET_PRODUCT.
-    #       https://cs.android.com/android/platform/superproject/+/master:build/soong/ui/build/kati.go;drc=9f43597ff7349c4facd9e338e5b4b277e625e518;l=36
-    main = "out/combined-%s.ninja" % TARGET_PRODUCT,
+    main = COMBINED_NINJA,
+    # This assumes that --skip-make is *not* used, so the Kati and Package files exists.
     ninja_srcs = [
-        "out/build-%s.ninja" % TARGET_PRODUCT,
-        "out/build-%s-package.ninja" % TARGET_PRODUCT,
-        "out/soong/build.ninja",
+        KATI_NINJA,
+        PACKAGE_NINJA,
+        SOONG_NINJA,
     ],
+    # TODO(b/171012031): Stop hardcoding "out/".
     output_root = "out",
     output_root_inputs = [
         "soong/.bootstrap/bin/soong_build",

@@ -47,8 +47,8 @@ function getoutdir
 
 TOP="$(gettop)"
 if [ ! "$TOP" ]; then
-    echo "Couldn't locate the top of the tree.  Try setting TOP."
-    return
+    >&2 echo "Couldn't locate the top of the tree.  Try setting TOP."
+    exit 1
 fi
 
 case $(uname -s) in
@@ -72,29 +72,30 @@ esac
 if [ -n "$ANDROID_BAZEL_PATH" -a -f "$ANDROID_BAZEL_PATH" ]; then
     export ANDROID_BAZEL_PATH
 else
-    echo "Couldn't locate Bazel binary"
-    return
+    >&2 echo "Couldn't locate Bazel binary"
+    exit 1
 fi
 
 if [ -n "$ANDROID_BAZELRC_PATH" -a -f "$ANDROID_BAZELRC_PATH" ]; then
     export ANDROID_BAZELRC_PATH
 else
-    echo "Couldn't locate bazelrc file for Bazel"
-    return
+    >&2 echo "Couldn't locate bazelrc file for Bazel"
+    exit 1
 fi
 
 if [ -n "$ANDROID_BAZEL_JDK_PATH" -a -d "$ANDROID_BAZEL_JDK_PATH" ]; then
     export ANDROID_BAZEL_JDK_PATH
 else
-    echo "Couldn't locate JDK to use for Bazel"
-    return
+    >&2 echo "Couldn't locate JDK to use for Bazel"
+    exit 1
 fi
 
-echo "WARNING: Bazel support for the Android Platform is experimental and is undergoing development."
-echo "WARNING: Currently, build stability is not guaranteed. Thank you."
-echo
+>&2 echo "WARNING: Bazel support for the Android Platform is experimental and is undergoing development."
+>&2 echo "WARNING: Currently, build stability is not guaranteed. Thank you."
+>&2 echo
 
-"${ANDROID_BAZEL_PATH}" \
+ABSOLUTE_OUT_DIR="$(getoutdir)" \
+  "${ANDROID_BAZEL_PATH}" \
   --server_javabase="${ANDROID_BAZEL_JDK_PATH}" \
   --output_user_root="$(getoutdir)/bazel/output_user_root" \
   --bazelrc="${ANDROID_BAZELRC_PATH}" \
