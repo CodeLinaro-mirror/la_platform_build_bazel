@@ -20,7 +20,16 @@ ninja_graph(
     # TODO(b/171012031): Stop hardcoding "out/".
     output_root = "out",
     output_root_inputs = [
-        "soong/.bootstrap/bin/soong_build",
+	# These files are created externally of the Ninja action graph, for
+	# example, when Kati parses the product configuration Make files to
+	# create soong/soong.variables.
+	#
+	# Since these aren't created by actions in the ninja_graph .ninja
+	# inputs, Bazel will fail with missing inputs while executing
+	# ninja_build. output_root_inputs allowlists these files for Bazel to
+	# symlink them into the execution root, treating them as source files
+	# in the output directory (toplevel_output_directories).
+	"soong/.bootstrap/bin/soong_build",
         "soong/.bootstrap/bin/soong_env",
         "soong/.bootstrap/bin/loadplugins",
         "soong/build_number.txt",
