@@ -7,6 +7,9 @@ build --experimental_allow_unresolved_symlinks
 # Enable usage of cc_shared_library build APIs
 build --experimental_cc_shared_library
 
+# Disable middleman actions
+build --noexperimental_enable_aggregating_middleman
+
 # Enable building targets in //external:__subpackages__.
 common --experimental_sibling_repository_layout
 common --experimental_disable_external_package
@@ -27,6 +30,10 @@ common --announce_rc
 # Run bazel query from the workspace, without cd'ing into out/soong/queryview
 # Note that this hardcodes the output dir. It will not work if $OUT_DIR != out.
 common:queryview --package_path=%workspace%/out/soong/queryview
+
+# Run bazel query from the workspace, without cd'ing into out/soong/bp2build
+# Note that this hardcodes the output dir. It will not work if $OUT_DIR != out.
+common:bp2build --package_path=%workspace%/out/soong/bp2build
 
 # Support a local user-specific bazelrc file.
 try-import %workspace%/user.bazelrc
