@@ -32,6 +32,7 @@ ninja_graph(
 	"soong/.bootstrap/bin/soong_build",
         "soong/.bootstrap/bin/soong_env",
         "soong/.bootstrap/bin/loadplugins",
+        "soong/.minibootstrap/bpglob",
         "soong/build_number.txt",
         "soong/soong.variables",
         "soong/dexpreopt.config",
