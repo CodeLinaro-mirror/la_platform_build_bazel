@@ -1,0 +1,66 @@
+# Common target platforms for Android Platform builds.
+# Platforms represent distinct hardware environments:
+#   - CPU architecture
+#   - Hardware capabilities
+#   - Firmware differences
+# Platforms do NOT represent different software packages, that is the
+# reposibility of the top-level targets being built.
+package(default_visibility = ["//visibility:public"])
+
+# TODO(b/147667566): Add distinct hardware platforms from the "lunch" menu.
+config_setting(
+    name = "config_arm",
+    constraint_values = [
+        "@bazel_tools//platforms:arm",  # CPU
+        "@bazel_tools//platforms:android",  # OS
+    ],
+)
+platform(
+    name = "generic_arm",
+    constraint_values = [
+        "@bazel_tools//platforms:arm",  # CPU
+        "@bazel_tools//platforms:android",  # OS
+    ],
+)
+config_setting(
+    name = "config_arm64",
+    constraint_values = [
+        "@bazel_tools//platforms:aarch64",  # CPU
+        "@bazel_tools//platforms:android",  # OS
+    ],
+)
+platform(
+    name = "generic_arm64",
+    constraint_values = [
+        "@bazel_tools//platforms:aarch64",  # CPU
+        "@bazel_tools//platforms:android",  # OS
+    ],
+)
+config_setting(
+    name = "config_x86",
+    constraint_values = [
+        "@bazel_tools//platforms:x86_32",  # CPU
+        "@bazel_tools//platforms:android",  # OS
+    ],
+)
+platform(
+    name = "generic_x86",
+    constraint_values = [
+        "@bazel_tools//platforms:x86_32",  # CPU
+        "@bazel_tools//platforms:android",  # OS
+    ],
+)
+config_setting(
+    name = "config_x86_64",
+    constraint_values = [
+        "@bazel_tools//platforms:x86_64",  # CPU
+        "@bazel_tools//platforms:android",  # OS
+    ],
+)
+platform(
+    name = "generic_x86_64",
+    constraint_values = [
+        "@bazel_tools//platforms:x86_64",  # CPU
+        "@bazel_tools//platforms:android",  # OS
+    ],
+)

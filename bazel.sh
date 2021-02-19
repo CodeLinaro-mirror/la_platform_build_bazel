@@ -3,7 +3,7 @@
 # TODO: Refactor build/make/envsetup.sh to make gettop() available elsewhere
 function gettop
 {
-    local TOPFILE=build/make/core/envsetup.mk
+    local TOPFILE=build/bazel/bazel.sh
     if [ -n "$TOP" -a -f "$TOP/$TOPFILE" ] ; then
         # The following circumlocution ensures we remove symlinks from TOP.
         (cd "$TOP"; PWD= /bin/pwd)
