@@ -24,7 +24,7 @@ function write_build_files() {
     echo "Syncing $(dirname $package)"
     rsync -av \
       --include="*/" \
-      --include="BUILD.bazel" \
+      --include="BUILD" \
       --exclude="*" \
       "$AOSP_ROOT/out/soong/bp2build/$package" \
       "$AOSP_ROOT/$(dirname $package)"
@@ -35,7 +35,7 @@ function remove_build_files() {
   pushd $AOSP_ROOT > /dev/null
   echo "Removing BUILD files.."
   for package in ${packages[@]}; do
-    find "$package" -type f -name "BUILD.bazel" -exec rm -vf {} \; \
+    find "$package" -type f -name "BUILD" -exec rm -vf {} \; \
       || echo "No BUILD files found under $package."
   done
   popd > /dev/null
