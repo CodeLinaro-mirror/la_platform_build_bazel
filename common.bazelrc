@@ -1,3 +1,12 @@
+# Platforms and toolchains for AOSP.
+#
+# Set a default target platform for builds.
+build --platforms //build/bazel/platforms:generic_x86_64
+build --extra_toolchains //prebuilts/clang/host/linux-x86:all
+
+# # Use toolchain resolution to find the cc toolchain.
+build --incompatible_enable_cc_toolchain_resolution
+
 # Lock down the PATH variable in actions to /usr/bin and /usr/local/bin.
 build --experimental_strict_action_env
 
