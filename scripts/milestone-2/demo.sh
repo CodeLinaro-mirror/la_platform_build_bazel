@@ -41,7 +41,6 @@ EOF
 # We're in <root>/build/bazel/scripts/milestone-2
 AOSP_ROOT="$(dirname $0)/../../../.."
 
-
 RED="\031[0;32m"
 GREEN="\033[0;32m"
 RESET="\033[0m"
@@ -56,29 +55,34 @@ function log() {
   echo -e "${GREEN}INFO[Milestone 2 Demo]: $message${RESET}"
 }
 
+# Ensure that this script uses the checked-in Bazel binary.
+function bazel() {
+  "${AOSP_ROOT}/tools/bazel" "$@"
+}
+
 # Run the bp2build converter to generate BUILD files into out/soong/bp2build.
 function generate() {
   log "Running the bp2build converter.."
-  GENERATE_BAZEL_FILES=true $AOSP_ROOT/build/soong/soong_ui.bash --make-mode nothing --skip-soong-tests
+  GENERATE_BAZEL_FILES=true "${AOSP_ROOT}/build/soong/soong_ui.bash" --make-mode nothing --skip-soong-tests
   log "Successfully generated BUILD files in out/soong/bp2build."
 }
 
 # Sync the generated BUILD files into the source tree.
 function sync() {
   log "Syncing the generated BUILD files to the source tree.."
-  $AOSP_ROOT/build/bazel/scripts/bp2build-sync.sh write
+  "${AOSP_ROOT}/build/bazel/scripts/bp2build-sync.sh" write
 
   # Backup the checked-in files.
-  find $AOSP_ROOT/bionic -type f -name 'BUILD.bazel' -exec mv {} {}.bak \;
+  find "${AOSP_ROOT}/bionic" -type f -name 'BUILD.bazel' -exec mv {} {}.bak \;
 }
 
 # Clean up the generated BUILD files in the source tree.
 function cleanup() {
   log "Removing the generated BUILD files to the source tree.."
-  $AOSP_ROOT/build/bazel/scripts/bp2build-sync.sh remove
+  "${AOSP_ROOT}/build/bazel/scripts/bp2build-sync.sh" remove
 
   # Restore the checked-in files.
-  for f in `find $AOSP_ROOT/bionic -type f -name 'BUILD.bazel.bak'`; do
+  for f in `find "${AOSP_ROOT}/bionic" -type f -name 'BUILD.bazel.bak'`; do
     mv -i "$f" "${f%.bak}"
   done
 }
@@ -122,6 +126,7 @@ function run() {
       sync
       query-bionic-package
       build-bionic-package
+      cleanup
       ;;
     *)
       error "Unknown action: $action"

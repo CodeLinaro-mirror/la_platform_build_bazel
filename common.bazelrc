@@ -2,7 +2,6 @@
 #
 # Set a default target platform for builds.
 build --platforms //build/bazel/platforms:generic_x86_64
-build --extra_toolchains //prebuilts/clang/host/linux-x86:all
 
 # # Use toolchain resolution to find the cc toolchain.
 build --incompatible_enable_cc_toolchain_resolution
@@ -18,6 +17,9 @@ build --experimental_cc_shared_library
 
 # Disable middleman actions
 build --noexperimental_enable_aggregating_middleman
+
+# Disable local cpp toolchain detection, as it is explicitly declared in AOSP.
+build --action_env=BAZEL_DO_NOT_DETECT_CPP_TOOLCHAIN=1
 
 # Enable building targets in //external:__subpackages__.
 common --experimental_sibling_repository_layout

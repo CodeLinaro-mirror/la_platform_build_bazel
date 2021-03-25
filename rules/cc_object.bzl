@@ -16,15 +16,19 @@ def cc_object(
     # convert local_include_dirs to cc_library_headers deps
     include_deps = []
     for dir in local_include_dirs:
-        dep_name = name + "__" + dir # may contain slashes, but valid label anyway.
+        dep_name = "generated__" + dir + "_includes" # may contain slashes, but valid label anyway.
         include_deps += [dep_name]
 
-        cc_library_headers(
-            name = dep_name,
-            includes = [dir],
-            strip_include_prefix = dir,
-            hdrs = native.glob([dir + "/**/*.h"]),
-        )
+        # Since multiple cc_objects can refer to the same cc_library_headers dep, avoid
+        # generating duplicate deps by using native.existing_rule.
+        if native.existing_rule(dep_name) == None:
+            cc_library_headers(
+                name = dep_name,
+                includes = [dir],
+                strip_include_prefix = dir,
+                include_prefix = dir,
+                hdrs = native.glob([dir + "/**/*.h"]),
+            )
 
     # combine deps and include deps
     all_deps = deps + include_deps
