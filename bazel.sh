@@ -54,20 +54,41 @@ fi
 case $(uname -s) in
     Darwin)
         ANDROID_BAZEL_PATH="${TOP}/prebuilts/bazel/darwin-x86_64/bazel"
-        ANDROID_BAZELRC_PATH="${TOP}/build/bazel/darwin.bazelrc"
+        ANDROID_BAZELRC_NAME="darwin.bazelrc"
         ANDROID_BAZEL_JDK_PATH="${TOP}/prebuilts/jdk/jdk11/darwin-x86"
         ;;
     Linux)
         ANDROID_BAZEL_PATH="${TOP}/prebuilts/bazel/linux-x86_64/bazel"
-        ANDROID_BAZELRC_PATH="${TOP}/build/bazel/linux.bazelrc"
+        ANDROID_BAZELRC_NAME="linux.bazelrc"
         ANDROID_BAZEL_JDK_PATH="${TOP}/prebuilts/jdk/jdk11/linux-x86"
         ;;
     *)
         ANDROID_BAZEL_PATH=
-        ANDROID_BAZELRC_PATH=
+        ANDROID_BAZELRC_NAME=
         ANDROID_BAZEL_JDK_PATH=
         ;;
 esac
+
+case "x${ANDROID_BAZELRC_PATH}" in
+    x)
+        # Path not provided, use default.
+        ANDROID_BAZELRC_PATH="${TOP}/build/bazel"
+        ;;
+    x/*)
+        # Absolute path, take it as-is.
+        ANDROID_BAZELRC_PATH="${ANDROID_BAZELRC_PATH}"
+        ;;
+    x*)
+        # Relative path, consider it relative to TOP.
+        ANDROID_BAZELRC_PATH="${TOP}/${ANDROID_BAZELRC_PATH}"
+        ;;
+esac
+
+if [ -d "${ANDROID_BAZELRC_PATH}" ]; then
+    # If we're given a directory, find the correct bazelrc file there.
+    ANDROID_BAZELRC_PATH="${ANDROID_BAZELRC_PATH}/${ANDROID_BAZELRC_NAME}"
+fi
+
 
 if [ -n "$ANDROID_BAZEL_PATH" -a -f "$ANDROID_BAZEL_PATH" ]; then
     export ANDROID_BAZEL_PATH
