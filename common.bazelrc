@@ -48,3 +48,10 @@ common:bp2build --package_path=%workspace%/out/soong/bp2build
 
 # Support a local user-specific bazelrc file.
 try-import %workspace%/user.bazelrc
+
+build --android_sdk=//prebuilts/sdk:android_sdk
+build --experimental_enable_android_migration_apis
+build --experimental_google_legacy_api
+build --incompatible_java_common_parameters
+build --android_databinding_use_v3_4_args
+build --experimental_android_databinding_v2

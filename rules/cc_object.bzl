@@ -22,12 +22,16 @@ def cc_object(
         # Since multiple cc_objects can refer to the same cc_library_headers dep, avoid
         # generating duplicate deps by using native.existing_rule.
         if native.existing_rule(dep_name) == None:
+            dep_hdrs = None
+            # The local build package may be included as "."
+            if dir == ".":
+                dep_hdrs = native.glob(["*.h"])
+            else:
+                dep_hdrs = native.glob([dir + "/**/*.h"])
             cc_library_headers(
                 name = dep_name,
                 includes = [dir],
-                strip_include_prefix = dir,
-                include_prefix = dir,
-                hdrs = native.glob([dir + "/**/*.h"]),
+                hdrs = dep_hdrs,
             )
 
     # combine deps and include deps
