@@ -49,5 +49,8 @@ ninja_build(
     ninja_graph = ":combined_graph",
     output_groups = {
         "droid": ["droid"],
+        # TODO(b/160568333): Stop hardcoding output groups statically for Ninja targets.
+        # libc is declared here to support CI builds running USE_BAZEL=1 USE_BAZEL_ANALYSIS=1 m libc
+        "libc": ["libc"],
     },
 )
