@@ -20,7 +20,9 @@ constraint_value(
     constraint_setting = "@platforms//cpu:cpu",
 )
 
-constraint_value(
+# Alias to the local_jdk's toolchain constraint to make local_jdk resolve
+# correctly with --tool_java_runtime_version=local_jdk and the checked-in JDK.
+alias(
     name = "x86_64",
-    constraint_setting = "@platforms//cpu:cpu",
+    actual = "@platforms//cpu:x86_64"
 )

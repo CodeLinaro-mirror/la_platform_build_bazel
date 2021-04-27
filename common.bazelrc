@@ -6,6 +6,9 @@ build --platforms //build/bazel/platforms:android_x86_64
 # # Use toolchain resolution to find the cc toolchain.
 build --incompatible_enable_cc_toolchain_resolution
 
+# Ensure that the host_javabase always use @local_jdk, the checked-in JDK.
+build --tool_java_runtime_version=local_jdk
+
 # Lock down the PATH variable in actions to /usr/bin and /usr/local/bin.
 build --experimental_strict_action_env
 
