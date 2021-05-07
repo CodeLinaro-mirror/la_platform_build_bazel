@@ -8,6 +8,15 @@ register_toolchains(
     "//prebuilts/clang/host/linux-x86:all"
 )
 
+# This references $OUTDIR/soong/soong_injection.
+# It works because the synthetic Bazel workspace (where this file is evaluated)
+# lives under $OUTDIR/soong/workspace. This way, this file is not a function of
+# $OUTDIR and thus doesn't need to be generated.
+local_repository(
+    name = "soong_injection",
+    path = "../soong_injection",
+)
+
 local_repository(
     name = "rules_cc",
     path = "build/bazel/rules_cc",

@@ -1,3 +1,5 @@
+load("//build/bazel/rules:cc_library_static.bzl", "cc_library_static")
+
 def cc_library_headers(
         name,
         deps = [],
@@ -7,13 +9,12 @@ def cc_library_headers(
         **kwargs):
     "Bazel macro to correspond with the cc_library_headers Soong module."
 
-    # Silently drop these attributes for now:
-    # - native_bridge_supported
-    native.cc_library(
+    cc_library_static(
         name = name,
         deps = deps,
         hdrs = hdrs,
         includes = includes,
+        native_bridge_supported = native_bridge_supported,
         **kwargs
     )
 

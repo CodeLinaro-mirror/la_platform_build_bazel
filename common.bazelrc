@@ -24,6 +24,11 @@ build --noexperimental_enable_aggregating_middleman
 # Disable local cpp toolchain detection, as it is explicitly declared in AOSP.
 build --action_env=BAZEL_DO_NOT_DETECT_CPP_TOOLCHAIN=1
 
+# Disable sandboxing for CppCompile actions, as headers are not fully specified.
+# TODO(b/186116353): This is a temporary fix, as appropriately-sandboxed actions
+# are a long term goal.
+build --strategy=CppCompile=standalone
+
 # Enable building targets in //external:__subpackages__.
 common --experimental_sibling_repository_layout
 common --experimental_disable_external_package
@@ -45,9 +50,9 @@ common --announce_rc
 # Note that this hardcodes the output dir. It will not work if $OUT_DIR != out.
 common:queryview --package_path=%workspace%/out/soong/queryview
 
-# Run bazel query from the workspace, without cd'ing into out/soong/bp2build
+# Run bazel query from the workspace, without cd'ing into out/soong/workspace
 # Note that this hardcodes the output dir. It will not work if $OUT_DIR != out.
-common:bp2build --package_path=%workspace%/out/soong/bp2build
+common:bp2build --package_path=%workspace%/out/soong/workspace
 
 # Support a local user-specific bazelrc file.
 try-import %workspace%/user.bazelrc
@@ -58,3 +63,15 @@ build --experimental_google_legacy_api
 build --incompatible_java_common_parameters
 build --android_databinding_use_v3_4_args
 build --experimental_android_databinding_v2
+
+# Developer instance for result storage. This only works if you have access
+# to the Bazel GCP project. Follow the GCP gcloud client's auth instructions to
+# use --google_default_credentials.
+build:results --remote_instance_name=projects/bazel-untrusted/instances/default_instance
+build:results --project_id=bazel-untrusted
+build:results --remote_timeout=600
+build:results --google_default_credentials
+build:results --test_summary=detailed
+build:results --bes_backend=buildeventservice.googleapis.com
+build:results --bes_results_url=https://source.cloud.google.com/results/invocations
+build:results --show_progress_rate_limit=5

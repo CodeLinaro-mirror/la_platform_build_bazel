@@ -3,12 +3,12 @@
 This directory contains `jq` scripts that query Soong's module graph.
 
 It uses the JSON module graph that Soongs dumps when the
-`SOONG_DUMP_MODULE_GRAPH_JSON` environment variable is set.
+`SOONG_DUMP_JSON_MODULE_GRAPH` environment variable is set.
 
 Usage:
 
 ```
-SOONG_DUMP_MODULE_GRAPH_JSON=<some file> m nothing
+SOONG_DUMP_JSON_MODULE_GRAPH=<some file> m nothing
 query.sh [-C] <command> <some file> [argument]
 ```
 

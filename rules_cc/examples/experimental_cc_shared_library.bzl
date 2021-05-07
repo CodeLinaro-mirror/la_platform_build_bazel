@@ -109,7 +109,7 @@ def _build_exports_map_from_only_dynamic_deps(merged_shared_library_infos):
             if export in exports_map:
                 fail("Two shared libraries in dependencies export the same symbols. Both " +
                      exports_map[export].libraries[0].dynamic_library.short_path +
-                     " and " + linker_input.dynamic_library.short_path +
+                     " and " + linker_input.libraries[0].dynamic_library.short_path +
                      " export " + export)
             exports_map[export] = linker_input
     return exports_map
@@ -162,9 +162,20 @@ def _check_if_target_under_path(value, pattern):
     return pattern.package == value.package and pattern.name == value.name
 
 def _check_if_target_can_be_exported(target, current_label, permissions):
-    # Divergence from rules_cc: Ignore permissions, as it does not fit the model of AOSP.
-    # TODO(cparsons): Push an upstream change to disable permissions checking with a flag.
-    return True
+    if permissions == None:
+        return True
+
+    if (target.workspace_name != current_label.workspace_name or
+        _same_package_or_above(current_label, target)):
+        return True
+
+    matched_by_target = False
+    for permission in permissions:
+        for permission_target in permission[CcSharedLibraryPermissionsInfo].targets:
+            if _check_if_target_under_path(target, permission_target):
+                return True
+
+    return False
 
 def _check_if_target_should_be_exported_without_filter(target, current_label, permissions):
     return _check_if_target_should_be_exported_with_filter(target, current_label, None, permissions)
@@ -263,7 +274,7 @@ def _filter_inputs(
                     linker_input.owner,
                     ctx.label,
                     ctx.attr.exports_filter,
-                    ctx.attr.permissions,
+                    _get_permissions(ctx),
                 ):
                     exports[owner] = True
                     can_be_linked_statically = True
@@ -293,6 +304,11 @@ def _same_package_or_above(label_a, label_b):
 
     return True
 
+def _get_permissions(ctx):
+    if ctx.attr._enable_permissions_check[BuildSettingInfo].value:
+        return ctx.attr.permissions
+    return None
+
 def _cc_shared_library_impl(ctx):
     cc_common.check_experimental_cc_shared_library()
     cc_toolchain = find_cc_toolchain(ctx)
@@ -310,7 +326,7 @@ def _cc_shared_library_impl(ctx):
             fail("Trying to export a library already exported by a different shared library: " +
                  str(export.label))
 
-        _check_if_target_should_be_exported_without_filter(export.label, ctx.label, ctx.attr.permissions)
+        _check_if_target_should_be_exported_without_filter(export.label, ctx.label, _get_permissions(ctx))
 
     preloaded_deps_direct_labels = {}
     preloaded_dep_merged_cc_info = None
@@ -449,11 +465,13 @@ cc_shared_library = rule(
         "static_deps": attr.string_list(),
         "user_link_flags": attr.string_list(),
         "_cc_toolchain": attr.label(default = "@bazel_tools//tools/cpp:current_cc_toolchain"),
+        "_enable_permissions_check": attr.label(default = "//examples:enable_permissions_check"),
         "_experimental_debug": attr.label(default = "//examples:experimental_debug"),
         "_incompatible_link_once": attr.label(default = "//examples:incompatible_link_once"),
     },
-    toolchains = ["@rules_cc//cc:toolchain_type"],  # copybara-use-repo-external-label
+    toolchains = ["@bazel_tools//tools/cpp:toolchain_type"],  # copybara-use-repo-external-label
     fragments = ["cpp"],
+    incompatible_use_toolchain_transition = True,
 )
 
 for_testing_dont_use_check_if_target_under_path = _check_if_target_under_path

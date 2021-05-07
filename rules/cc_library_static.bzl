@@ -1,23 +1,15 @@
-load("//build/bazel/rules:cc_include_helpers.bzl", "cc_library_header_suite", "hdr_globs_for_srcs")
 load("@rules_cc//cc:find_cc_toolchain.bzl", "find_cpp_toolchain")
 
 def cc_library_static(
         name,
         srcs = [],
         deps = [],
+        hdrs = [],
         copts = [],
         includes = [],
-        local_include_dirs = [],
         native_bridge_supported = False, # TODO: not supported yet.
         **kwargs):
     "Bazel macro to correspond with the cc_library_static Soong module."
-    include_deps = cc_library_header_suite(local_include_dirs)
-
-    # combine deps and include deps
-    all_deps = deps + include_deps
-
-    hdrs = hdr_globs_for_srcs(srcs)
-
     mainlib_name = "%s_mainlib" % name
 
     # Silently drop these attributes for now:
@@ -26,7 +18,7 @@ def cc_library_static(
         name = mainlib_name,
         srcs = srcs,
         hdrs = hdrs,
-        deps = all_deps,
+        deps = deps,
         copts = copts,
         includes = includes,
         **kwargs
@@ -123,3 +115,4 @@ _empty_library_safeguard = rule(
     toolchains = ["@bazel_tools//tools/cpp:toolchain_type"],
     fragments = ["cpp"],
 )
+

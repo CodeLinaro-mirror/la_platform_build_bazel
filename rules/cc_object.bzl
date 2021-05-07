@@ -1,5 +1,5 @@
-load("//build/bazel/rules:cc_include_helpers.bzl", "cc_library_header_suite", "hdr_globs_for_srcs")
 load("@rules_cc//cc:find_cc_toolchain.bzl", "find_cpp_toolchain")
+load(":cc_constants.bzl", "constants")
 
 # "cc_object" module copts, taken from build/soong/cc/object.go
 _CC_OBJECT_COPTS = ["-fno-addrsig"]
@@ -20,6 +20,16 @@ CcObjectInfo = provider(fields = [
     "objects",
 ])
 
+def split_srcs_hdrs(files):
+    headers = []
+    non_headers = []
+    for f in files:
+        if f.extension in constants.hdr_exts:
+            headers += [f]
+        else:
+            non_headers += [f]
+    return non_headers, headers
+
 
 def _cc_object_impl(ctx):
     cc_toolchain = find_cpp_toolchain(ctx)
@@ -37,21 +47,20 @@ def _cc_object_impl(ctx):
         compilation_contexts.append(obj[CcInfo].compilation_context)
         deps_objects.append(obj[CcObjectInfo].objects)
 
-    for dep in ctx.attr.include_deps:
-        compilation_contexts.append(dep[CcInfo].compilation_context)
-
     product_variables = ctx.attr._android_product_variables[platform_common.TemplateVariableInfo]
     asflags = [flag.format(**product_variables.variables) for flag in ctx.attr.asflags]
+
+    srcs, private_hdrs = split_srcs_hdrs(ctx.files.srcs)
 
     (compilation_context, compilation_outputs) = cc_common.compile(
         name = ctx.label.name,
         actions = ctx.actions,
         feature_configuration = feature_configuration,
         cc_toolchain = cc_toolchain,
-        srcs = ctx.files.srcs,
+        srcs = srcs,
         includes = ctx.attr.includes,
         public_hdrs = ctx.files.hdrs,
-        private_hdrs = ctx.files.private_hdrs,
+        private_hdrs = private_hdrs,
         user_compile_flags = ctx.attr.copts + asflags,
         compilation_contexts = compilation_contexts,
     )
@@ -81,14 +90,12 @@ def _cc_object_impl(ctx):
 _cc_object = rule(
     implementation = _cc_object_impl,
     attrs = {
-        "srcs": attr.label_list(allow_files = [".c", ".cc", ".cpp", ".S"]),
-        "hdrs": attr.label_list(allow_files = [".h"]),
-        "private_hdrs": attr.label_list(allow_files = [".h"]),
+        "srcs": attr.label_list(allow_files = constants.all_dot_exts),
+        "hdrs": attr.label_list(allow_files = constants.hdr_dot_exts),
         "includes": attr.string_list(),
         "copts": attr.string_list(),
         "asflags": attr.string_list(),
         "deps": attr.label_list(providers=[CcInfo, CcObjectInfo]),
-        "include_deps": attr.label_list(providers=[CcInfo]),
         "_cc_toolchain": attr.label(
             default = Label("@local_config_cc//:toolchain"),
             providers = [cc_common.CcToolchainInfo],
@@ -105,17 +112,13 @@ _cc_object = rule(
 def cc_object(
         name,
         copts = [],
+        hdrs = [],
         asflags = [],
-        local_include_dirs = [],
         srcs = [],
         deps = [],
         native_bridge_supported = False, # TODO: not supported yet.
         **kwargs):
     "Build macro to correspond with the cc_object Soong module."
-
-    include_deps = cc_library_header_suite(local_include_dirs)
-
-    hdrs = hdr_globs_for_srcs(srcs)
 
     _cc_object(
         name = name,
@@ -123,7 +126,6 @@ def cc_object(
         asflags = asflags,
         copts = _CC_OBJECT_COPTS + copts,
         srcs = srcs,
-        include_deps = include_deps,
         deps = deps,
         **kwargs
     )
