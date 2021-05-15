@@ -28,11 +28,9 @@ A demo script for the Android.bp to BUILD file converter.
 Usage:
 
   ./demo.sh generate -- runs the bp2build converter to generate BUILD files from Android.bp files.
-  ./demo.sh sync -- syncs the generated BUILD files from the output directory into the source tree.
   ./demo.sh query -- runs the bazel query command for all targets in //bionic/libc, recursively.
   ./demo.sh build -- runs the bazel build command for all targets in //bionic/libc, recursively.
-  ./demo.sh full -- runs the generate, sync, query and build steps in sequence.
-  ./demo.sh cleanup -- cleans up the generated BUILD files from the source tree.
+  ./demo.sh full -- runs the generate, query and build steps in sequence.
   ./demo.sh help -- prints this message.
 
 EOF
@@ -67,26 +65,6 @@ function generate() {
   log "Successfully generated BUILD files in out/soong/bp2build."
 }
 
-# Sync the generated BUILD files into the source tree.
-function sync() {
-  log "Syncing the generated BUILD files to the source tree.."
-  "${AOSP_ROOT}/build/bazel/scripts/bp2build-sync.py" write
-
-  # Backup the checked-in files.
-  find "${AOSP_ROOT}/bionic" -type f -name 'BUILD.bazel' -exec mv {} {}.bak \;
-}
-
-# Clean up the generated BUILD files in the source tree.
-function cleanup() {
-  log "Removing the generated BUILD files from the source tree.."
-  "${AOSP_ROOT}/build/bazel/scripts/bp2build-sync.py" remove
-
-  # Restore the checked-in files.
-  for f in `find "${AOSP_ROOT}/bionic" -type f -name 'BUILD.bazel.bak'`; do
-    mv -i "$f" "${f%.bak}"
-  done
-}
-
 # Run bazel query for the generated targets in the //bionic/libc package.
 function query-bionic-package() {
   log "Running bazel query //bionic/..."
@@ -112,12 +90,6 @@ function run() {
     "generate")
       generate
       ;;
-    "sync")
-      sync
-      ;;
-    "cleanup")
-      cleanup
-      ;;
     "query")
       query-bionic-package
       ;;
@@ -126,10 +98,8 @@ function run() {
       ;;
     "full")
       generate
-      sync
       query-bionic-package
       build-bionic-package
-      cleanup
       ;;
     *)
       error "Unknown action: $action"
