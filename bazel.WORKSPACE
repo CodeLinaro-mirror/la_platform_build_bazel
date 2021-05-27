@@ -1,6 +1,7 @@
 toplevel_output_directories(paths = ["out"])
 
 load("//build/bazel/rules:lunch.bzl", "lunch")
+load("//build/bazel/rules:soong_injection.bzl", "soong_injection_repository")
 
 lunch()
 
@@ -8,14 +9,7 @@ register_toolchains(
     "//prebuilts/clang/host/linux-x86:all"
 )
 
-# This references $OUTDIR/soong/soong_injection.
-# It works because the synthetic Bazel workspace (where this file is evaluated)
-# lives under $OUTDIR/soong/workspace. This way, this file is not a function of
-# $OUTDIR and thus doesn't need to be generated.
-local_repository(
-    name = "soong_injection",
-    path = "../soong_injection",
-)
+soong_injection_repository(name="soong_injection")
 
 local_repository(
     name = "rules_cc",

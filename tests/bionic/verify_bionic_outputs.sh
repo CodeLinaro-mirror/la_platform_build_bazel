@@ -57,7 +57,6 @@ function test_ld-android() {
     test_filetype "${static_library}" "current ar archive"
 
     symbols=(
-        __internal_linker_error
         __loader_add_thread_local_dtor
         __loader_android_create_namespace
         __loader_android_dlopen_ext
