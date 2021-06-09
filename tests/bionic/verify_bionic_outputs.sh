@@ -50,14 +50,13 @@ function test_shared_library_symbols() {
 
 # Test file contents of //bionic/linker:ld-android
 function test_ld-android() {
-    local shared_library="$(rlocation __main__/bionic/linker/libld-android_shared.so)"
-    local static_library="$(rlocation __main__/bionic/linker/libld-android_static_mainlib.a)"
+    local shared_library="$(rlocation __main__/bionic/linker/libld-android_bp2build_cc_library_shared.so)"
+    local static_library="$(rlocation __main__/bionic/linker/libld-android_bp2build_cc_library_static_mainlib.a)"
 
     test_filetype "${shared_library}" "shared object.*dynamically linked"
     test_filetype "${static_library}" "current ar archive"
 
     symbols=(
-        __internal_linker_error
         __loader_add_thread_local_dtor
         __loader_android_create_namespace
         __loader_android_dlopen_ext
@@ -87,8 +86,8 @@ function test_ld-android() {
 }
 
 function test_libdl_android() {
-    local shared_library="$(rlocation __main__/bionic/libdl/liblibdl_android_shared.so)"
-    local static_library="$(rlocation __main__/bionic/libdl/liblibdl_android_static_mainlib.a)"
+    local shared_library="$(rlocation __main__/bionic/libdl/liblibdl_android_bp2build_cc_library_shared.so)"
+    local static_library="$(rlocation __main__/bionic/libdl/liblibdl_android_bp2build_cc_library_static_mainlib.a)"
 
     test_filetype "${shared_library}" "shared object.*dynamically linked"
     test_filetype "${static_library}" "current ar archive"

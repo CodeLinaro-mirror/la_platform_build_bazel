@@ -18,6 +18,11 @@ build --experimental_allow_unresolved_symlinks
 # Enable usage of cc_shared_library build APIs
 build --experimental_cc_shared_library
 
+# Do not tokenize copts, other than strings that consist of a single Make
+# variable.  This prevents the need to double-escape characters like backslashes
+# and quotes in copts.
+build --features no_copts_tokenization
+
 # Disable middleman actions
 build --noexperimental_enable_aggregating_middleman
 

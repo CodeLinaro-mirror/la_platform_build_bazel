@@ -10,17 +10,40 @@ if [[ -z ${DIST_DIR+x} ]]; then
 fi
 
 # Generate BUILD files into out/soong/bp2build
-build/bazel/scripts/milestone-2/demo.sh generate
+AOSP_ROOT="$(dirname $0)/../../.."
+GENERATE_BAZEL_FILES=true "${AOSP_ROOT}/build/soong/soong_ui.bash" --make-mode nothing --skip-soong-tests
 
 # Remove the ninja_build output marker file to communicate to buildbot that this is not a regular Ninja build, and its
 # output should not be parsed as such.
 rm -f out/ninja_build
 
-# Build targets under bionic/ for various architectures
-tools/bazel --max_idle_secs=5 build --config=bp2build --color=no --curses=no --show_progress_rate_limit=5 --platforms //build/bazel/platforms:android_x86 -k //bionic/...
-tools/bazel --max_idle_secs=5 build --config=bp2build --color=no --curses=no --show_progress_rate_limit=5 --platforms //build/bazel/platforms:android_x86_64 -k //bionic/...
-tools/bazel --max_idle_secs=5 build --config=bp2build --color=no --curses=no --show_progress_rate_limit=5 --platforms //build/bazel/platforms:android_arm -k //bionic/...
-tools/bazel --max_idle_secs=5 build --config=bp2build --color=no --curses=no --show_progress_rate_limit=5 --platforms //build/bazel/platforms:android_arm64 -k //bionic/...
+# We could create .bazelrc files and use them on buildbots with --bazelrc, but
+# it's simpler to use a list for now.
+BUILD_FLAGS_LIST=(
+  --color=no
+  --curses=no
+  --show_progress_rate_limit=5
+  --config=bp2build
+)
+BUILD_FLAGS="${BUILD_FLAGS_LIST[@]}"
+
+TEST_FLAGS_LIST=(
+  --keep_going
+  --test_output=errors
+)
+TEST_FLAGS="${TEST_FLAGS_LIST[@]}"
+
+# Build targets for various architectures.
+BUILD_TARGETS_LIST=(
+  //bionic/...
+  //system/...
+  //external/arm-optimized-routines/...
+)
+BUILD_TARGETS="${BUILD_TARGETS_LIST[@]}"
+tools/bazel --max_idle_secs=5 build ${BUILD_FLAGS} --platforms //build/bazel/platforms:android_x86 -k ${BUILD_TARGETS}
+tools/bazel --max_idle_secs=5 build ${BUILD_FLAGS} --platforms //build/bazel/platforms:android_x86_64 -k ${BUILD_TARGETS}
+tools/bazel --max_idle_secs=5 build ${BUILD_FLAGS} --platforms //build/bazel/platforms:android_arm -k ${BUILD_TARGETS}
+tools/bazel --max_idle_secs=5 build ${BUILD_FLAGS} --platforms //build/bazel/platforms:android_arm64 -k ${BUILD_TARGETS}
 
 # Run tests.
-tools/bazel --max_idle_secs=5 test --config=bp2build --color=no --curses=no --show_progress_rate_limit=5 --test_output=errors -k //build/bazel/tests/...
+tools/bazel --max_idle_secs=5 test ${BUILD_FLAGS} ${TEST_FLAGS} //build/bazel/tests/...
