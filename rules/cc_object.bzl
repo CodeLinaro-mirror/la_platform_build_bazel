@@ -48,7 +48,7 @@ def _cc_object_impl(ctx):
         deps_objects.append(obj[CcObjectInfo].objects)
 
     product_variables = ctx.attr._android_product_variables[platform_common.TemplateVariableInfo]
-    asflags = [flag.format(**product_variables.variables) for flag in ctx.attr.asflags]
+    asflags = [ctx.expand_make_variables("asflags", flag,  product_variables.variables) for flag in ctx.attr.asflags]
 
     srcs, private_hdrs = split_srcs_hdrs(ctx.files.srcs)
 
@@ -101,7 +101,7 @@ _cc_object = rule(
             providers = [cc_common.CcToolchainInfo],
         ),
         "_android_product_variables": attr.label(
-            default = Label("//build/bazel/product_variables:android_product_variables"),
+            default = Label("//build/bazel/platforms:android_target_product_vars"),
             providers = [platform_common.TemplateVariableInfo],
         ),
     },
@@ -115,6 +115,7 @@ def cc_object(
         hdrs = [],
         asflags = [],
         srcs = [],
+        srcs_as = [],
         deps = [],
         native_bridge_supported = False, # TODO: not supported yet.
         **kwargs):
@@ -125,7 +126,7 @@ def cc_object(
         hdrs = hdrs,
         asflags = asflags,
         copts = _CC_OBJECT_COPTS + copts,
-        srcs = srcs,
+        srcs = srcs + srcs_as,
         deps = deps,
         **kwargs
     )

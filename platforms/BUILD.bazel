@@ -11,7 +11,15 @@
 #
 # These model after the arch and OS definitions in build/soong/android/arch.go.
 
+load("@soong_injection//product_config:product_variables.bzl", "product_vars")
+load("//build/bazel/platforms:product_variables/product_platform.bzl", "android_platform", "product_variable_config")
+
 package(default_visibility = ["//visibility:public"])
+
+product_variable_config(
+    name = "android_target",
+    product_config_vars = product_vars,
+)
 
 # Linux is the OS
 # for the Linux kernel plus the glibc runtime.
@@ -54,7 +62,7 @@ platform(
     name = "darwin_x86_64",
     constraint_values = [
         "//build/bazel/platforms/arch:x86_64",
-        "//build/bazel/platforms/os:osx",
+        "//build/bazel/platforms/os:darwin",
     ],
 )
 
@@ -77,34 +85,38 @@ platform(
 
 # Android is the OS for target devices that run all of Android, including the Linux kernel
 # and the Bionic libc runtime.
-platform(
+android_platform(
     name = "android_arm",
     constraint_values = [
         "//build/bazel/platforms/arch:arm",
         "//build/bazel/platforms/os:android",
     ],
+    product = ":android_target",
 )
 
-platform(
+android_platform(
     name = "android_arm64",
     constraint_values = [
         "//build/bazel/platforms/arch:arm64",
         "//build/bazel/platforms/os:android",
     ],
+    product = ":android_target",
 )
 
-platform(
+android_platform(
     name = "android_x86",
     constraint_values = [
         "//build/bazel/platforms/arch:x86",
         "//build/bazel/platforms/os:android",
     ],
+    product = ":android_target",
 )
 
-platform(
+android_platform(
     name = "android_x86_64",
     constraint_values = [
         "//build/bazel/platforms/arch:x86_64",
         "//build/bazel/platforms/os:android",
     ],
+    product = ":android_target",
 )

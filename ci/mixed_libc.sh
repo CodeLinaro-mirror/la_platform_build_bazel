@@ -24,3 +24,6 @@ fi
 # This is a small module which uses propagated includes from libc; thus will
 # fail if includes are not propagated appropriately from bazel-built libc.
 build/soong/soong_ui.bash --make-mode USE_BAZEL_ANALYSIS=1 BAZEL_STARTUP_ARGS="--max_idle_secs=5" BAZEL_BUILD_ARGS="--color=no --curses=no --show_progress_rate_limit=5" TARGET_PRODUCT=aosp_arm64 TARGET_BUILD_VARIANT=userdebug libbacktrace dist DIST_DIR=$DIST_DIR
+
+# Build com.android.runtime, which is basically Bionic (and other stuff) in an APEX.
+build/soong/soong_ui.bash --make-mode USE_BAZEL_ANALYSIS=1 BAZEL_STARTUP_ARGS="--max_idle_secs=5" BAZEL_BUILD_ARGS="--color=no --curses=no --show_progress_rate_limit=5" TARGET_PRODUCT=aosp_arm64 TARGET_BUILD_VARIANT=userdebug com.android.runtime dist DIST_DIR=$DIST_DIR

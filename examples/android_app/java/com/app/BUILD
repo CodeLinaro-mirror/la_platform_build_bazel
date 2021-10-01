@@ -9,17 +9,17 @@ android_binary(
 )
 
 android_library(
-  name = "applib",
-  srcs = [
-      "MainActivity.java",
-      #"Jni.java", # TODO: integrate JNI
-  ],
-  resource_files = glob(["res/**"]),
-  manifest = "AndroidManifest.xml",
-  deps = [
-    ":lib",
-    #":jni", # TODO: integrate JNI
-  ]
+    name = "applib",
+    srcs = [
+        "MainActivity.java",
+        #"Jni.java", # TODO: integrate JNI
+    ],
+    manifest = "AndroidManifest.xml",
+    resource_files = glob(["res/**"]),
+    deps = [
+        ":lib",
+        #":jni", # TODO: integrate JNI
+    ],
 )
 
 android_library(

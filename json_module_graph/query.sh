@@ -1,12 +1,24 @@
 #!/bin/bash -eu
 
-JQARGS=""
+LIBDIR="$(dirname "$(readlink -f "$0")")"
 
 function print_usage() {
   echo "Usage: query.sh [-C] <command> <graph JSON> [argument]" 1>&2
   echo "  -C: colorized output" 1>&2
+  echo
+  echo "Commands":
+  for jq in "$LIBDIR"/*.jq; do
+    if ! grep -q "^# CMD:" "$jq"; then
+      continue
+    fi
+
+    local CMD="$(echo $(basename "$jq") | sed 's/\..*$//')"
+    echo "  $CMD": $(cat "$jq" | grep "^# CMD:" | head -n 1 | sed 's/^# CMD://')
+  done
   exit 1
 }
+
+JQARGS=""
 
 while getopts "C" arg; do
   case "$arg" in
@@ -16,6 +28,7 @@ while getopts "C" arg; do
       ;;
     *)
       print_usage
+      ;;
   esac
 done
 
@@ -31,7 +44,5 @@ if [[ "$#" -gt 2 ]]; then
 else
   ARG=""
 fi
-
-LIBDIR="$(dirname "$(readlink -f "$0")")"
 
 jq $JQARGS -L "$LIBDIR" -f "$LIBDIR/$COMMAND".jq "$GRAPH" --arg arg "$ARG"

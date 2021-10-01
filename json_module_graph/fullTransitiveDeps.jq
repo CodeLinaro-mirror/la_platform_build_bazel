@@ -1,3 +1,5 @@
+# CMD: Returns the modules in the transitive closure of module $arg
+
 include "library";
 
 [((moduleGraphNoVariants | removeSelfEdges) as $m |

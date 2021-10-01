@@ -2,6 +2,7 @@ load("//build/bazel/rules:cc_library_static.bzl", "cc_library_static")
 
 def cc_library_headers(
         name,
+        implementation_deps = [],
         deps = [],
         hdrs = [],
         includes = [],
@@ -11,10 +12,13 @@ def cc_library_headers(
 
     cc_library_static(
         name = name,
+        implementation_deps = implementation_deps,
         deps = deps,
         hdrs = hdrs,
         includes = includes,
         native_bridge_supported = native_bridge_supported,
+        # do not automatically add libcrt dependency to header libraries
+        use_libcrt = False,
         **kwargs
     )
 

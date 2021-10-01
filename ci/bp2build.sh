@@ -37,8 +37,13 @@ TEST_FLAGS="${TEST_FLAGS_LIST[@]}"
 BUILD_TARGETS_LIST=(
   //bionic/...
   //system/...
-  //external/arm-optimized-routines/...
-  //external/scudo/...
+  //external/...
+  //prebuilts/clang/host/linux-x86:all
+  //build/bazel/...
+  --
+  # TODO(b/194639753): remove once android_app cc targets build
+  -//build/bazel/examples/android_app/java/com/app:jni
+  -//build/bazel/examples/android_app/java/com/app:jni_dep
 )
 BUILD_TARGETS="${BUILD_TARGETS_LIST[@]}"
 tools/bazel --max_idle_secs=5 build ${BUILD_FLAGS} --platforms //build/bazel/platforms:android_x86 -k ${BUILD_TARGETS}
@@ -48,3 +53,10 @@ tools/bazel --max_idle_secs=5 build ${BUILD_FLAGS} --platforms //build/bazel/pla
 
 # Run tests.
 tools/bazel --max_idle_secs=5 test ${BUILD_FLAGS} ${TEST_FLAGS} //build/bazel/tests/...
+
+# Test copying of some files to $DIST_DIR (set above, or from the CI invocation).
+tools/bazel --max_idle_secs=5 run //build/bazel/rules/dist:dist_bionic_example --config=bp2build -- --dist_dir="${DIST_DIR}"
+if [[ ! -f "${DIST_DIR}/bionic/libc/liblibc_bp2build_cc_library_shared.so" ]]; then
+  >&2 echo "Expected dist dir to exist at ${DIST_DIR} and contain the libc shared library, but the file was not found."
+  exit 1
+fi
