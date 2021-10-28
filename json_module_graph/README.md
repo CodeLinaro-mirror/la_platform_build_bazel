@@ -8,7 +8,7 @@ It uses the JSON module graph that Soongs dumps when the
 Usage:
 
 ```
-SOONG_DUMP_JSON_MODULE_GRAPH=<some file> m nothing
+SOONG_DUMP_JSON_MODULE_GRAPH=<some file> m json-module-graph
 query.sh [-C] <command> <some file> [argument]
 ```
 

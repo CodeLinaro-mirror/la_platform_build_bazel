@@ -40,6 +40,40 @@ filegroup {
   ],
 }
 
+cc_library {
+    name: "build.bazel.examples.apex.minimal_dummy_cc_lib",
+
+    srcs: ["dummy_cc_lib.cc"],
+
+    apex_available: [
+        "build.bazel.examples.apex.minimal",
+    ],
+
+    // Because the APEX sets this
+    product_specific: true,
+
+    // Because the APEX sets this
+    min_sdk_version: "30",
+}
+
+prebuilt_etc {
+    name: "build.bazel.examples.apex.minimal_dummy_named_prebuilt_etc",
+    src: "dummy_prebuilt_etc_data_1",
+    filename: "dummy_prebuilt_etc_data_1_renamed",
+    sub_dir: "dummy_sub_dir",
+}
+
+prebuilt_etc {
+    name: "build.bazel.examples.apex.minimal_dummy_unnamed_prebuilt_etc",
+    src: "dummy_prebuilt_etc_data_2",
+    sub_dir: "dummy_sub_dir",
+}
+
+prebuilt_etc {
+    name: "build.bazel.examples.apex.minimal_dummy_prebuilt_etc_without_subdir",
+    src: "dummy_prebuilt_etc_data_3",
+}
+
 apex {
     name: "build.bazel.examples.apex.minimal",
     manifest: "manifest.json",
@@ -50,4 +84,14 @@ apex {
 
     key: "build.bazel.examples.apex.minimal.key",
     min_sdk_version: "30",
+
+    native_shared_libs: [
+       "build.bazel.examples.apex.minimal_dummy_cc_lib",
+    ],
+
+    prebuilts: [
+       "build.bazel.examples.apex.minimal_dummy_named_prebuilt_etc",
+       "build.bazel.examples.apex.minimal_dummy_unnamed_prebuilt_etc",
+       "build.bazel.examples.apex.minimal_dummy_prebuilt_etc_without_subdir",
+    ],
 }

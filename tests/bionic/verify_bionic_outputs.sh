@@ -115,14 +115,14 @@ function test_libdl_android() {
 }
 
 function test_libc() {
-    local shared_library="$(rlocation __main__/bionic/libc/liblibc_bp2build_cc_library_shared.so)"
+    local shared_library="$(rlocation __main__/bionic/libc/liblibc_bp2build_cc_library_shared_stripped.so)"
     local static_library="$(rlocation __main__/bionic/libc/liblibc_bp2build_cc_library_static.a)"
 
     test_is_shared_library "${shared_library}"
     test_is_static_library "${static_library}"
 
     symbols=(
-       __libc_get_static_tls_bounds
+        __libc_get_static_tls_bounds
         __libc_register_thread_exit_callback
         __libc_iterate_dynamic_tls
         __libc_register_dynamic_tls_listeners

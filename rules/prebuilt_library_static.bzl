@@ -2,11 +2,12 @@ def prebuilt_library_static(
     name,
     static_library,
     alwayslink = None,
-    includes = [],
+    export_includes = [],
+    export_system_includes = [],
     **kwargs):
     "Bazel macro to correspond with the *_prebuilt_library_static Soong module types"
 
-    # TODO: Handle includes somehow?
+    # TODO: Handle includes similarly to cc_library_static
     # e.g. includes = ["clang-r416183b/prebuilt_include/llvm/lib/Fuzzer"],
     native.cc_import(
         name=name,

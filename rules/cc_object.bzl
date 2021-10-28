@@ -1,5 +1,8 @@
 load("@rules_cc//cc:find_cc_toolchain.bzl", "find_cpp_toolchain")
+load(":cc_library_common.bzl", "system_dynamic_deps_defaults")
+load(":cc_library_static.bzl", "get_includes_paths")
 load(":cc_constants.bzl", "constants")
+load(":stl.bzl", "static_stl_deps")
 
 # "cc_object" module copts, taken from build/soong/cc/object.go
 _CC_OBJECT_COPTS = ["-fno-addrsig"]
@@ -13,7 +16,6 @@ _CC_OBJECT_LINKOPTS = [
     "-Wl,-r",
 ]
 
-
 CcObjectInfo = provider(fields = [
     # The merged compilation outputs for this cc_object and its transitive
     # dependencies.
@@ -22,14 +24,16 @@ CcObjectInfo = provider(fields = [
 
 def split_srcs_hdrs(files):
     headers = []
-    non_headers = []
+    non_headers_as = []
+    non_headers_c = []
     for f in files:
         if f.extension in constants.hdr_exts:
             headers += [f]
+        elif f.extension in constants.as_src_exts:
+            non_headers_as += [f]
         else:
-            non_headers += [f]
-    return non_headers, headers
-
+            non_headers_c += [f]
+    return non_headers_c, non_headers_as, headers
 
 def _cc_object_impl(ctx):
     cc_toolchain = find_cpp_toolchain(ctx)
@@ -46,26 +50,57 @@ def _cc_object_impl(ctx):
     for obj in ctx.attr.deps:
         compilation_contexts.append(obj[CcInfo].compilation_context)
         deps_objects.append(obj[CcObjectInfo].objects)
+    for includes_dep in ctx.attr.includes_deps:
+        compilation_contexts.append(includes_dep[CcInfo].compilation_context)
 
     product_variables = ctx.attr._android_product_variables[platform_common.TemplateVariableInfo]
-    asflags = [ctx.expand_make_variables("asflags", flag,  product_variables.variables) for flag in ctx.attr.asflags]
+    asflags = [ctx.expand_make_variables("asflags", flag, product_variables.variables) for flag in ctx.attr.asflags]
 
-    srcs, private_hdrs = split_srcs_hdrs(ctx.files.srcs)
+    srcs_c, srcs_as, private_hdrs = split_srcs_hdrs(ctx.files.srcs)
 
-    (compilation_context, compilation_outputs) = cc_common.compile(
+    (compilation_context, compilation_outputs_c) = cc_common.compile(
         name = ctx.label.name,
         actions = ctx.actions,
         feature_configuration = feature_configuration,
         cc_toolchain = cc_toolchain,
-        srcs = srcs,
-        includes = ctx.attr.includes,
+        srcs = srcs_c,
+        includes = get_includes_paths(ctx, ctx.attr.local_includes) + get_includes_paths(ctx, ctx.attr.absolute_includes, package_relative = False),
+        public_hdrs = ctx.files.hdrs,
+        private_hdrs = private_hdrs,
+        user_compile_flags = ctx.attr.copts,
+        compilation_contexts = compilation_contexts,
+    )
+
+    (compilation_context, compilation_outputs_as) = cc_common.compile(
+        name = ctx.label.name,
+        actions = ctx.actions,
+        feature_configuration = feature_configuration,
+        cc_toolchain = cc_toolchain,
+        srcs = srcs_as,
+        includes = get_includes_paths(ctx, ctx.attr.local_includes) + get_includes_paths(ctx, ctx.attr.absolute_includes, package_relative = False),
         public_hdrs = ctx.files.hdrs,
         private_hdrs = private_hdrs,
         user_compile_flags = ctx.attr.copts + asflags,
         compilation_contexts = compilation_contexts,
     )
 
-    objects_to_link = cc_common.merge_compilation_outputs(compilation_outputs=deps_objects + [compilation_outputs])
+    # do not propagate includes
+    compilation_context = cc_common.create_compilation_context(
+        headers = compilation_context.headers,
+        defines = compilation_context.defines,
+        local_defines = compilation_context.local_defines,
+    )
+
+    objects_to_link = cc_common.merge_compilation_outputs(compilation_outputs = deps_objects + [compilation_outputs_c, compilation_outputs_as])
+
+    user_link_flags = []
+    user_link_flags.extend(_CC_OBJECT_LINKOPTS)
+    additional_inputs = []
+
+    if ctx.attr.linker_script != None:
+        linker_script = ctx.files.linker_script[0]
+        user_link_flags.append("-Wl,-T," + linker_script.path)
+        additional_inputs.append(linker_script)
 
     # partially link if there are multiple object files
     if len(objects_to_link.objects) + len(objects_to_link.pic_objects) > 1:
@@ -74,8 +109,9 @@ def _cc_object_impl(ctx):
             actions = ctx.actions,
             feature_configuration = feature_configuration,
             cc_toolchain = cc_toolchain,
-            user_link_flags = _CC_OBJECT_LINKOPTS,
+            user_link_flags = user_link_flags,
             compilation_outputs = objects_to_link,
+            additional_inputs = additional_inputs,
         )
         files = depset([linking_output.executable])
     else:
@@ -92,10 +128,13 @@ _cc_object = rule(
     attrs = {
         "srcs": attr.label_list(allow_files = constants.all_dot_exts),
         "hdrs": attr.label_list(allow_files = constants.hdr_dot_exts),
-        "includes": attr.string_list(),
+        "absolute_includes": attr.string_list(),
+        "local_includes": attr.string_list(),
         "copts": attr.string_list(),
         "asflags": attr.string_list(),
-        "deps": attr.label_list(providers=[CcInfo, CcObjectInfo]),
+        "deps": attr.label_list(providers = [CcInfo, CcObjectInfo]),
+        "includes_deps": attr.label_list(providers = [CcInfo]),
+        "linker_script": attr.label(allow_single_file = True),
         "_cc_toolchain": attr.label(
             default = Label("@local_config_cc//:toolchain"),
             providers = [cc_common.CcToolchainInfo],
@@ -117,9 +156,14 @@ def cc_object(
         srcs = [],
         srcs_as = [],
         deps = [],
-        native_bridge_supported = False, # TODO: not supported yet.
+        native_bridge_supported = False,  # TODO: not supported yet.
+        stl = "",
+        system_dynamic_deps = None,
         **kwargs):
     "Build macro to correspond with the cc_object Soong module."
+
+    if system_dynamic_deps == None:
+        system_dynamic_deps = system_dynamic_deps_defaults
 
     _cc_object(
         name = name,
@@ -128,5 +172,6 @@ def cc_object(
         copts = _CC_OBJECT_COPTS + copts,
         srcs = srcs + srcs_as,
         deps = deps,
+        includes_deps = static_stl_deps(stl) + system_dynamic_deps,
         **kwargs
     )

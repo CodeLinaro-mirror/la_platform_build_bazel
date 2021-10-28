@@ -1,5 +1,12 @@
 """A macro to generate table of contents files of symbols from a shared library."""
 
+CcTocInfo = provider(
+    "Information about the table of contents of a shared library",
+    fields = {
+        "toc": "The single file for the table of contents",
+    },
+)
+
 def _shared_library_toc_impl(ctx):
     so_name = "lib" + ctx.attr.name + ".so"
     toc_name = so_name + ".toc"
@@ -28,6 +35,7 @@ def _shared_library_toc_impl(ctx):
     )
 
     return [
+        CcTocInfo(toc = out_file),
         DefaultInfo(files = depset([out_file])),
     ]
 

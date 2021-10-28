@@ -11,7 +11,7 @@ fi
 
 # Generate BUILD files into out/soong/bp2build
 AOSP_ROOT="$(dirname $0)/../../.."
-GENERATE_BAZEL_FILES=true "${AOSP_ROOT}/build/soong/soong_ui.bash" --make-mode nothing --skip-soong-tests
+"${AOSP_ROOT}/build/soong/soong_ui.bash" --make-mode nothing --skip-soong-tests bp2build
 
 # Remove the ninja_build output marker file to communicate to buildbot that this is not a regular Ninja build, and its
 # output should not be parsed as such.
@@ -36,14 +36,14 @@ TEST_FLAGS="${TEST_FLAGS_LIST[@]}"
 # Build targets for various architectures.
 BUILD_TARGETS_LIST=(
   //bionic/...
-  //system/...
-  //external/...
-  //prebuilts/clang/host/linux-x86:all
   //build/bazel/...
-  --
-  # TODO(b/194639753): remove once android_app cc targets build
-  -//build/bazel/examples/android_app/java/com/app:jni
-  -//build/bazel/examples/android_app/java/com/app:jni_dep
+  //development/sdk/...
+  //external/...
+  //packages/apps/Music/...
+  //packages/apps/QuickSearchBox/...
+  //packages/apps/WallpaperPicker/...
+  //prebuilts/clang/host/linux-x86:all
+  //system/...
 )
 BUILD_TARGETS="${BUILD_TARGETS_LIST[@]}"
 tools/bazel --max_idle_secs=5 build ${BUILD_FLAGS} --platforms //build/bazel/platforms:android_x86 -k ${BUILD_TARGETS}
@@ -55,8 +55,8 @@ tools/bazel --max_idle_secs=5 build ${BUILD_FLAGS} --platforms //build/bazel/pla
 tools/bazel --max_idle_secs=5 test ${BUILD_FLAGS} ${TEST_FLAGS} //build/bazel/tests/...
 
 # Test copying of some files to $DIST_DIR (set above, or from the CI invocation).
-tools/bazel --max_idle_secs=5 run //build/bazel/rules/dist:dist_bionic_example --config=bp2build -- --dist_dir="${DIST_DIR}"
-if [[ ! -f "${DIST_DIR}/bionic/libc/liblibc_bp2build_cc_library_shared.so" ]]; then
+tools/bazel --max_idle_secs=5 run //build/bazel_common_rules/dist:dist_bionic_example --config=bp2build -- --dist_dir="${DIST_DIR}"
+if [[ ! -f "${DIST_DIR}/bionic/libc/liblibc_bp2build_cc_library_shared_stripped.so" ]]; then
   >&2 echo "Expected dist dir to exist at ${DIST_DIR} and contain the libc shared library, but the file was not found."
   exit 1
 fi

@@ -11,28 +11,32 @@ register_toolchains(
 )
 
 soong_injection_repository(name="soong_injection")
+
+# This is a repository rule to allow Bazel builds to depend on Soong-built
+# prebuilts for migration purposes.
 make_injection_repository(
     name = "make_injection",
-    modules = [
+    binaries = [
         # APEX tools
         "aapt2",
         "apexer",
         "avbtool",
         "conv_apex_manifest",
+        "deapexer",
+        "debugfs",
         "e2fsdroid",
         "mke2fs",
         "resize2fs",
         "sefcontext_compile",
         "signapk",
-
-        "deapexer",
-        "debugfs",
-
-        # APEX comparisons
-        "com.android.tzdata",
-        "com.android.runtime",
-        "com.android.adbd",
     ],
+    target_module_files = {
+        # For APEX comparisons
+        "com.android.tzdata": ["system/apex/com.android.tzdata.apex"],
+        "com.android.runtime": ["system/apex/com.android.runtime.apex"],
+        "com.android.adbd": ["system/apex/com.android.adbd.apex"],
+        "build.bazel.examples.apex.minimal": ["system/product/apex/build.bazel.examples.apex.minimal.apex"],
+    },
 )
 
 local_repository(
@@ -58,9 +62,6 @@ register_toolchains(
   # For native android_binary
   "//prebuilts/sdk:android_sdk_tools_for_native_android_binary",
 
-  # Local AOSP JDK
-  "//prebuilts/jdk/jdk11/linux-x86:jdk11_toolchain",
-
   # For APEX rules
   "//build/bazel/rules/apex:all"
 )
@@ -80,4 +81,13 @@ bind(
 bind(
   name = "android/d8_jar_import",
   actual = "//prebuilts/r8:r8_jar_import",
+)
+
+# TODO(b/201242197): Avoid downloading remote_coverage_tools (on CI) by creating
+# a stub workspace. Test rules (e.g. sh_test) depend on this external dep, but
+# we don't support coverage yet. Either vendor the external dep into AOSP, or
+# cut the dependency from test rules to the external repo.
+local_repository(
+    name = "remote_coverage_tools",
+    path = "build/bazel/rules/coverage/remote_coverage_tools",
 )

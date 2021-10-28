@@ -7,7 +7,8 @@ build --platforms //build/bazel/platforms:android_arm
 build --incompatible_enable_cc_toolchain_resolution
 
 # Ensure that the host_javabase always use @local_jdk, the checked-in JDK.
-build --tool_java_runtime_version=jdk11
+build --tool_java_runtime_version=local_jdk
+build --java_runtime_version=local_jdk
 
 # Lock down the PATH variable in actions to /usr/bin and /usr/local/bin.
 build --experimental_strict_action_env
@@ -85,6 +86,3 @@ build:results --test_summary=detailed
 build:results --bes_backend=buildeventservice.googleapis.com
 build:results --bes_results_url=https://source.cloud.google.com/results/invocations
 build:results --show_progress_rate_limit=5
-
-# Use JDK11 that's checked into AOSP for building
-build --java_runtime_version=jdk11

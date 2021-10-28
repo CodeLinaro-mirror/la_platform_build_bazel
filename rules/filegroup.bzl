@@ -47,7 +47,7 @@ def filegroup(name, srcs = [], **kwargs):
     )
     native.genrule(
         name = name + "_null_s",
-        outs = [name + "_null.s"],
+        outs = [name + "_null.S"],
         cmd = "touch $@",
     )
 
@@ -62,5 +62,5 @@ def filegroup(name, srcs = [], **kwargs):
     )
     native.filegroup(
         name = name + "_as_srcs",
-        srcs = [name + "_null.s"] + as_srcs,
+        srcs = [name + "_null.S"] + as_srcs,
     )

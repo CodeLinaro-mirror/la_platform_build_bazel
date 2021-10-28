@@ -1,42 +1,50 @@
 load("@bazel_skylib//rules:diff_test.bzl", "diff_test")
 
-def apex_diff_test(name, apex1, apex2, **kwargs):
+def apex_diff_test(name, apex1, apex2, expected_diff=None, **kwargs):
     """A test that compares the content list of two APEXes, determined by `deapexer`."""
-
-    native.alias(
-        name = "deapexer",
-        actual = "@make_injection//:host/linux-x86/bin/deapexer",
-    )
-
-    native.alias(
-        name = "debugfs",
-        actual = "@make_injection//:host/linux-x86/bin/debugfs",
-    )
 
     native.genrule(
         name = name + "_apex1_deapex",
         tools = [
-            ":deapexer",
-            ":debugfs",
+            "@make_injection//:host/linux-x86/bin/deapexer",
+            "@make_injection//:host/linux-x86/bin/debugfs",
         ],
         srcs = [apex1],
         outs = [name + ".apex1.txt"],
-        cmd = "$(location :deapexer) --debugfs_path=$(location :debugfs) list $< > $@",
+        cmd = "$(location @make_injection//:host/linux-x86/bin/deapexer) --debugfs_path=$(location @make_injection//:host/linux-x86/bin/debugfs) list $< > $@",
     )
 
     native.genrule(
         name = name + "_apex2_deapex",
         tools = [
-            ":deapexer",
-            ":debugfs",
+            "@make_injection//:host/linux-x86/bin/deapexer",
+            "@make_injection//:host/linux-x86/bin/debugfs",
         ],
         srcs = [apex2],
         outs = [name + ".apex2.txt"],
-        cmd = "$(location :deapexer) --debugfs_path=$(location :debugfs) list $< > $@",
+        cmd = "$(location @make_injection//:host/linux-x86/bin/deapexer) --debugfs_path=$(location @make_injection//:host/linux-x86/bin/debugfs) list $< > $@",
     )
 
-    diff_test(
-        name = "tzdata_content_diff_test",
-        file1 = name + ".apex1.txt",
-        file2 = name + ".apex2.txt",
-    )
+    if expected_diff == None:
+        diff_test(
+            name = name + "_content_diff_test",
+            file1 = name + ".apex1.txt",
+            file2 = name + ".apex2.txt",
+        )
+    else:
+        # Make our own diff to compare against the expected one
+        native.genrule(
+            name = name + "_apex1_apex2_diff",
+            srcs = [
+                name + ".apex1.txt",
+                name + ".apex2.txt",
+            ],
+            outs = [name + ".apex1.apex2.diff.txt"],
+            # Expected to generate a diff (and return a failing exit status)
+            cmd_bash = "diff $(SRCS) > $@ || true",
+        )
+        diff_test(
+            name = name + "_content_diff_test",
+            file1 = name + ".apex1.apex2.diff.txt",
+            file2 = expected_diff,
+        )

@@ -32,6 +32,11 @@ alias(
     actual = "@platforms//os:linux",
 )
 
+alias(
+    name = "linux_musl",
+    actual = "@platforms//os:linux",
+)
+
 constraint_value(
     name = "linux_bionic",
     constraint_setting = "@platforms//os:os",
