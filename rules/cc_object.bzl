@@ -36,13 +36,20 @@ def split_srcs_hdrs(files):
     return non_headers_c, non_headers_as, headers
 
 def _cc_object_impl(ctx):
-    cc_toolchain = find_cpp_toolchain(ctx)
+    cc_toolchain = ctx.toolchains["//prebuilts/clang/host/linux-x86:nocrt_toolchain"].cc
 
     feature_configuration = cc_common.configure_features(
         ctx = ctx,
         cc_toolchain = cc_toolchain,
         requested_features = ctx.features,
-        unsupported_features = ctx.disabled_features + ["linker_flags"],
+        unsupported_features = ctx.disabled_features + [
+            "linker_flags",
+            "pack_dynamic_relocations",
+            "diasble_pack_relocations",
+            "dynamic_executable",
+            "dynamic_linker",
+            "no_undefined_symbols",
+        ],
     )
 
     compilation_contexts = []
@@ -135,16 +142,12 @@ _cc_object = rule(
         "deps": attr.label_list(providers = [CcInfo, CcObjectInfo]),
         "includes_deps": attr.label_list(providers = [CcInfo]),
         "linker_script": attr.label(allow_single_file = True),
-        "_cc_toolchain": attr.label(
-            default = Label("@local_config_cc//:toolchain"),
-            providers = [cc_common.CcToolchainInfo],
-        ),
         "_android_product_variables": attr.label(
             default = Label("//build/bazel/platforms:android_target_product_vars"),
             providers = [platform_common.TemplateVariableInfo],
         ),
     },
-    toolchains = ["@bazel_tools//tools/cpp:toolchain_type"],
+    toolchains = ["//prebuilts/clang/host/linux-x86:nocrt_toolchain"],
     fragments = ["cpp"],
 )
 

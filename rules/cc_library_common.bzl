@@ -16,8 +16,11 @@ def add_lists_defaulting_to_none(*args):
     for arg in args:
       if arg != None:
         if combined == None:
-          combined = arg
-        else:
-          combined += arg
+          combined = []
+        combined += arg
 
     return combined
+
+# By default, crtbegin/crtend linking is enabled for shared libraries and cc_binary.
+def disable_crt_link(features):
+    return features + ["-link_crt"]

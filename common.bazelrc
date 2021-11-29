@@ -1,9 +1,9 @@
 # Platforms and toolchains for AOSP.
 #
-# Set default target platform for builds to android_arm because the default lunch target is aosp_arm.
-build --platforms //build/bazel/platforms:android_arm
+# Set default target platform for builds to rely on product config's arch and os variables
+build --platforms //build/bazel/platforms:android_target
 
-# # Use toolchain resolution to find the cc toolchain.
+# Use toolchain resolution to find the cc toolchain.
 build --incompatible_enable_cc_toolchain_resolution
 
 # Ensure that the host_javabase always use @local_jdk, the checked-in JDK.
