@@ -11,19 +11,24 @@ function die() {
 }
 
 function usage() {
-    echo "Usage: $0 [-k] [-q] <product> [products...]" >&2
+    echo "Usage: $0 [-k] [-q] [-b] <product> [products...]" >&2
     echo "  -k: Keep going after finding a failing product" >&2
     echo "  -q: Quiet. Suppress all output other than a failure message" >&2
+    echo "  -b: Also use RBC board configuration" >&2
     exit 1
 }
 
-while getopts "kq" o; do
+board_config=""
+while getopts "kqb" o; do
     case "${o}" in
         k)
             keep_going=true
             ;;
         q)
             quiet=true
+            ;;
+        b)
+            board_config="RBC_BOARD_CONFIG=1"
             ;;
         *)
             usage
@@ -55,6 +60,7 @@ function test_product() {
         RBC_PRODUCT_CONFIG=1 \
         TARGET_PRODUCT=$product \
         TARGET_BUILD_VARIANT=$variant \
+        $board_config \
         nothing || return 1
     cp out/soong/build.ninja out/rbc_ci/build.ninja.rbc || return 1
     cp out/build-${product}.ninja out/rbc_ci/build-product.ninja.rbc || return 1

@@ -8,8 +8,18 @@ if [[ -z ${DIST_DIR+x} ]]; then
   DIST_DIR="out/dist"
 fi
 
+TARGETS=(
+  libbacktrace
+  libfdtrack
+  libsimpleperf
+  com.android.adbd
+  com.android.runtime
+  bluetoothtbd
+  framework-minus-apex
+)
+
 # Run a mixed build of "libc"
-build/soong/soong_ui.bash --make-mode USE_BAZEL_ANALYSIS=1 BAZEL_STARTUP_ARGS="--max_idle_secs=5" BAZEL_BUILD_ARGS="--color=no --curses=no --show_progress_rate_limit=5" TARGET_PRODUCT=aosp_arm64 TARGET_BUILD_VARIANT=userdebug libc dist DIST_DIR=$DIST_DIR
+build/soong/soong_ui.bash --make-mode USE_BAZEL_ANALYSIS=1 BAZEL_STARTUP_ARGS="--max_idle_secs=5" BAZEL_BUILD_ARGS="--color=no --curses=no --show_progress_rate_limit=5" TARGET_PRODUCT=aosp_arm64 TARGET_BUILD_VARIANT=userdebug "${TARGETS[@]}" dist DIST_DIR=$DIST_DIR
 
 # Verify there are artifacts under the out directory that originated from bazel.
 echo "Verifying OUT_DIR contains bazel-out..."
@@ -20,13 +30,3 @@ else
   exit 1
 fi
 
-# Run a mixed build of "libbacktrace"
-# This is a small module which uses propagated includes from libc; thus will
-# fail if includes are not propagated appropriately from bazel-built libc.
-build/soong/soong_ui.bash --make-mode USE_BAZEL_ANALYSIS=1 BAZEL_STARTUP_ARGS="--max_idle_secs=5" BAZEL_BUILD_ARGS="--color=no --curses=no --show_progress_rate_limit=5" TARGET_PRODUCT=aosp_arm64 TARGET_BUILD_VARIANT=userdebug libbacktrace libsimpleperf dist DIST_DIR=$DIST_DIR
-
-# Build com.android.runtime, which is basically Bionic (and other stuff) in an APEX.
-build/soong/soong_ui.bash --make-mode USE_BAZEL_ANALYSIS=1 BAZEL_STARTUP_ARGS="--max_idle_secs=5" BAZEL_BUILD_ARGS="--color=no --curses=no --show_progress_rate_limit=5" TARGET_PRODUCT=aosp_arm64 TARGET_BUILD_VARIANT=userdebug com.android.runtime dist DIST_DIR=$DIST_DIR
-
-# Build com.android.adbd.
-build/soong/soong_ui.bash --make-mode USE_BAZEL_ANALYSIS=1 BAZEL_STARTUP_ARGS="--max_idle_secs=5" BAZEL_BUILD_ARGS="--color=no --curses=no --show_progress_rate_limit=5" TARGET_PRODUCT=aosp_arm64 TARGET_BUILD_VARIANT=userdebug com.android.adbd dist DIST_DIR=$DIST_DIR

@@ -14,6 +14,7 @@ def cc_library_shared(
         features = [],
         dynamic_deps = [],
         implementation_dynamic_deps = [],
+        linkopts = [],
 
         # Ultimately _static arguments for shared_root production
         srcs = [],
@@ -32,16 +33,15 @@ def cc_library_shared(
         export_system_includes = [],
         local_includes = [],
         absolute_includes = [],
-        linkopts = [],
         rtti = False,
         use_libcrt = True,
         stl = "",
         cpp_std = "",
         link_crt = True,
 
+        additional_linker_inputs = None,
+
         # Purely _shared arguments
-        user_link_flags = [],
-        version_script = None,
         strip = {},
         **kwargs):
     "Bazel macro to correspond with the cc_library_shared Soong module."
@@ -76,7 +76,6 @@ def cc_library_shared(
         export_system_includes = export_system_includes,
         local_includes = local_includes,
         absolute_includes = absolute_includes,
-        linkopts = linkopts,
         rtti = rtti,
         stl = stl,
         cpp_std = cpp_std,
@@ -88,6 +87,8 @@ def cc_library_shared(
         features = features,
     )
 
+    stl_static, stl_shared = shared_stl_deps(stl)
+
     # implementation_deps and deps are to be linked into the shared library via
     # --no-whole-archive. In order to do so, they need to be dependencies of
     # a "root" of the cc_shared_library, but may not be roots themselves.
@@ -97,7 +98,7 @@ def cc_library_shared(
     deps_stub = name + "_deps"
     native.cc_library(
         name = imp_deps_stub,
-        deps = implementation_deps,
+        deps = implementation_deps + stl_static,
     )
     native.cc_library(
         name = deps_stub,
@@ -108,19 +109,19 @@ def cc_library_shared(
         dynamic_deps,
         system_dynamic_deps,
         implementation_dynamic_deps,
-        shared_stl_deps(stl),
+        stl_shared,
     )
 
     cc_shared_library(
         name = unstripped_name,
-        user_link_flags = user_link_flags,
+        user_link_flags = linkopts,
         # b/184806113: Note this is  a workaround so users don't have to
         # declare all transitive static deps used by this target.  It'd be great
         # if a shared library could declare a transitive exported static dep
         # instead of needing to declare each target transitively.
         static_deps = ["//:__subpackages__"] + [shared_root_name, imp_deps_stub, deps_stub],
         dynamic_deps = shared_dynamic_deps,
-        version_script = version_script,
+        additional_linker_inputs = additional_linker_inputs,
         roots = [shared_root_name, imp_deps_stub, deps_stub] + whole_archive_deps,
         features = features,
         **kwargs

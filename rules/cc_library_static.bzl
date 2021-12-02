@@ -27,7 +27,6 @@ def cc_library_static(
         cpp_std = "",
         # Flags for C and C++
         copts = [],
-        linkopts = [],
         # C++ attributes
         srcs = [],
         cppflags = [],
@@ -86,7 +85,6 @@ def cc_library_static(
             ("deps", [exports_name]),
             ("features", toolchain_features),
             ("toolchains", ["//build/bazel/platforms:android_target_product_vars"]),
-            ("linkopts", linkopts)
         ]
     )
 
