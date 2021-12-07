@@ -2,7 +2,7 @@ load(":cc_library_common.bzl", "add_lists_defaulting_to_none", "system_dynamic_d
 load(":cc_library_static.bzl", "cc_library_static")
 load(":stl.bzl", "shared_stl_deps")
 load("@rules_cc//examples:experimental_cc_shared_library.bzl", "cc_shared_library", _CcSharedLibraryInfo = "CcSharedLibraryInfo")
-load(":stripped_shared_library.bzl", "stripped_shared_library")
+load(":stripped_cc_common.bzl", "stripped_shared_library")
 load(":generate_toc.bzl", "shared_library_toc", _CcTocInfo = "CcTocInfo")
 
 CcTocInfo = _CcTocInfo

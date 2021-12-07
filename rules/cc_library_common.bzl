@@ -1,12 +1,19 @@
 load("//build/bazel/product_variables:constants.bzl", "constants")
 
 _bionic_targets = ["//bionic/libc", "//bionic/libdl", "//bionic/libm"]
+_static_bionic_targets = ["//bionic/libc:libc_bp2build_cc_library_static", "//bionic/libdl:libdl_bp2build_cc_library_static", "//bionic/libm:libm_bp2build_cc_library_static"]
 
 # The default system_dynamic_deps value for cc libraries. This value should be
 # used if no value for system_dynamic_deps is specified.
 system_dynamic_deps_defaults = select({
     constants.ArchVariantToConstraints["linux_bionic"]: _bionic_targets,
     constants.ArchVariantToConstraints["android"]: _bionic_targets,
+    "//conditions:default": [],
+})
+
+system_static_deps_defaults = select({
+    constants.ArchVariantToConstraints["linux_bionic"]: _static_bionic_targets,
+    constants.ArchVariantToConstraints["android"]: _static_bionic_targets,
     "//conditions:default": [],
 })
 

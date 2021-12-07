@@ -17,6 +17,17 @@ _common_static_deps = select({
     "//conditions:default": [],
 })
 
+# https://cs.android.com/android/platform/superproject/+/master:build/soong/cc/stl.go;l=162;drc=cb0ac95bde896fa2aa59193a37ceb580758c322c
+# this should vary based on vndk version
+# skip libm and libc because then we would have duplicates due to system_shared_library
+_libunwind = "//prebuilts/clang/host/linux-x86:libunwind"
+
+_static_binary_deps = select({
+    constants.ArchVariantToConstraints["android"]: [_libunwind],
+    constants.ArchVariantToConstraints["linux_bionic"]: [_libunwind],
+    "//conditions:default": [],
+})
+
 def static_stl_deps(stl_name):
   # TODO(b/201079053): Handle useSdk, windows, fuschia, preferably with selects.
   if stl_name in _libcpp_stl_names:
@@ -25,6 +36,15 @@ def static_stl_deps(stl_name):
       return []
   else:
       fail("Unhandled stl %s" % stl_name)
+
+
+def static_binary_stl_deps(stl_name):
+  base = static_stl_deps(stl_name)
+  if stl_name == "none":
+    return base
+  else:
+    return base + _static_binary_deps
+
 
 def shared_stl_deps(stl_name):
   # TODO(b/201079053): Handle useSdk, windows, fuschia, preferably with selects.

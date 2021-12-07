@@ -14,6 +14,7 @@ def _impl(rctx):
     all_modules = target_modules.keys() + binaries
     args += all_modules
 
+
     rctx.report_progress("Building modules with Soong: %s" % str(all_modules))
     out_dir = str(build_dir.dirname) + "/make_injection"
     exec_result = rctx.execute(
@@ -23,6 +24,7 @@ def _impl(rctx):
             # TODO(b/196224107): Make these customizable based on product config inputs.
             "TARGET_PRODUCT": "aosp_arm",
             "TARGET_BUILD_VARIANT": "userdebug",
+            "TOP": str(build_dir.dirname.dirname.dirname),
         },
         quiet = False,  # stream stdout so it shows progress
     )

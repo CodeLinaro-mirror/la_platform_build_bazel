@@ -13,7 +13,7 @@ build/soong/soong_ui.bash --make-mode USE_BAZEL_ANALYSIS=1 BAZEL_STARTUP_ARGS="-
 
 # Verify there are artifacts under the out directory that originated from bazel.
 echo "Verifying OUT_DIR contains bazel-out..."
-if find out/ | grep bazel-out &>/dev/null; then
+if find out/ -type d -name bazel-out &>/dev/null; then
   echo "bazel-out found."
 else
   echo "bazel-out not found. This may indicate that mixed builds are silently not running."
