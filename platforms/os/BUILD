@@ -32,9 +32,9 @@ alias(
     actual = "@platforms//os:linux",
 )
 
-alias(
+constraint_value(
     name = "linux_musl",
-    actual = "@platforms//os:linux",
+    constraint_setting = "@platforms//os:os",
 )
 
 constraint_value(

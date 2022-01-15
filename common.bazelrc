@@ -3,6 +3,12 @@
 # Set default target platform for builds to rely on product config's arch and os variables
 build --platforms //build/bazel/platforms:android_target
 
+# Use the target platform (android_x86, android_arm) in the bazel-out/ output
+# directory name fragment instead of the CPU (darwin, k8). This avoids
+# thrashing the output directory when switching between top level target
+# --platforms values.
+build --experimental_platform_in_output_dir
+
 # Use toolchain resolution to find the cc toolchain.
 build --incompatible_enable_cc_toolchain_resolution
 

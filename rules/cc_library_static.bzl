@@ -1,3 +1,19 @@
+"""
+Copyright (C) 2021 The Android Open Source Project
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
+
 load(":cc_library_common.bzl", "system_dynamic_deps_defaults")
 load(":stl.bzl", "static_stl_deps")
 load("@bazel_skylib//lib:collections.bzl", "collections")
@@ -87,7 +103,7 @@ def cc_library_static(
             ("features", toolchain_features),
             ("toolchains", ["//build/bazel/platforms:android_target_product_vars"]),
             ("alwayslink", alwayslink),
-        ]
+        ],
     )
 
     native.cc_library(
@@ -201,10 +217,8 @@ def _cc_library_combiner_impl(ctx):
     return [
         DefaultInfo(files = depset([output_file])),
         CcInfo(compilation_context = combined_info.compilation_context, linking_context = linking_context),
-        CcStaticLibraryInfo(root_static_archive=output_file, objects=objects_to_link),
+        CcStaticLibraryInfo(root_static_archive = output_file, objects = objects_to_link),
     ]
-
-
 
 # A rule which combines objects of oen or more cc_library targets into a single
 # static linker input. This outputs a single archive file combining the objects

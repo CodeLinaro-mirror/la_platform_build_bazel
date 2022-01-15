@@ -31,6 +31,14 @@ config_setting(
 )
 
 config_setting(
+    name = "darwin_arm64",
+    constraint_values = [
+        "//build/bazel/platforms/arch:arm64",
+        "//build/bazel/platforms/os:darwin",
+    ],
+)
+
+config_setting(
     name = "darwin_x86_64",
     constraint_values = [
         "//build/bazel/platforms/arch:x86_64",

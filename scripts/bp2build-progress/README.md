@@ -9,7 +9,9 @@ for this branch.
 ## Prerequisites
 
 * `/usr/bin/dot`: turning dot graphviz files into .pngs
-* `/usr/bin/jq`: running the query scripts over the json-module-graph.
+* Optional: `/usr/bin/jq`: running the query scripts over the json-module-graph.
+
+Tip: `--use_queryview=true` allows running `bp2build-progress.py` without `jq`.
 
 ## Instructions
 
@@ -19,8 +21,20 @@ for this branch.
 ./bp2build-progress.py report adbd
 ```
 
+or:
+
+```
+./bp2build-progress.py report adbd --use_queryview=true
+```
+
 # Generate the report for a module, e.g. adbd
 
 ```
-./bp2build-progress.py graph adbd > graph.in && dot -Tpng -o graph.png graph.in
+./bp2build-progress.py graph adbd > /tmp/graph.in && dot -Tpng -o /tmp/graph.png /tmp/graph.in
+```
+
+or:
+
+```
+./bp2build-progress.py graph adbd --use_queryview=true > /tmp/graph.in && dot -Tpng -o /tmp/graph.png /tmp/graph.in
 ```

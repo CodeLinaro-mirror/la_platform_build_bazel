@@ -1,3 +1,19 @@
+"""
+Copyright (C) 2021 The Android Open Source Project
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
+
 load(":cc_library_common.bzl", "add_lists_defaulting_to_none", "disable_crt_link")
 load(":cc_library_shared.bzl", "CcSharedLibraryInfo", "CcTocInfo", "cc_library_shared")
 load(":cc_library_static.bzl", "CcStaticLibraryInfo", "cc_library_static")
@@ -115,6 +131,7 @@ def cc_library(
         # Shared library arguments
         strip = strip,
         link_crt = link_crt,
+        soname = name + ".so",
     )
 
     _cc_library_proxy(
@@ -135,7 +152,12 @@ def _cc_library_proxy_impl(ctx):
         CcInfo(compilation_context = ctx.attr.static[CcInfo].compilation_context),
         DefaultInfo(
             files = depset(direct = files),
-            runfiles = ctx.runfiles(files = files),
+            # Runfiles to be added if this is referenced via the "data" attribute, generally
+            # for tests.
+            data_runfiles = ctx.runfiles(files = files),
+            # Shared library runfiles -- to indicate that only the shared library output needs to be
+            # present at runtime (as a dynamic dependency).
+            default_runfiles = ctx.runfiles(files = ctx.attr.shared[DefaultInfo].default_runfiles.files.to_list()),
         ),
         ctx.attr.static[CcStaticLibraryInfo],
     ]

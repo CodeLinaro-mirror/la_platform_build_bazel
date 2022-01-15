@@ -1,3 +1,19 @@
+"""
+Copyright (C) 2021 The Android Open Source Project
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
+
 load("@rules_cc//cc:find_cc_toolchain.bzl", "find_cpp_toolchain")
 load(":cc_library_common.bzl", "system_dynamic_deps_defaults")
 load(":cc_library_static.bzl", "get_includes_paths")
@@ -43,12 +59,15 @@ def _cc_object_impl(ctx):
         cc_toolchain = cc_toolchain,
         requested_features = ctx.features,
         unsupported_features = ctx.disabled_features + [
-            "linker_flags",
-            "pack_dynamic_relocations",
-            "diasble_pack_relocations",
+            "disable_pack_relocations",
             "dynamic_executable",
             "dynamic_linker",
+            "linker_flags",
             "no_undefined_symbols",
+            "pack_dynamic_relocations",
+            "strip_debug_symbols",
+            # TODO(cparsons): Look into disabling this feature for nocrt toolchain?
+            "use_libcrt",
         ],
     )
 

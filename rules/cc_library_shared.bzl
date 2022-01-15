@@ -1,9 +1,26 @@
-load(":cc_library_common.bzl", "add_lists_defaulting_to_none", "system_dynamic_deps_defaults", "disable_crt_link")
+"""
+Copyright (C) 2021 The Android Open Source Project
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
+
+load(":cc_library_common.bzl", "add_lists_defaulting_to_none", "disable_crt_link", "system_dynamic_deps_defaults")
 load(":cc_library_static.bzl", "cc_library_static")
-load(":stl.bzl", "shared_stl_deps")
-load("@rules_cc//examples:experimental_cc_shared_library.bzl", "cc_shared_library", _CcSharedLibraryInfo = "CcSharedLibraryInfo")
-load(":stripped_cc_common.bzl", "stripped_shared_library")
 load(":generate_toc.bzl", "shared_library_toc", _CcTocInfo = "CcTocInfo")
+load(":stl.bzl", "shared_stl_deps")
+load(":stripped_cc_common.bzl", "stripped_shared_library")
+load("@rules_cc//examples:experimental_cc_shared_library.bzl", "cc_shared_library", _CcSharedLibraryInfo = "CcSharedLibraryInfo")
+load("@rules_cc//cc:find_cc_toolchain.bzl", "find_cpp_toolchain")
 
 CcTocInfo = _CcTocInfo
 CcSharedLibraryInfo = _CcSharedLibraryInfo
@@ -38,11 +55,11 @@ def cc_library_shared(
         stl = "",
         cpp_std = "",
         link_crt = True,
-
         additional_linker_inputs = None,
 
         # Purely _shared arguments
         strip = {},
+        soname = "",
         **kwargs):
     "Bazel macro to correspond with the cc_library_shared Soong module."
 
@@ -112,9 +129,12 @@ def cc_library_shared(
         stl_shared,
     )
 
+    if len(soname) == 0:
+        soname = name + ".so"
+    soname_flag = "-Wl,-soname," + soname
     cc_shared_library(
         name = unstripped_name,
-        user_link_flags = linkopts,
+        user_link_flags = linkopts + [soname_flag],
         # b/184806113: Note this is  a workaround so users don't have to
         # declare all transitive static deps used by this target.  It'd be great
         # if a shared library could declare a transitive exported static dep
@@ -143,20 +163,58 @@ def cc_library_shared(
         shared = stripped_name,
         root = shared_root_name,
         table_of_contents = toc_name,
+        output_file = soname,
+    )
+
+def _swap_shared_linker_input(ctx, shared_info, new_output):
+    old_library_to_link = shared_info.linker_input.libraries[0]
+
+    cc_toolchain = find_cpp_toolchain(ctx)
+    feature_configuration = cc_common.configure_features(
+        ctx = ctx,
+        cc_toolchain = cc_toolchain,
+    )
+
+    new_library_to_link = cc_common.create_library_to_link(
+        actions = ctx.actions,
+        dynamic_library = new_output,
+        feature_configuration = feature_configuration,
+        cc_toolchain = cc_toolchain,
+    )
+
+    new_linker_input = cc_common.create_linker_input(
+        owner = shared_info.linker_input.owner,
+        libraries = depset([new_library_to_link]),
+    )
+
+    return CcSharedLibraryInfo(
+            dynamic_deps = shared_info.dynamic_deps,
+            exports = shared_info.exports,
+            link_once_static_libs = shared_info.link_once_static_libs,
+            linker_input = new_linker_input,
+            preloaded_deps = shared_info.preloaded_deps,
     )
 
 def _cc_library_shared_proxy_impl(ctx):
     root_files = ctx.attr.root[DefaultInfo].files.to_list()
     shared_files = ctx.attr.shared[DefaultInfo].files.to_list()
 
-    files = root_files + shared_files + [ctx.file.table_of_contents]
+    if len(shared_files) != 1:
+        fail("Expected only one shared library file")
+
+    shared_lib = shared_files[0]
+
+    ctx.actions.symlink(output = ctx.outputs.output_file,
+                        target_file = shared_lib)
+
+    files = root_files + [ctx.outputs.output_file, ctx.file.table_of_contents]
 
     return [
         DefaultInfo(
             files = depset(direct = files),
-            runfiles = ctx.runfiles(files = files),
+            runfiles = ctx.runfiles(files = [ctx.outputs.output_file]),
         ),
-        ctx.attr.shared[CcSharedLibraryInfo],
+        _swap_shared_linker_input(ctx, ctx.attr.shared[CcSharedLibraryInfo], ctx.outputs.output_file),
         ctx.attr.table_of_contents[CcTocInfo],
         # Propagate only includes from the root. Do not re-propagate linker inputs.
         CcInfo(compilation_context = ctx.attr.root[CcInfo].compilation_context),
@@ -167,6 +225,9 @@ _cc_library_shared_proxy = rule(
     attrs = {
         "shared": attr.label(mandatory = True, providers = [CcSharedLibraryInfo]),
         "root": attr.label(mandatory = True, providers = [CcInfo]),
+        "output_file": attr.output(mandatory = True),
         "table_of_contents": attr.label(mandatory = True, allow_single_file = True, providers = [CcTocInfo]),
     },
+    fragments = ["cpp"],
+    toolchains = ["@bazel_tools//tools/cpp:toolchain_type"],
 )

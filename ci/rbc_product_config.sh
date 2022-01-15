@@ -11,15 +11,17 @@ function die() {
 }
 
 function usage() {
-    echo "Usage: $0 [-k] [-q] [-b] <product> [products...]" >&2
+    echo "Usage: $0 [-p] [-b] [-k] [-q] <product> [products...]" >&2
+    echo "  -p: Test RBC product configuration. This is implied if -b is not supplied" >&2
+    echo "  -b: Test RBC board configuration" >&2
     echo "  -k: Keep going after finding a failing product" >&2
     echo "  -q: Quiet. Suppress all output other than a failure message" >&2
-    echo "  -b: Also use RBC board configuration" >&2
     exit 1
 }
 
 board_config=""
-while getopts "kqb" o; do
+product_config=""
+while getopts "kqbp" o; do
     case "${o}" in
         k)
             keep_going=true
@@ -30,6 +32,9 @@ while getopts "kqb" o; do
         b)
             board_config="RBC_BOARD_CONFIG=1"
             ;;
+        p)
+            product_config="RBC_PRODUCT_CONFIG=1"
+            ;;
         *)
             usage
             ;;
@@ -39,13 +44,14 @@ shift $((OPTIND-1))
 
 [[ $# -gt 0 ]] || usage
 
+[[ -n "$board_config" ]] || product_config="RBC_PRODUCT_CONFIG=1"
+
 for arg in $@; do
     [[ "$arg" =~ ^([a-zA-Z0-9_]+)-([a-zA-Z0-9_]+)$ ]] || \
         die "Invalid product name: $arg. Example: aosp_arm64-userdebug"
 done
 
-[[ -f build/bazel/ci/rbc_product_config.sh ]] || \
-    die "Must be run from android root"
+cd "$(readlink -f "$(dirname "$0")"/../../..)"
 
 # Verify that diff will return nonzero on different files
 ! diff -q <(echo "foo") <(echo "bar") >/dev/null 2>/dev/null || \
@@ -57,10 +63,10 @@ function test_product() {
     local product="$1"
     local variant="$2"
     build/soong/soong_ui.bash --make-mode \
-        RBC_PRODUCT_CONFIG=1 \
+        $product_config \
+        $board_config \
         TARGET_PRODUCT=$product \
         TARGET_BUILD_VARIANT=$variant \
-        $board_config \
         nothing || return 1
     cp out/soong/build.ninja out/rbc_ci/build.ninja.rbc || return 1
     cp out/build-${product}.ninja out/rbc_ci/build-product.ninja.rbc || return 1

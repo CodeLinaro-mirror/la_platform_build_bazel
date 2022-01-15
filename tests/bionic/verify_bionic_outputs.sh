@@ -58,7 +58,7 @@ function test_shared_library_symbols() {
 
 # Test file contents of //bionic/linker:ld-android
 function test_ld-android() {
-    local shared_library="$(rlocation __main__/bionic/linker/libld-android_bp2build_cc_library_shared_unstripped.so)"
+    local shared_library="$(rlocation __main__/bionic/linker/ld-android.so)"
     local static_library="$(rlocation __main__/bionic/linker/libld-android_bp2build_cc_library_static.a)"
 
     test_is_shared_library "${shared_library}"
@@ -94,7 +94,7 @@ function test_ld-android() {
 }
 
 function test_libdl_android() {
-    local shared_library="$(rlocation __main__/bionic/libdl/liblibdl_android_bp2build_cc_library_shared_unstripped.so)"
+    local shared_library="$(rlocation __main__/bionic/libdl/libdl_android.so)"
     local static_library="$(rlocation __main__/bionic/libdl/liblibdl_android_bp2build_cc_library_static.a)"
 
     test_is_shared_library "${shared_library}"
@@ -115,7 +115,7 @@ function test_libdl_android() {
 }
 
 function test_libc() {
-    local shared_library="$(rlocation __main__/bionic/libc/liblibc_bp2build_cc_library_shared_stripped.so)"
+    local shared_library="$(rlocation __main__/bionic/libc/libc.so)"
     local static_library="$(rlocation __main__/bionic/libc/liblibc_bp2build_cc_library_static.a)"
 
     test_is_shared_library "${shared_library}"

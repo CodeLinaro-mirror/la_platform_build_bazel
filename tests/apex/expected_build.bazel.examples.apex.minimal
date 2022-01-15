@@ -1,7 +1,6 @@
-5,7c5,6
-< ./lib/arm/libbuild.bazel.examples.apex.minimal_dummy_cc_lib_bp2build_cc_library_shared_unstripped.so
-< ./lib/libbuild.bazel.examples.apex.minimal_dummy_cc_lib_bp2build_cc_library_shared_unstripped.so
-< ./lib64/libbuild.bazel.examples.apex.minimal_dummy_cc_lib_bp2build_cc_library_shared_unstripped.so
+5d4
+< ./lib/arm/build.bazel.examples.apex.minimal_dummy_cc_lib.so
+7c6
+< ./lib64/build.bazel.examples.apex.minimal_dummy_cc_lib.so
 ---
-> ./lib/build.bazel.examples.apex.minimal_dummy_cc_lib.so
 > ./lib/libc++.so
