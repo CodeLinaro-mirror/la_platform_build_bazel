@@ -40,7 +40,7 @@ function gettop
 AOSP_ROOT=`gettop`
 
 # Generate BUILD files into out/soong/bp2build
-"${AOSP_ROOT}/build/soong/soong_ui.bash" --make-mode bp2build --skip-soong-tests
+"${AOSP_ROOT}/build/soong/soong_ui.bash" --make-mode BP2BUILD_VERBOSE=1 bp2build --skip-soong-tests
 
 BUILD_FLAGS_LIST=(
   --color=no

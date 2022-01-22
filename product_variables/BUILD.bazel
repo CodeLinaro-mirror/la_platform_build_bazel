@@ -1,9 +1,18 @@
 """Constraints corresponding to product variables."""
 
 load(":constants.bzl", "constants")
+load(":settings.bzl", "soong_config_variables")
 
 package(default_visibility = ["//visibility:public"])
 
+# Unlike product config variables below, these are dynamically generated from
+# Soong, since the list of config variables are dynamically defined in
+# Android.bp files and not hardcoded into Soong.
+soong_config_variables(
+    bool_vars = constants.SoongConfigBoolVariables,
+    value_vars = constants.SoongConfigValueVariables,
+    string_vars = constants.SoongConfigStringVariables,
+)
 
 # Generate one constraint_value for each product_variable
 # The constraint_value for <var> can be within a select() to specify an
@@ -26,7 +35,7 @@ package(default_visibility = ["//visibility:public"])
     (constraint_setting(name = product_variable+"_constraint"),
    constraint_value(name = product_variable, constraint_setting = product_variable+"_constraint",)
    )
- for product_variable in constants.ProductVariables
+ for product_variable in constants.ProductVariables.keys()
 ]
 
 # Caution: do not use these arch-variant product variables directly.

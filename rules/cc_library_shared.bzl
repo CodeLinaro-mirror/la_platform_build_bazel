@@ -54,6 +54,7 @@ def cc_library_shared(
         use_libcrt = True,
         stl = "",
         cpp_std = "",
+        c_std = "",
         link_crt = True,
         additional_linker_inputs = None,
 
@@ -96,6 +97,7 @@ def cc_library_shared(
         rtti = rtti,
         stl = stl,
         cpp_std = cpp_std,
+        c_std = c_std,
         dynamic_deps = dynamic_deps,
         implementation_deps = implementation_deps,
         implementation_dynamic_deps = implementation_dynamic_deps,

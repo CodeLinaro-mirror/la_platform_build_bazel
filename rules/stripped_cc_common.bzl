@@ -47,9 +47,15 @@ def get_strip_args(attrs):
 
 # https://cs.android.com/android/platform/superproject/+/master:build/soong/cc/builder.go;l=131-146;drc=master
 def _stripped_impl(ctx, prefix = "", extension = ""):
+    out_file = ctx.actions.declare_file(prefix + ctx.attr.name + extension)
+    if not needs_strip(ctx.attr):
+      ctx.actions.symlink(
+          output = out_file,
+          target_file = ctx.files.src[0],
+      )
+      return out_file
     cc_toolchain = find_cpp_toolchain(ctx)
     d_file = ctx.actions.declare_file(ctx.attr.name + ".d")
-    out_file = ctx.actions.declare_file(prefix + ctx.attr.name + extension)
     ctx.actions.run(
         env = {
             "CREATE_MINIDEBUGINFO": ctx.executable._create_minidebuginfo.path,
@@ -134,14 +140,6 @@ common_attrs = {
 }
 
 def _stripped_shared_library_impl(ctx):
-    # If this library doesn't need to be stripped, return the DefaultInfo
-    # and CcSharedLibraryInfo as-is.
-    if not needs_strip(ctx.attr):
-        return [
-            DefaultInfo(files = ctx.attr.src[DefaultInfo].files),
-            ctx.attr.src[CcSharedLibraryInfo],
-        ]
-
     out_file = _stripped_impl(ctx, "lib", ".so")
 
     return [
@@ -153,32 +151,33 @@ stripped_shared_library = rule(
     implementation = _stripped_shared_library_impl,
     attrs = dict(
         common_attrs,
-        src = attr.label(mandatory = True, providers = [CcSharedLibraryInfo]),
+        src = attr.label(mandatory = True,  allow_single_file = True, providers = [CcSharedLibraryInfo]),
     ),
     toolchains = ["@bazel_tools//tools/cpp:toolchain_type"],
 )
 
 def _stripped_binary_impl(ctx):
-    # If this library doesn't need to be stripped, return the DefaultInfo
-    # and CcInfo as-is.
-    if not needs_strip(ctx.attr):
-        return [
-            DefaultInfo(files = ctx.attr.src[DefaultInfo].files),
-            ctx.attr.src[CcInfo],
-        ]
+    commonProviders = [
+        ctx.attr.src[CcInfo],
+        ctx.attr.src[InstrumentedFilesInfo],
+        ctx.attr.src[DebugPackageInfo],
+        ctx.attr.src[OutputGroupInfo],
+    ]
 
     out_file = _stripped_impl(ctx)
 
     return [
-        DefaultInfo(files = depset([out_file])),
-        ctx.attr.src[CcInfo],
-    ]
+        DefaultInfo(
+            files = depset([out_file]),
+            executable = out_file,
+            ),
+    ] + commonProviders
 
 stripped_binary = rule(
     implementation = _stripped_binary_impl,
     attrs = dict(
         common_attrs,
-        src = attr.label(mandatory = True, providers = [CcInfo]),
+        src = attr.label(mandatory = True, allow_single_file = True, providers = [CcInfo]),
     ),
     toolchains = ["@bazel_tools//tools/cpp:toolchain_type"],
 )

@@ -45,6 +45,7 @@ def cc_library(
         use_libcrt = True,
         stl = "",
         cpp_std = "",
+        c_std = "",
         strip = {},
         shared = {},  # attributes for the shared target
         static = {},  # attributes for the static target
@@ -82,6 +83,7 @@ def cc_library(
         rtti = rtti,
         stl = stl,
         cpp_std = cpp_std,
+        c_std = c_std,
         whole_archive_deps = whole_archive_deps + static.get("whole_archive_deps", []),
         implementation_deps = implementation_deps + static.get("implementation_deps", []),
         dynamic_deps = dynamic_deps + static.get("dynamic_deps", []),
@@ -120,6 +122,7 @@ def cc_library(
         rtti = rtti,
         stl = stl,
         cpp_std = cpp_std,
+        c_std = c_std,
         whole_archive_deps = whole_archive_deps + shared.get("whole_archive_deps", []),
         deps = deps + shared.get("deps", []),
         implementation_deps = implementation_deps + shared.get("implementation_deps", []),

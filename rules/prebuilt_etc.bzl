@@ -50,6 +50,8 @@ def prebuilt_etc(
         sub_dir = None,
         filename = None,
         installable = True,
+        # TODO(b/207489266): Fully support; data is currently simply dropped to prevent breakages.
+        data = [],
         **kwargs):
     "Bazel macro to correspond with the prebuilt_etc Soong module."
 

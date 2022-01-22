@@ -1,0 +1,11 @@
+py_binary(
+    name = "collect",
+    srcs = ["collect.py"],
+    python_version = "PY3",
+)
+
+py_binary(
+    name = "difftool",
+    srcs = ["difftool.py"],
+    python_version = "PY3",
+)

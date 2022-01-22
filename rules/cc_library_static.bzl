@@ -41,6 +41,7 @@ def cc_library_static(
         rtti = False,
         stl = "",
         cpp_std = "",
+        c_std = "",
         # Flags for C and C++
         copts = [],
         # C++ attributes
@@ -70,6 +71,8 @@ def cc_library_static(
         toolchain_features += ["use_libcrt"]
     if cpp_std:
         toolchain_features += [cpp_std, "-cpp_std_default"]
+    if c_std:
+        toolchain_features += [c_std, "-c_std_default"]
 
     if system_dynamic_deps == None:
         system_dynamic_deps = system_dynamic_deps_defaults

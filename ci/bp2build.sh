@@ -1,6 +1,7 @@
 #!/bin/bash -eux
-# Verifies that bp2build-generated BUILD files for bionic (and its dependencies)
-# result in successful Bazel builds.
+# Verifies that bp2build-generated BUILD files result in successful Bazel
+# builds.
+#
 # This verification script is designed to be used for continuous integration
 # tests, though may also be used for manual developer verification.
 
@@ -15,7 +16,7 @@ fi
 
 # Generate BUILD files into out/soong/bp2build
 AOSP_ROOT="$(dirname $0)/../../.."
-"${AOSP_ROOT}/build/soong/soong_ui.bash" --make-mode nothing --skip-soong-tests bp2build
+"${AOSP_ROOT}/build/soong/soong_ui.bash" --make-mode BP2BUILD_VERBOSE=1 nothing --skip-soong-tests bp2build
 
 # Remove the ninja_build output marker file to communicate to buildbot that this is not a regular Ninja build, and its
 # output should not be parsed as such.
@@ -60,7 +61,7 @@ tools/bazel --max_idle_secs=5 build ${BUILD_FLAGS} --platforms //build/bazel/pla
 ###########
 # Run tests
 ###########
-tools/bazel --max_idle_secs=5 test ${BUILD_FLAGS} ${TEST_FLAGS} //build/bazel/tests/...
+tools/bazel --max_idle_secs=5 test ${BUILD_FLAGS} ${TEST_FLAGS} //build/bazel/tests/... //build/bazel/rules/apex/...
 
 # Test copying of some files to $DIST_DIR (set above, or from the CI invocation).
 tools/bazel --max_idle_secs=5 run //build/bazel_common_rules/dist:dist_bionic_example --config=bp2build -- --dist_dir="${DIST_DIR}"
@@ -87,3 +88,6 @@ for m in "${BP2BUILD_PROGRESS_MODULES[@]}"; do
   "${bp2build_progress_script}" report "${m}" --use_queryview=true > "${bp2build_progress_output_dir}/${m}_report.txt"
   "${bp2build_progress_script}" graph "${m}" --use_queryview=true > "${bp2build_progress_output_dir}/${m}_graph.dot"
 done
+
+# Dist the entire workspace of generated BUILD files, rooted from out/soong/bp2build.
+tar -czvf "${DIST_DIR}/bp2build_generated_workspace.tar.gz" -C out/soong/bp2build .
