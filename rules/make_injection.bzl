@@ -74,5 +74,7 @@ Bazel rules toolchains without first converting them to Bazel.""",
     attrs = {
         "binaries": attr.string_list(default = [], doc = "A list of host binary modules built for linux-x86."),
         "target_module_files": attr.string_list_dict(default = {}, doc = "A dict of modules to the target files that should be exported."),
+        # See b/210399979
+        "watch_android_bp_files": attr.label_list(allow_files = [".bp"], default = [], doc = "A list of Android.bp files to watch for changes to invalidate this repository rule."),
     },
 )

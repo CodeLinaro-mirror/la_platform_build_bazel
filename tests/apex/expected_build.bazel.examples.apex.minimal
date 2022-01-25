@@ -1,6 +1,6 @@
-5d4
+6d5
 < ./lib/arm/build.bazel.examples.apex.minimal_dummy_cc_lib.so
-7c6
+8c7
 < ./lib64/build.bazel.examples.apex.minimal_dummy_cc_lib.so
 ---
 > ./lib/libc++.so

@@ -34,6 +34,8 @@ build --features no_copts_tokenization
 # Disable local cpp toolchain detection, as it is explicitly declared in AOSP.
 build --action_env=BAZEL_DO_NOT_DETECT_CPP_TOOLCHAIN=1
 
+build --proto_compiler=//external/protobuf:aprotoc
+
 # Disable sandboxing for CppCompile actions, as headers are not fully specified.
 # TODO(b/186116353): This is a temporary fix, as appropriately-sandboxed actions
 # are a long term goal.

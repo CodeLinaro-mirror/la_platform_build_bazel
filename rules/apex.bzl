@@ -17,6 +17,7 @@ limitations under the License.
 load(":apex_key.bzl", "ApexKeyInfo")
 load(":prebuilt_etc.bzl", "PrebuiltEtcInfo")
 load(":sh_binary.bzl", "ShBinaryInfo")
+load(":stripped_cc_common.bzl", "StrippedCcBinaryInfo")
 load(":android_app_certificate.bzl", "AndroidAppCertificateInfo")
 load("//build/bazel/rules/apex:transition.bzl", "apex_transition")
 load("//build/bazel/rules/apex:cc.bzl", "ApexCcInfo", "apex_cc_aspect")
@@ -60,20 +61,24 @@ def _prepare_apexer_wrapper_inputs(ctx):
 
     # Handle binaries
     for dep in ctx.attr.binaries:
-        # TODO: Support more binaries than just sh_binary
-        sh_binary_info = dep[ShBinaryInfo]
-        default_info = dep[DefaultInfo]
-        if sh_binary_info != None:
-            directory = "bin"
-            if sh_binary_info.sub_dir != None and sh_binary_info.sub_dir != "":
-                directory = "/".join([directory, sh_binary_info.sub_dir])
+        if ShBinaryInfo in dep:
+            # sh_binary requires special handling on directory/filename construction.
+            sh_binary_info = dep[ShBinaryInfo]
+            default_info = dep[DefaultInfo]
+            if sh_binary_info != None:
+                directory = "bin"
+                if sh_binary_info.sub_dir != None and sh_binary_info.sub_dir != "":
+                    directory = "/".join([directory, sh_binary_info.sub_dir])
 
-            if sh_binary_info.filename != None and sh_binary_info.filename != "":
-                filename = sh_binary_info.filename
-            else:
-                filename = dep.label.name
+                if sh_binary_info.filename != None and sh_binary_info.filename != "":
+                    filename = sh_binary_info.filename
+                else:
+                    filename = dep.label.name
 
-            apex_manifest[(directory, filename)] = default_info.files_to_run.executable
+                apex_manifest[(directory, filename)] = default_info.files_to_run.executable
+        elif CcInfo in dep:
+            # cc_binary just takes the final executable from the runfiles.
+            apex_manifest[("bin", dep.label.name)] = dep[DefaultInfo].files_to_run.executable
 
     apex_content_inputs = []
 
@@ -191,8 +196,19 @@ _apex = rule(
         "min_sdk_version": attr.string(),
         "updatable": attr.bool(default = True),
         "installable": attr.bool(default = True),
-        "native_shared_libs": attr.label_list(providers = [ApexCcInfo], aspects = [apex_cc_aspect], cfg = apex_transition),
-        "binaries": attr.label_list(providers = [ShBinaryInfo], cfg = apex_transition),
+        "native_shared_libs": attr.label_list(
+            providers = [ApexCcInfo],
+            aspects = [apex_cc_aspect],
+            cfg = apex_transition
+        ),
+        "binaries": attr.label_list(
+            providers = [
+                # The dependency must produce _all_ of the providers in _one_ of these lists.
+                [ShBinaryInfo], # sh_binary
+                [StrippedCcBinaryInfo, CcInfo], # cc_binary (stripped)
+            ],
+            cfg = apex_transition
+        ),
         "prebuilts": attr.label_list(providers = [PrebuiltEtcInfo], cfg = apex_transition),
         # Required to use apex_transition. This is an acknowledgement to the risks of memory bloat when using transitions.
         "_allowlist_function_transition": attr.label(default = "@bazel_tools//tools/allowlists/function_transition_allowlist"),

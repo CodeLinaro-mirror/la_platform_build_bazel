@@ -37,6 +37,10 @@ make_injection_repository(
         "com.android.adbd": ["system/apex/com.android.adbd.apex"],
         "build.bazel.examples.apex.minimal": ["system/product/apex/build.bazel.examples.apex.minimal.apex"],
     },
+    watch_android_bp_files = [
+        "//:build/bazel/examples/apex/minimal/Android.bp", # for build.bazel.examples.apex.minimal
+        # TODO(b/210399979) - add the other .bp files to watch for the other modules built in these rule
+    ],
 )
 
 local_repository(

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-load(":cc_library_common.bzl", "system_dynamic_deps_defaults")
+load(":cc_library_common.bzl", "create_ccinfo_for_includes", "system_dynamic_deps_defaults")
 load(":stl.bzl", "static_stl_deps")
 load("@bazel_skylib//lib:collections.bzl", "collections")
 load("@rules_cc//cc:find_cc_toolchain.bzl", "find_cpp_toolchain")
@@ -30,6 +30,7 @@ def cc_library_static(
         dynamic_deps = [],
         implementation_dynamic_deps = [],
         whole_archive_deps = [],
+        implementation_whole_archive_deps = [],
         system_dynamic_deps = None,
         export_includes = [],
         export_system_includes = [],
@@ -54,8 +55,13 @@ def cc_library_static(
         srcs_as = [],
         asflags = [],
         features = [],
-        alwayslink = None):
+        alwayslink = None,
+        target_compatible_with = [],
+        # TODO(b/202299295): Handle data attribute.
+        data = [],
+        use_version_lib = False):
     "Bazel macro to correspond with the cc_library_static Soong module."
+
     exports_name = "%s_exports" % name
     locals_name = "%s_locals" % name
     cpp_name = "%s_cpp" % name
@@ -64,6 +70,10 @@ def cc_library_static(
 
     toolchain_features = []
     toolchain_features += features
+
+    if use_version_lib:
+      libbuildversionLabel = "//build/soong/cc/libbuildversion:libbuildversion"
+      whole_archive_deps = whole_archive_deps + [libbuildversionLabel]
 
     if rtti:
         toolchain_features += ["rtti"]
@@ -89,7 +99,7 @@ def cc_library_static(
         name = locals_name,
         includes = local_includes,
         absolute_includes = absolute_includes,
-        deps = implementation_deps + implementation_dynamic_deps + system_dynamic_deps + static_stl_deps(stl),
+        deps = implementation_deps + implementation_dynamic_deps + system_dynamic_deps + static_stl_deps(stl) + implementation_whole_archive_deps,
     )
 
     # Silently drop these attributes for now:
@@ -131,7 +141,7 @@ def cc_library_static(
     # Root target to handle combining of the providers of the language-specific targets.
     _cc_library_combiner(
         name = name,
-        deps = [cpp_name, c_name, asm_name] + whole_archive_deps,
+        deps = [cpp_name, c_name, asm_name] + whole_archive_deps + implementation_whole_archive_deps,
     )
 
 # Returns a CcInfo object which combines one or more CcInfo objects, except that all
@@ -218,7 +228,7 @@ def _cc_library_combiner_impl(ctx):
         outputs = [output_file],
     )
     return [
-        DefaultInfo(files = depset([output_file])),
+        DefaultInfo(files = depset(direct = [output_file]), data_runfiles = ctx.runfiles(files = [output_file])),
         CcInfo(compilation_context = combined_info.compilation_context, linking_context = linking_context),
         CcStaticLibraryInfo(root_static_archive = output_file, objects = objects_to_link),
     ]
@@ -246,46 +256,14 @@ _cc_library_combiner = rule(
     fragments = ["cpp"],
 )
 
-# get_includes_paths expects a rule context, a list of directories, and
-# whether the directories are package-relative and returns a list of exec
-# root-relative paths. This handles the need to search for files both in the
-# source tree and generated files.
-def get_includes_paths(ctx, dirs, package_relative = True):
-    execution_relative_dirs = []
-    for rel_dir in dirs:
-        if rel_dir == ".":
-            rel_dir = ""
-        execution_rel_dir = rel_dir
-        if package_relative:
-            execution_rel_dir = ctx.label.package
-            if len(rel_dir) > 0:
-                execution_rel_dir = execution_rel_dir + "/" + rel_dir
-        execution_relative_dirs.append(execution_rel_dir)
-
-        # to support generated files, we also need to export includes relatives to the bin directory
-        if not execution_rel_dir.startswith("/"):
-            execution_relative_dirs.append(ctx.bin_dir.path + "/" + execution_rel_dir)
-    return execution_relative_dirs
-
 def _cc_includes_impl(ctx):
-    cc_toolchain = find_cpp_toolchain(ctx)
-
-    # Create a compilation context using the string includes of this target.
-    compilation_context = cc_common.create_compilation_context(
-        includes = depset(
-            get_includes_paths(ctx, ctx.attr.includes) +
-            get_includes_paths(ctx, ctx.attr.absolute_includes, package_relative = False),
-        ),
-        system_includes = depset(get_includes_paths(ctx, ctx.attr.system_includes)),
-    )
-
-    # Combine this target's compilation context with those of the deps; use only
-    # the compilation context of the combined CcInfo.
-    cc_infos = [dep[CcInfo] for dep in ctx.attr.deps]
-    cc_infos += [CcInfo(compilation_context = compilation_context)]
-    combined_info = cc_common.merge_cc_infos(cc_infos = cc_infos)
-
-    return [CcInfo(compilation_context = combined_info.compilation_context)]
+    return [create_ccinfo_for_includes(
+        ctx,
+        includes = ctx.attr.includes,
+        absolute_includes = ctx.attr.absolute_includes,
+        system_includes = ctx.attr.system_includes,
+        deps = ctx.attr.deps,
+    )]
 
 # Bazel's native cc_library rule supports specifying include paths two ways:
 # 1. non-exported includes can be specified via copts attribute

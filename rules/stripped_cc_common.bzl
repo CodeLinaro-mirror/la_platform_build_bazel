@@ -156,12 +156,17 @@ stripped_shared_library = rule(
     toolchains = ["@bazel_tools//tools/cpp:toolchain_type"],
 )
 
+# A marker provider to distinguish a cc_binary from everything else that exports
+# a CcInfo.
+StrippedCcBinaryInfo = provider()
+
 def _stripped_binary_impl(ctx):
-    commonProviders = [
+    common_providers = [
         ctx.attr.src[CcInfo],
         ctx.attr.src[InstrumentedFilesInfo],
         ctx.attr.src[DebugPackageInfo],
         ctx.attr.src[OutputGroupInfo],
+        StrippedCcBinaryInfo(), # a marker for dependents
     ]
 
     out_file = _stripped_impl(ctx)
@@ -170,8 +175,8 @@ def _stripped_binary_impl(ctx):
         DefaultInfo(
             files = depset([out_file]),
             executable = out_file,
-            ),
-    ] + commonProviders
+        ),
+    ] + common_providers
 
 stripped_binary = rule(
     implementation = _stripped_binary_impl,

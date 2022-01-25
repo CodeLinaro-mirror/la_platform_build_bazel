@@ -15,8 +15,7 @@ limitations under the License.
 """
 
 load("@rules_cc//cc:find_cc_toolchain.bzl", "find_cpp_toolchain")
-load(":cc_library_common.bzl", "system_dynamic_deps_defaults")
-load(":cc_library_static.bzl", "get_includes_paths")
+load(":cc_library_common.bzl", "get_includes_paths","system_dynamic_deps_defaults")
 load(":cc_constants.bzl", "constants")
 load(":stl.bzl", "static_stl_deps")
 
