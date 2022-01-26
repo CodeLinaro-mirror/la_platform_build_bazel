@@ -1,4 +1,20 @@
-load(":cc_library_common.bzl", "add_lists_defaulting_to_none")
+"""
+Copyright (C) 2021 The Android Open Source Project
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
+
+load(":cc_library_common.bzl", "add_lists_defaulting_to_none", "disable_crt_link")
 load(":cc_library_shared.bzl", "CcSharedLibraryInfo", "CcTocInfo", "cc_library_shared")
 load(":cc_library_static.bzl", "CcStaticLibraryInfo", "cc_library_static")
 
@@ -25,20 +41,28 @@ def cc_library(
         absolute_includes = [],
         linkopts = [],
         rtti = False,
+        link_crt = True,
         use_libcrt = True,
         stl = "",
-        user_link_flags = [],
-        version_script = None,
+        cpp_std = "",
         strip = {},
         shared = {},  # attributes for the shared target
         static = {},  # attributes for the static target
+        additional_linker_inputs = None,
         **kwargs):
     static_name = name + "_bp2build_cc_library_static"
     shared_name = name + "_bp2build_cc_library_shared"
 
     features = []
+    if "features" in kwargs:
+        features += kwargs["features"]
     if not use_libcrt:
         features += ["-use_libcrt"]
+
+    # Force crtbegin and crtend linking unless explicitly disabled (i.e. bionic
+    # libraries do this)
+    if link_crt == False:
+        features = disable_crt_link(features)
 
     # The static version of the library.
     cc_library_static(
@@ -55,9 +79,9 @@ def cc_library(
         export_system_includes = export_system_includes,
         local_includes = local_includes,
         absolute_includes = absolute_includes,
-        linkopts = linkopts,
         rtti = rtti,
         stl = stl,
+        cpp_std = cpp_std,
         whole_archive_deps = whole_archive_deps + static.get("whole_archive_deps", []),
         implementation_deps = implementation_deps + static.get("implementation_deps", []),
         dynamic_deps = dynamic_deps + static.get("dynamic_deps", []),
@@ -92,8 +116,10 @@ def cc_library(
         local_includes = local_includes,
         absolute_includes = absolute_includes,
         linkopts = linkopts,
+        additional_linker_inputs = additional_linker_inputs,
         rtti = rtti,
         stl = stl,
+        cpp_std = cpp_std,
         whole_archive_deps = whole_archive_deps + shared.get("whole_archive_deps", []),
         deps = deps + shared.get("deps", []),
         implementation_deps = implementation_deps + shared.get("implementation_deps", []),
@@ -103,9 +129,9 @@ def cc_library(
         ),
 
         # Shared library arguments
-        user_link_flags = user_link_flags,
-        version_script = version_script,
         strip = strip,
+        link_crt = link_crt,
+        soname = name + ".so",
     )
 
     _cc_library_proxy(
@@ -126,7 +152,12 @@ def _cc_library_proxy_impl(ctx):
         CcInfo(compilation_context = ctx.attr.static[CcInfo].compilation_context),
         DefaultInfo(
             files = depset(direct = files),
-            runfiles = ctx.runfiles(files = files),
+            # Runfiles to be added if this is referenced via the "data" attribute, generally
+            # for tests.
+            data_runfiles = ctx.runfiles(files = files),
+            # Shared library runfiles -- to indicate that only the shared library output needs to be
+            # present at runtime (as a dynamic dependency).
+            default_runfiles = ctx.runfiles(files = ctx.attr.shared[DefaultInfo].default_runfiles.files.to_list()),
         ),
         ctx.attr.static[CcStaticLibraryInfo],
     ]

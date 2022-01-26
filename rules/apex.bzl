@@ -1,8 +1,24 @@
+"""
+Copyright (C) 2021 The Android Open Source Project
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
+
 load(":apex_key.bzl", "ApexKeyInfo")
 load(":prebuilt_etc.bzl", "PrebuiltEtcInfo")
 load(":android_app_certificate.bzl", "AndroidAppCertificateInfo")
 load("//build/bazel/rules/apex:transition.bzl", "apex_transition")
-load("//build/bazel/rules/apex:cc.bzl", "apex_cc_aspect", "ApexCcInfo")
+load("//build/bazel/rules/apex:cc.bzl", "ApexCcInfo", "apex_cc_aspect")
 
 # Create input dir for the APEX filesystem image (as a tree artifact).
 def _prepare_input_dir(ctx):
@@ -20,13 +36,13 @@ def _prepare_input_dir(ctx):
         # Then ApexCcInfo would only return a single lib_files field
 
         for lib_file in apex_cc_info.lib_files:
-          apex_manifest[("lib", lib_file.basename)] = lib_file
+            apex_manifest[("lib", lib_file.basename)] = lib_file
 
         for lib64_file in apex_cc_info.lib64_files:
-          apex_manifest[("lib64", lib64_file.basename)] = lib64_file
+            apex_manifest[("lib64", lib64_file.basename)] = lib64_file
 
         for lib_arm_file in apex_cc_info.lib_arm_files:
-          apex_manifest[("lib/arm", lib_arm_file.basename)] = lib_arm_file
+            apex_manifest[("lib/arm", lib_arm_file.basename)] = lib_arm_file
 
     # Handle prebuilts
     for dep in ctx.attr.prebuilts:
@@ -38,11 +54,11 @@ def _prepare_input_dir(ctx):
             directory = "/".join([directory, prebuilt_etc_info.sub_dir])
 
         if prebuilt_etc_info.filename != None and prebuilt_etc_info.filename != "":
-           filename = prebuilt_etc_info.filename
+            filename = prebuilt_etc_info.filename
         else:
-           filename = dep.label.name
+            filename = dep.label.name
 
-        apex_manifest[(directory,filename)] = prebuilt_etc_info.src
+        apex_manifest[(directory, filename)] = prebuilt_etc_info.src
 
     bazel_inputs = []
 
@@ -53,18 +69,18 @@ def _prepare_input_dir(ctx):
     apex_filepaths = []
     shell_commands = []
     for (apex_dirname, apex_basename), bazel_out_file in apex_manifest.items():
-      bazel_inputs.append(bazel_out_file)
-      apex_filepath = "/".join([apex_dirname, apex_basename])
-      apex_filepaths.append(apex_filepath)
-      apex_subdirs.append(apex_dirname)
+        bazel_inputs.append(bazel_out_file)
+        apex_filepath = "/".join([apex_dirname, apex_basename])
+        apex_filepaths.append(apex_filepath)
+        apex_subdirs.append(apex_dirname)
 
-      # Add a shell command to make the APEX image subdirectory
-      full_apex_dirname = "/".join([input_dir.path, apex_dirname])
-      shell_commands.append("mkdir -p %s" % (full_apex_dirname))
+        # Add a shell command to make the APEX image subdirectory
+        full_apex_dirname = "/".join([input_dir.path, apex_dirname])
+        shell_commands.append("mkdir -p %s" % (full_apex_dirname))
 
-      # Add a shell command to copy the Bazel built lib into the APEX image subdirectory
-      full_apex_filepath = "/".join([input_dir.path, apex_filepath])
-      shell_commands.append("cp -f %s %s" % (bazel_out_file.path, full_apex_filepath))
+        # Add a shell command to copy the Bazel built lib into the APEX image subdirectory
+        full_apex_filepath = "/".join([input_dir.path, apex_filepath])
+        shell_commands.append("cp -f %s %s" % (bazel_out_file.path, full_apex_filepath))
 
     shell_command_string = " && ".join(shell_commands)
 
@@ -78,12 +94,12 @@ def _prepare_input_dir(ctx):
     # Make sure subdirs are unique (Starlark doesn't support sets, so use a map hack)
     apex_subdirs_set = {}
     for d in apex_subdirs:
-      apex_subdirs_set[d] = True
+        apex_subdirs_set[d] = True
 
-      # Make sure all the parent dirs of the current subdir are in the set, too
-      dirs = d.split("/")
-      for i in range(0, len(dirs)):
-        apex_subdirs_set["/".join(dirs[:i])] = True
+        # Make sure all the parent dirs of the current subdir are in the set, too
+        dirs = d.split("/")
+        for i in range(0, len(dirs)):
+            apex_subdirs_set["/".join(dirs[:i])] = True
 
     return input_dir, apex_subdirs_set.keys(), apex_filepaths
 
@@ -99,13 +115,13 @@ def _convert_apex_manifest_json_to_pb(ctx, apex_toolchain):
         arguments = [
             "proto",
             apex_manifest_json.path,
-            "-o", apex_manifest_pb.path
+            "-o",
+            apex_manifest_pb.path,
         ],
-        mnemonic = "ConvApexManifest"
+        mnemonic = "ConvApexManifest",
     )
 
     return apex_manifest_pb
-
 
 # Generate filesystem config. This encodes the filemode, uid, and gid of each
 # file in the APEX, including apex_manifest.json and apex_manifest.pb.
@@ -155,26 +171,27 @@ def _run_apexer(ctx, apex_toolchain, input_dir, apex_manifest_pb, canned_fs_conf
 
     # Input dir
     args.add(input_dir.path)
+
     # Output APEX
     args.add(apex_output.path)
 
     inputs = [
-            input_dir,
-            apex_manifest_pb,
-            file_contexts,
-            canned_fs_config,
-            privkey,
-            pubkey,
-            android_jar,
-            apex_toolchain.mke2fs,
-            apex_toolchain.e2fsdroid,
-            apex_toolchain.sefcontext_compile,
-            apex_toolchain.resize2fs,
-            apex_toolchain.avbtool,
-            apex_toolchain.aapt2,
+        input_dir,
+        apex_manifest_pb,
+        file_contexts,
+        canned_fs_config,
+        privkey,
+        pubkey,
+        android_jar,
+        apex_toolchain.mke2fs,
+        apex_toolchain.e2fsdroid,
+        apex_toolchain.sefcontext_compile,
+        apex_toolchain.resize2fs,
+        apex_toolchain.avbtool,
+        apex_toolchain.aapt2,
     ]
     if android_manifest != None:
-      inputs.append(android_manifest)
+        inputs.append(android_manifest)
 
     ctx.actions.run(
         inputs = inputs,
@@ -188,7 +205,6 @@ def _run_apexer(ctx, apex_toolchain, input_dir, apex_manifest_pb, canned_fs_conf
     )
 
     return apex_output
-
 
 # See the APEX section in the README on how to use this rule.
 def _apex_rule_impl(ctx):
@@ -224,19 +240,19 @@ _apex = rule(
 )
 
 def apex(
-    name,
-    manifest = "apex_manifest.json",
-    android_manifest = None,
-    file_contexts = None,
-    key = None,
-    certificate = None,
-    min_sdk_version = None,
-    updatable = True,
-    installable = True,
-    native_shared_libs = [],
-    binaries = [],
-    prebuilts = [],
-    **kwargs):
+        name,
+        manifest = "apex_manifest.json",
+        android_manifest = None,
+        file_contexts = None,
+        key = None,
+        certificate = None,
+        min_sdk_version = None,
+        updatable = True,
+        installable = True,
+        native_shared_libs = [],
+        binaries = [],
+        prebuilts = [],
+        **kwargs):
     "Bazel macro to correspond with the APEX bundle Soong module."
 
     # If file_contexts is not specified, then use the default from //system/sepolicy/apex.
@@ -257,5 +273,5 @@ def apex(
         native_shared_libs = native_shared_libs,
         binaries = binaries,
         prebuilts = prebuilts,
-        **kwargs,
+        **kwargs
     )
