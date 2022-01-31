@@ -18,23 +18,23 @@ Tip: `--use_queryview=true` allows running `bp2build-progress.py` without `jq`.
 # Generate the report for a module, e.g. adbd
 
 ```
-./bp2build-progress.py report adbd
+./bp2build-progress.py report -m adbd
 ```
 
 or:
 
 ```
-./bp2build-progress.py report adbd --use_queryview=true
+./bp2build-progress.py report -m adbd --use_queryview=true
 ```
 
 # Generate the report for a module, e.g. adbd
 
 ```
-./bp2build-progress.py graph adbd > /tmp/graph.in && dot -Tpng -o /tmp/graph.png /tmp/graph.in
+./bp2build-progress.py graph -m adbd > /tmp/graph.in && dot -Tpng -o /tmp/graph.png /tmp/graph.in
 ```
 
 or:
 
 ```
-./bp2build-progress.py graph adbd --use_queryview=true > /tmp/graph.in && dot -Tpng -o /tmp/graph.png /tmp/graph.in
+./bp2build-progress.py graph -m adbd --use_queryview=true > /tmp/graph.in && dot -Tpng -o /tmp/graph.png /tmp/graph.in
 ```

@@ -94,3 +94,29 @@ def create_ccinfo_for_includes(
     combined_info = cc_common.merge_cc_infos(cc_infos = cc_infos)
 
     return CcInfo(compilation_context = combined_info.compilation_context)
+
+
+def is_external_directory(package_name):
+  if package_name.startswith('external'):
+    return True
+  if package_name.startswith('hardware'):
+    paths = package_name.split("/")
+    if len(paths) < 2:
+      return True
+    secondary_path = paths[1]
+    if secondary_path in ["google", "interfaces", "ril"]:
+      return True
+    return secondary_path.startswith("libhardware")
+  if package_name.startswith("vendor"):
+    paths = package_name.split("/")
+    if len(paths) < 2:
+      return True
+    secondary_path = paths[1]
+    return secondary_path.contains("google")
+  return False
+
+
+
+
+
+

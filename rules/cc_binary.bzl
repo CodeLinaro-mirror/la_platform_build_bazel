@@ -45,6 +45,7 @@ def cc_binary(
         additional_linker_inputs = None,
         strip = {},
         features = [],
+        target_compatible_with = [],
         **kwargs):
     "Bazel macro to correspond with the cc_library_shared Soong module."
 
@@ -104,6 +105,7 @@ def cc_binary(
         srcs_c = srcs_c,
         stl = stl,
         system_dynamic_deps = system_dynamic_deps,
+        target_compatible_with = target_compatible_with,
     )
 
     binary_dynamic_deps = add_lists_defaulting_to_none(
@@ -119,10 +121,12 @@ def cc_binary(
         features = toolchain_features,
         linkopts = linkopts,
         additional_linker_inputs = additional_linker_inputs,
+        target_compatible_with = target_compatible_with,
         **kwargs
     )
 
     stripped_binary(
         name = name,
         src = unstripped_name,
+        target_compatible_with = target_compatible_with,
     )

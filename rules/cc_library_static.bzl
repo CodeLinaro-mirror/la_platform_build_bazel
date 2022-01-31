@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-load(":cc_library_common.bzl", "create_ccinfo_for_includes", "system_dynamic_deps_defaults")
+load(":cc_library_common.bzl", "create_ccinfo_for_includes", "is_external_directory", "system_dynamic_deps_defaults")
 load(":stl.bzl", "static_stl_deps")
 load("@bazel_skylib//lib:collections.bzl", "collections")
 load("@rules_cc//cc:find_cc_toolchain.bzl", "find_cpp_toolchain")
@@ -32,6 +32,7 @@ def cc_library_static(
         whole_archive_deps = [],
         implementation_whole_archive_deps = [],
         system_dynamic_deps = None,
+        export_absolute_includes = [],
         export_includes = [],
         export_system_includes = [],
         local_includes = [],
@@ -71,6 +72,12 @@ def cc_library_static(
     toolchain_features = []
     toolchain_features += features
 
+    if is_external_directory(native.package_name()):
+      toolchain_features += [
+          "-non_external_compiler_flags",
+          "external_compiler_flags",
+      ]
+
     if use_version_lib:
       libbuildversionLabel = "//build/soong/cc/libbuildversion:libbuildversion"
       whole_archive_deps = whole_archive_deps + [libbuildversionLabel]
@@ -90,9 +97,11 @@ def cc_library_static(
     _cc_includes(
         name = exports_name,
         includes = export_includes,
+        absolute_includes = export_absolute_includes,
         system_includes = export_system_includes,
         # whole archive deps always re-export their includes, etc
         deps = deps + whole_archive_deps + dynamic_deps,
+        target_compatible_with = target_compatible_with,
     )
 
     _cc_includes(
@@ -100,6 +109,7 @@ def cc_library_static(
         includes = local_includes,
         absolute_includes = absolute_includes,
         deps = implementation_deps + implementation_dynamic_deps + system_dynamic_deps + static_stl_deps(stl) + implementation_whole_archive_deps,
+        target_compatible_with = target_compatible_with,
     )
 
     # Silently drop these attributes for now:
@@ -116,6 +126,7 @@ def cc_library_static(
             ("features", toolchain_features),
             ("toolchains", ["//build/bazel/platforms:android_target_product_vars"]),
             ("alwayslink", alwayslink),
+            ("target_compatible_with", target_compatible_with)
         ],
     )
 
@@ -142,6 +153,7 @@ def cc_library_static(
     _cc_library_combiner(
         name = name,
         deps = [cpp_name, c_name, asm_name] + whole_archive_deps + implementation_whole_archive_deps,
+        target_compatible_with = target_compatible_with,
     )
 
 # Returns a CcInfo object which combines one or more CcInfo objects, except that all

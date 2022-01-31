@@ -15,7 +15,7 @@ limitations under the License.
 """
 
 load("@rules_cc//cc:find_cc_toolchain.bzl", "find_cpp_toolchain")
-load(":cc_library_common.bzl", "get_includes_paths","system_dynamic_deps_defaults")
+load(":cc_library_common.bzl", "is_external_directory", "get_includes_paths","system_dynamic_deps_defaults")
 load(":cc_constants.bzl", "constants")
 load(":stl.bzl", "static_stl_deps")
 
@@ -53,11 +53,8 @@ def split_srcs_hdrs(files):
 def _cc_object_impl(ctx):
     cc_toolchain = ctx.toolchains["//prebuilts/clang/host/linux-x86:nocrt_toolchain"].cc
 
-    feature_configuration = cc_common.configure_features(
-        ctx = ctx,
-        cc_toolchain = cc_toolchain,
-        requested_features = ctx.features,
-        unsupported_features = ctx.disabled_features + [
+    extra_features = []
+    extra_disabled_features = [
             "disable_pack_relocations",
             "dynamic_executable",
             "dynamic_linker",
@@ -67,7 +64,16 @@ def _cc_object_impl(ctx):
             "strip_debug_symbols",
             # TODO(cparsons): Look into disabling this feature for nocrt toolchain?
             "use_libcrt",
-        ],
+        ]
+    if is_external_directory(ctx.label.package):
+      extra_disabled_features.append("non_external_compiler_flags")
+      extra_features.append("external_compiler_flags")
+
+    feature_configuration = cc_common.configure_features(
+        ctx = ctx,
+        cc_toolchain = cc_toolchain,
+        requested_features = ctx.features + extra_features,
+        unsupported_features = ctx.disabled_features + extra_disabled_features,
     )
 
     compilation_contexts = []

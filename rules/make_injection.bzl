@@ -17,6 +17,9 @@ limitations under the License.
 # A repository rule to run soong_ui --make-mode to provide the Bazel standalone
 # build with prebuilts from Make/Soong that Bazel can't build yet.
 def _impl(rctx):
+    target_product = rctx.os.environ.get("TARGET_PRODUCT", "aosp_arm")
+    target_build_variant = rctx.os.environ.get("TARGET_BUILD_VARIANT", "eng")
+
     binaries = rctx.attr.binaries
     target_modules = rctx.attr.target_module_files
 
@@ -36,9 +39,8 @@ def _impl(rctx):
         args,
         environment = {
             "OUT_DIR": out_dir,
-            # TODO(b/196224107): Make these customizable based on product config inputs.
-            "TARGET_PRODUCT": "aosp_arm",
-            "TARGET_BUILD_VARIANT": "userdebug",
+            "TARGET_PRODUCT": target_product,
+            "TARGET_BUILD_VARIANT": target_build_variant,
             "TOP": str(build_dir.dirname.dirname.dirname),
         },
         quiet = False,  # stream stdout so it shows progress
@@ -77,4 +79,5 @@ Bazel rules toolchains without first converting them to Bazel.""",
         # See b/210399979
         "watch_android_bp_files": attr.label_list(allow_files = [".bp"], default = [], doc = "A list of Android.bp files to watch for changes to invalidate this repository rule."),
     },
+    environ = ["TARGET_PRODUCT", "TARGET_BUILD_VARIANT"],
 )

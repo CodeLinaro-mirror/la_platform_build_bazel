@@ -16,7 +16,12 @@ fi
 
 # Generate BUILD files into out/soong/bp2build
 AOSP_ROOT="$(dirname $0)/../../.."
-"${AOSP_ROOT}/build/soong/soong_ui.bash" --make-mode BP2BUILD_VERBOSE=1 nothing --skip-soong-tests bp2build
+"${AOSP_ROOT}/build/soong/soong_ui.bash" --make-mode BP2BUILD_VERBOSE=1 --skip-soong-tests bp2build dist
+
+# Dist the entire workspace of generated BUILD files, rooted from
+# out/soong/bp2build. This is done early so it's available even if builds/tests
+# fail.
+tar -czf "${DIST_DIR}/bp2build_generated_workspace.tar.gz" -C out/soong/bp2build .
 
 # Remove the ninja_build output marker file to communicate to buildbot that this is not a regular Ninja build, and its
 # output should not be parsed as such.
@@ -42,15 +47,20 @@ TEST_FLAGS="${TEST_FLAGS_LIST[@]}"
 # Build targets
 ###############
 BUILD_TARGETS_LIST=(
+  //art/...
   //bionic/...
   //bootable/recovery/tools/recovery_l10n/...
   //build/...
+  //cts/...
   //development/...
   //external/...
   //frameworks/...
+  //libnativehelper/...
   //packages/...
   //prebuilts/clang/host/linux-x86:all
   //system/...
+  //tools/apksig/...
+  //tools/platform-compat/...
 )
 BUILD_TARGETS="${BUILD_TARGETS_LIST[@]}"
 # Iterate over various architectures supported in the platform build.
@@ -85,10 +95,10 @@ bp2build_progress_script="${AOSP_ROOT}/build/bazel/scripts/bp2build-progress/bp2
 bp2build_progress_output_dir="${DIST_DIR}/bp2build-progress"
 mkdir -p "${bp2build_progress_output_dir}"
 
+report_args=""
 for m in "${BP2BUILD_PROGRESS_MODULES[@]}"; do
-  "${bp2build_progress_script}" report "${m}" --use_queryview=true > "${bp2build_progress_output_dir}/${m}_report.txt"
-  "${bp2build_progress_script}" graph "${m}" --use_queryview=true > "${bp2build_progress_output_dir}/${m}_graph.dot"
+  report_args="$report_args -m ""${m}"
+  "${bp2build_progress_script}" graph  -m "${m}" --use_queryview=true > "${bp2build_progress_output_dir}/${m}_graph.dot"
 done
 
-# Dist the entire workspace of generated BUILD files, rooted from out/soong/bp2build.
-tar -czf "${DIST_DIR}/bp2build_generated_workspace.tar.gz" -C out/soong/bp2build .
+"${bp2build_progress_script}" report ${report_args} --use_queryview=true > "${bp2build_progress_output_dir}/progress_report.txt"

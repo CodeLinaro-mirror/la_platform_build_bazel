@@ -1,0 +1,10 @@
+3a4,12
+> ./lib/libadb_pairing_auth.so
+> ./lib/libadb_pairing_connection.so
+> ./lib/libadb_pairing_server.so
+> ./lib/libadbconnection_client.so
+> ./lib/libbase.so
+> ./lib/libc++.so
+> ./lib/libcrypto.so
+> ./lib/libcrypto_utils.so
+> ./lib/libcutils.so

@@ -109,4 +109,6 @@ apex {
     binaries: [
         "build.bazel.examples.apex.cc_binary",
     ],
+
+    certificate: ":build.bazel.examples.apex.minimal.certificate"
 }
