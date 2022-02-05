@@ -16,6 +16,7 @@ limitations under the License.
 
 load(":cc_library_common.bzl", "add_lists_defaulting_to_none", "disable_crt_link", "system_dynamic_deps_defaults")
 load(":cc_library_static.bzl", "cc_library_static")
+load(":cc_stub_library.bzl", "cc_stub_library")
 load(":generate_toc.bzl", "shared_library_toc", _CcTocInfo = "CcTocInfo")
 load(":stl.bzl", "shared_stl_deps")
 load(":stripped_cc_common.bzl", "stripped_shared_library")
@@ -67,6 +68,9 @@ def cc_library_shared(
         data = [],
 
         use_version_lib = False,
+
+        stubs_symbol_file = None,
+        stubs_versions = [],
         **kwargs):
     "Bazel macro to correspond with the cc_library_shared Soong module."
 
@@ -177,6 +181,29 @@ def cc_library_shared(
         src = stripped_name,
         target_compatible_with = target_compatible_with,
     )
+
+    # Emit the stub version of this library (e.g. for libraries that are
+    # provided by the NDK)
+    #
+    # TODO(b/207812332): This only calls ndkstubgen to generate the src now.
+    # Make this compile into an .so as well, and include the stub .so in a
+    # _cc_library_shared_proxy provider so dependents can easily determine if
+    # this target has stubs for a specific API version.
+    if stubs_symbol_file and len(stubs_versions) > 0:
+        # TODO(b/193663198): This unconditionally creates stubs for every version, but
+        # that's not always true depending on whether this module is available
+        # on the host, ramdisk, vendor ramdisk. We currently don't have
+        # information about the image variant yet, so we'll create stub targets
+        # for all shared libraries with the stubs property for now.
+        #
+        # See: https://cs.android.com/android/platform/superproject/+/master:build/soong/cc/library.go;l=2316-2377;drc=3d3b35c94ed2a3432b2e5e7e969a3a788a7a80b5
+        for version in stubs_versions:
+            stubs_library_name = "_".join([name, version, "stubs"])
+            cc_stub_library(
+                name = stubs_library_name,
+                symbol_file = stubs_symbol_file,
+                version = version,
+            )
 
     _cc_library_shared_proxy(
         name = name,

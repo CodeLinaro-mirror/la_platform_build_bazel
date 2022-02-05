@@ -23,72 +23,80 @@ product_variable_config(
 
 # Linux is the OS
 # for the Linux kernel plus the glibc runtime.
-platform(
+android_platform(
     name = "linux_x86",
     constraint_values = [
         "//build/bazel/platforms/arch:x86",
         "//build/bazel/platforms/os:linux",
     ],
+    product = ":android_target",
 )
 
-platform(
+android_platform(
     name = "linux_x86_64",
     constraint_values = [
         "//build/bazel/platforms/arch:x86_64",
         "//build/bazel/platforms/os:linux",
     ],
+    product = ":android_target",
 )
 
 # linux_bionic is the OS for the Linux kernel plus the Bionic libc runtime, but
 # without the rest of Android.
-platform(
+android_platform(
     name = "linux_bionic_arm64",
     constraint_values = [
         "//build/bazel/platforms/arch:arm64",
         "//build/bazel/platforms/os:linux_bionic",
     ],
+    product = ":android_target",
 )
 
-platform(
+android_platform(
     name = "linux_bionic_x86_64",
     constraint_values = [
         "//build/bazel/platforms/arch:x86_64",
         "//build/bazel/platforms/os:linux_bionic",
     ],
+    product = ":android_target",
 )
 
 # Darwin is the OS for MacOS host machines.
-platform(
+android_platform(
     name = "darwin_arm64",
     constraint_values = [
         "//build/bazel/platforms/arch:arm64",
         "//build/bazel/platforms/os:darwin",
     ],
+    product = ":android_target",
 )
 
-platform(
+android_platform(
     name = "darwin_x86_64",
     constraint_values = [
         "//build/bazel/platforms/arch:x86_64",
         "//build/bazel/platforms/os:darwin",
     ],
+    product = ":android_target",
 )
 
 # Windows is the OS for Windows host machines.
-platform(
+android_platform(
     name = "windows_x86",
     constraint_values = [
         "//build/bazel/platforms/arch:x86",
         "//build/bazel/platforms/os:windows",
     ],
+    product = ":android_target",
 )
 
-platform(
+android_platform(
     name = "windows_x86_64",
     constraint_values = [
         "//build/bazel/platforms/arch:x86_64",
         "//build/bazel/platforms/os:windows",
     ],
+    product = ":android_target",
 )
 
 # Android is the OS for target devices that run all of Android, including the Linux kernel

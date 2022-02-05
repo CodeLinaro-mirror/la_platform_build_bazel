@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 
-set -euo pipefail
+set -xeuo pipefail
 
 apexer_tool_path="${RUNFILES_DIR}/__main__/external/make_injection/host/linux-x86/bin"
 android_jar="${RUNFILES_DIR}/__main__/prebuilts/sdk/current/public/android.jar"
@@ -38,6 +38,7 @@ trap cleanup ERR
 # 3. a one-level symlink
 # 4. a two-level symlink with "execroot/__main__" in the path
 # 5. a two-level sumlink without "execroot/__main__" in the path
+# 6. a three-level symlink with "execroot/__main__" in the path
 echo "test file1" > "${input_dir}/file1"
 echo "test file2" > "${input_dir}/file2"
 mkdir -p "${input_dir}/execroot/__main__"
@@ -45,6 +46,7 @@ ln -s "${input_dir}/file1" "${input_dir}/one_level_sym"
 ln -s "${input_dir}/file2" "${input_dir}/execroot/__main__/middle_sym"
 ln -s "${input_dir}/execroot/__main__/middle_sym" "${input_dir}/two_level_sym_in_execroot"
 ln -s "${input_dir}/one_level_sym" "${input_dir}/two_level_sym_not_in_execroot"
+ln -s "${input_dir}/two_level_sym_in_execroot" "${input_dir}/three_level_sym_in_execroot"
 
 # Create the APEX manifest file
 manifest_dir=$(mktemp -d)
@@ -69,6 +71,7 @@ dir2/dir3,file2,"${input_dir}/file2"
 dir4,one_level_sym,"${input_dir}/one_level_sym"
 dir5,two_level_sym_in_execroot,"${input_dir}/two_level_sym_in_execroot"
 dir6,two_level_sym_not_in_execroot,"${input_dir}/two_level_sym_not_in_execroot"
+dir7,three_level_sym_in_execroot,"${input_dir}/three_level_sym_in_execroot"
 " > ${bazel_apexer_wrapper_manifest_file}
 
 #############################################
@@ -108,15 +111,28 @@ dir6,two_level_sym_not_in_execroot,"${input_dir}/two_level_sym_not_in_execroot"
 # │   ├── dir6
 # │   │   └── two_level_sym_not_in_execroot -> /tmp/tmp.evJh21oYGG/file1
 #             (two level symlink resolve only one level otherwise)
+# │   ├── dir7
+# │   │   └── three_level_sym_in_execroot
+#             (three level symlink resolve if the path contains execroot/__main__)
 # └── test.apex
 
-# check the contents
-diff ${manifest_file} ${output_dir}/apex_manifest.pb
+# b/215129834:
+# https://android-review.googlesource.com/c/platform/system/apex/+/1944264 made
+# it such that the hash of non-payload files in the APEX (like
+# AndroidManifest.xml) will be included as part of the apex_manifest.pb via the
+# apexContainerFilesHash string to ensure that changes to AndroidManifest.xml
+# results in changes in content hash for the apex_payload.img. Since this is
+# potentially fragile, we skip diffing the apex_manifest.pb, and just check that
+# it exists.
+test -f "${output_dir}/apex_manifest.pb" || echo "expected apex_manifest.pb to exist"
+
+# check the contents with diff for the rest of the files
 diff ${input_dir}/file1 ${output_dir}/dir1/file1
 diff ${input_dir}/file2 ${output_dir}/dir2/dir3/file2
 diff ${input_dir}/file1 ${output_dir}/dir4/one_level_sym
 diff ${input_dir}/file2 ${output_dir}/dir5/two_level_sym_in_execroot
 [ `readlink ${output_dir}/dir6/two_level_sym_not_in_execroot` = "${input_dir}/file1" ]
+diff ${input_dir}/file2 ${output_dir}/dir7/three_level_sym_in_execroot
 
 cleanup
 

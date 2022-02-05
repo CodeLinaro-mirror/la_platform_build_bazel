@@ -49,15 +49,28 @@ def _create_apex(args, work_dir):
         full_apex_filepath = "/".join([input_dir, apex_filepath])
         # Because Bazel execution root is a symlink forest, all the input files are symlinks, these
         # include the dependency files declared in the BUILD files as well as the files declared
-        # and created in the bzl files. For sandbox runs the former are two level symlinks and
+        # and created in the bzl files. For sandbox runs the former are two or more level symlinks and
         # latter are one level symlinks. For non-sandbox runs, the former are one level symlinks
         # and the latter are actual files. Here are some examples:
         #
+        # Two level symlinks:
         # system/timezone/output_data/version/tz_version ->
         # /usr/local/google/home/...out/bazel/output_user_root/b1ed7e1e9af3ebbd1403e9cf794e4884/
         # execroot/__main__/system/timezone/output_data/version/tz_version ->
         # /usr/local/google/home/.../system/timezone/output_data/version/tz_version
         #
+        # Three level symlinks:
+        # bazel-out/android_x86_64-fastbuild-ST-4ecd5e98bfdd/bin/external/boringssl/libcrypto.so ->
+        # /usr/local/google/home/yudiliu/android/aosp/master/out/bazel/output_user_root/b1ed7e1e9af3ebbd1403e9cf794e4884/
+        # execroot/__main__/bazel-out/android_x86_64-fastbuild-ST-4ecd5e98bfdd/bin/external/boringssl/libcrypto.so ->
+        # /usr/local/google/home/yudiliu/android/aosp/master/out/bazel/output_user_root/b1ed7e1e9af3ebbd1403e9cf794e4884/
+        # execroot/__main__/bazel-out/android_x86_64-fastbuild-ST-4ecd5e98bfdd/bin/external/boringssl/
+        # liblibcrypto_stripped.so ->
+        # /usr/local/google/home/yudiliu/android/aosp/master/out/bazel/output_user_root/b1ed7e1e9af3ebbd1403e9cf794e4884/
+        # execroot/__main__/bazel-out/android_x86_64-fastbuild-ST-4ecd5e98bfdd/bin/external/boringssl/
+        # liblibcrypto_unstripped.so
+        #
+        # One level symlinks:
         # bazel-out/android_target-fastbuild/bin/system/timezone/apex/apex_manifest.pb ->
         # /usr/local/google/home/.../out/bazel/output_user_root/b1ed7e1e9af3ebbd1403e9cf794e4884/
         # execroot/__main__/bazel-out/android_target-fastbuild/bin/system/timezone/apex/
@@ -67,7 +80,7 @@ def _create_apex(args, work_dir):
             bazel_input_file = os.readlink(bazel_input_file)
 
             # For sandbox run these are the 2nd level symlinks and we need to resolve
-            if os.path.islink(bazel_input_file) and 'execroot/__main__' in bazel_input_file:
+            while os.path.islink(bazel_input_file) and 'execroot/__main__' in bazel_input_file:
                 bazel_input_file = os.readlink(bazel_input_file)
 
         shutil.copyfile(bazel_input_file, full_apex_filepath, follow_symlinks=False)

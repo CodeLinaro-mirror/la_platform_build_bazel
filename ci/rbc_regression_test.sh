@@ -15,7 +15,7 @@ function usage() {
     cat <<EOF >&2
 Usage: $myname [-p] [-b] [-q] [-r] <product-variant> [product-variant ...]
   -p: Test RBC product configuration. This is implied if -b is not supplied
-  -b: Test RBC board configuration
+  -b: Test RBC board configuration. This is implied if -p is not supplied
   -q: Quiet. Suppress all output other than a failure message
   -r: Retain Ninja files
 EOF
@@ -38,22 +38,22 @@ mypath=$(realpath "$0")
 declare -r mydir=${mypath%/*/*/*/*}
 declare -r myname=${mypath#${mydir}/}
 
-flags_mk=(RBC_NO_PRODUCT_GRAPH=1 DISABLE_ARTIFACT_PATH_REQUIREMENTS=t)
+flags_mk=(RBC_NO_PRODUCT_GRAPH=true DISABLE_ARTIFACT_PATH_REQUIREMENTS=true)
 flags_rbc=()
 quiet=
 while getopts "bkpqr" o; do
     case "${o}" in
         k) ;;  # backward compatibility to be removed later
         q) quiet=true ;;
-        b) flags_rbc+=(RBC_BOARD_CONFIG=1) ;;
-        p) flags_rbc+=(RBC_PRODUCT_CONFIG=t) ;;
+        b) flags_rbc+=(RBC_BOARD_CONFIG=true) ;;
+        p) flags_rbc+=(RBC_PRODUCT_CONFIG=true) ;;
         r) retain_files=t ;;
         *) usage ;;
     esac
 done
 shift $((OPTIND-1))
 [[ $# -gt 0 ]] || usage
-((${#flags_rbc[@]})) || flags_rbc+=(RBC_PRODUCT_CONFIG=t)
+((${#flags_rbc[@]})) || flags_rbc+=(RBC_PRODUCT_CONFIG=true RBC_BOARD_CONFIG=true)
 
 cd $mydir
 rc=0

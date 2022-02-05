@@ -83,6 +83,11 @@ build --define=android_dexmerger_tool=d8_dexmerger
 build --nouse_workers_with_dexbuilder
 build --fat_apk_cpu=k8
 
+# TODO(b/199038020): Use a python_toolchain when we have Starlark rules_python.
+# This also means all python scripts are using py3 runtime.
+build --python_top=//prebuilts/build-tools:python3
+build --noincompatible_use_python_toolchains
+
 # Developer instance for result storage. This only works if you have access
 # to the Bazel GCP project. Follow the GCP gcloud client's auth instructions to
 # use --google_default_credentials.

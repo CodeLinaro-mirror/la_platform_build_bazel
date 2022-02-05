@@ -43,35 +43,40 @@ def main():
   parser.add_argument("ninja_file",
                       help="the path to the root ninja file of the build " +
                       "to be analyzed. Ex: out/combined-aosp_flame.ninja")
-  parser.add_argument("output_file",
-                      help="the path to the output artifact to be analyzed. " +
-                      "Ex: out/path/to/foo.so")
   parser.add_argument("dest_directory",
                       help="directory to copy build-related information for " +
                       "later difftool comparison. Ex: /tmp/buildArtifacts")
+  parser.add_argument("--file", dest="output_file", default=None,
+                      help="the path to the output artifact to be analyzed. " +
+                      "Ex: out/path/to/foo.so")
   args = parser.parse_args()
   dest = args.dest_directory
-  output_file = pathlib.Path(args.output_file)
 
   if not os.path.isdir(dest):
     raise Exception("invalid destination directory " + dest)
-  if not output_file.is_file():
-    raise Exception("Expected file %s was not found. " % output_file)
 
-  main_ninja_basename = pathlib.Path(args.ninja_file).name
+  collection_info_filepath = ""
+  if args.output_file is not None:
+    output_file = pathlib.Path(args.output_file)
+    if not output_file.is_file():
+      raise Exception("Expected file %s was not found. " % output_file)
+    output_file_dest = pathlib.Path(dest).joinpath(output_file)
+    output_file_dest.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(output_file, output_file_dest)
+    collection_info_filepath = str(output_file)
+
+  ninja_file = pathlib.Path(args.ninja_file)
+  main_ninja_basename = ninja_file.name
   shutil.copy2(args.ninja_file, os.path.join(dest, main_ninja_basename))
 
-  for subninja_file in subninja_files(args.ninja_file):
+  for subninja_file in subninja_files(ninja_file):
     parent_dir = pathlib.Path(subninja_file).parent
     dest_dir = os.path.join(dest, parent_dir)
     pathlib.Path(dest_dir).mkdir(parents=True, exist_ok=True)
     shutil.copy2(subninja_file, os.path.join(dest, subninja_file))
 
-  output_file_dest = pathlib.Path(dest).joinpath(output_file)
-
-  output_file_dest.parent.mkdir(parents=True)
-  shutil.copy2(output_file, output_file_dest)
-  pathlib.Path(dest).joinpath("collection_info").write_text(main_ninja_basename)
+  collection_info = main_ninja_basename + "\n" + collection_info_filepath
+  pathlib.Path(dest).joinpath("collection_info").write_text(collection_info)
 
 if __name__ == "__main__":
   main()

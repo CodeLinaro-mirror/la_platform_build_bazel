@@ -42,3 +42,61 @@ apex_transition = transition(
         "//build/bazel/rules/apex:min_sdk_version",
     ],
 )
+
+def _impl_shared_lib_transition_32(settings, attr):
+    # Perform a transition to apply APEX specific build settings on the
+    # destination target (i.e. an APEX dependency).
+
+    # TODO: We need to check if this is a x86 or arm arch then only set one platform
+    # instead of this 1:2 split to avoid performance hit.
+    return {
+        "x86": {
+            "//command_line_option:platforms": "//build/bazel/platforms:android_x86",
+            "//build/bazel/rules/apex:apex_name": attr.name,  # Name of the APEX
+            "//build/bazel/rules/apex:min_sdk_version": attr.min_sdk_version,  # Min SDK version of the APEX
+        },
+        "arm": {
+            "//command_line_option:platforms": "//build/bazel/platforms:android_arm",
+            "//build/bazel/rules/apex:apex_name": attr.name,  # Name of the APEX
+            "//build/bazel/rules/apex:min_sdk_version": attr.min_sdk_version,  # Min SDK version of the APEX
+        },
+    }
+
+shared_lib_transition_32 = transition(
+    implementation = _impl_shared_lib_transition_32,
+    inputs = [],
+    outputs = [
+        "//build/bazel/rules/apex:apex_name",
+        "//build/bazel/rules/apex:min_sdk_version",
+        "//command_line_option:platforms",
+    ],
+)
+
+def _impl_shared_lib_transition_64(settings, attr):
+    # Perform a transition to apply APEX specific build settings on the
+    # destination target (i.e. an APEX dependency).
+
+    # TODO: We need to check if this is a x86 or arm arch then only set one platform
+    # instead of this 1:2 split to avoid performance hit.
+    return {
+        "x86_64": {
+            "//command_line_option:platforms": "//build/bazel/platforms:android_x86_64",
+            "//build/bazel/rules/apex:apex_name": attr.name,  # Name of the APEX
+            "//build/bazel/rules/apex:min_sdk_version": attr.min_sdk_version,  # Min SDK version of the APEX
+        },
+        "arm64": {
+            "//command_line_option:platforms": "//build/bazel/platforms:android_arm64",
+            "//build/bazel/rules/apex:apex_name": attr.name,  # Name of the APEX
+            "//build/bazel/rules/apex:min_sdk_version": attr.min_sdk_version,  # Min SDK version of the APEX
+        },
+    }
+
+shared_lib_transition_64 = transition(
+    implementation = _impl_shared_lib_transition_64,
+    inputs = [],
+    outputs = [
+        "//build/bazel/rules/apex:apex_name",
+        "//build/bazel/rules/apex:min_sdk_version",
+        "//command_line_option:platforms",
+    ],
+)

@@ -188,7 +188,7 @@ def _cc_proto_library(
         hdrs = [":" + hdrs_name],
         deps = [
             proto_lib_name,
-            "//external/protobuf:libprotobuf-cpp-lite",
+            proto_dep,
         ],
         local_includes = ["."],
     )
@@ -213,6 +213,5 @@ def cc_proto_library(
         name,
         deps = deps,
         plugin = plugin,
-        out_format = "lite",
         proto_dep = "//external/protobuf:libprotobuf-cpp-full",
     )

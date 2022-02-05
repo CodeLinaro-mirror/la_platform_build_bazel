@@ -19,29 +19,31 @@ load(":prebuilt_etc.bzl", "PrebuiltEtcInfo")
 load(":sh_binary.bzl", "ShBinaryInfo")
 load(":stripped_cc_common.bzl", "StrippedCcBinaryInfo")
 load(":android_app_certificate.bzl", "AndroidAppCertificateInfo")
-load("//build/bazel/rules/apex:transition.bzl", "apex_transition")
+load("//build/bazel/rules/apex:transition.bzl", "apex_transition", "shared_lib_transition_32", "shared_lib_transition_64")
 load("//build/bazel/rules/apex:cc.bzl", "ApexCcInfo", "apex_cc_aspect")
+
+DIR_LIB = "lib"
+DIR_LIB64 = "lib64"
 
 # Prepare the input files info for bazel_apexer_wrapper to generate APEX filesystem image.
 def _prepare_apexer_wrapper_inputs(ctx):
+    # dictionary to return in the format:
     # apex_manifest[(image_file_dirname, image_file_basename)] = bazel_output_file
     apex_manifest = {}
 
-    # Handle native_shared_libs
-    for dep in ctx.attr.native_shared_libs:
-        apex_cc_info = dep[ApexCcInfo]
+    x86_constraint = ctx.attr._x86_constraint[platform_common.ConstraintValueInfo]
+    x86_64_constraint = ctx.attr._x86_64_constraint[platform_common.ConstraintValueInfo]
+    arm_constraint = ctx.attr._arm_constraint[platform_common.ConstraintValueInfo]
+    arm64_constraint = ctx.attr._arm64_constraint[platform_common.ConstraintValueInfo]
 
-        # TODO: Update apex_transition to split (1:4) the deps, one for each target platform
-        # Then ApexCcInfo would only return a single lib_files field
-
-        for lib_file in apex_cc_info.lib_files:
-            apex_manifest[("lib", lib_file.basename)] = lib_file
-
-        for lib64_file in apex_cc_info.lib64_files:
-            apex_manifest[("lib64", lib64_file.basename)] = lib64_file
-
-        for lib_arm_file in apex_cc_info.lib_arm_files:
-            apex_manifest[("lib/arm", lib_arm_file.basename)] = lib_arm_file
+    if ctx.target_platform_has_constraint(x86_constraint):
+        _add_libs_32_target(ctx, "x86", apex_manifest)
+    elif ctx.target_platform_has_constraint(x86_64_constraint):
+        _add_libs_64_target(ctx, "x86", "x86_64", apex_manifest)
+    elif ctx.target_platform_has_constraint(arm_constraint):
+        _add_libs_32_target(ctx, "arm", apex_manifest)
+    elif ctx.target_platform_has_constraint(arm64_constraint):
+        _add_libs_64_target(ctx, "arm", "arm64", apex_manifest)
 
     # Handle prebuilts
     for dep in ctx.attr.prebuilts:
@@ -96,6 +98,21 @@ def _prepare_apexer_wrapper_inputs(ctx):
     ctx.actions.write(bazel_apexer_wrapper_manifest, "\n".join(file_lines))
 
     return apex_content_inputs, bazel_apexer_wrapper_manifest
+
+def _add_libs_32_target(ctx, key, apex_manifest):
+    if len(ctx.split_attr.native_shared_libs_32.keys()) > 0:
+        _add_lib_file(DIR_LIB, ctx.split_attr.native_shared_libs_32[key], apex_manifest)
+
+def _add_libs_64_target(ctx, key_32, key_64, apex_manifest):
+    _add_libs_32_target(ctx, key_32, apex_manifest)
+    if len(ctx.split_attr.native_shared_libs_64.keys()) > 0:
+        _add_lib_file(DIR_LIB64, ctx.split_attr.native_shared_libs_64[key_64], apex_manifest)
+
+def _add_lib_file(dir, libs, apex_manifest):
+    for dep in libs:
+        apex_cc_info = dep[ApexCcInfo]
+        for lib_file in apex_cc_info.transitive_shared_libs.to_list():
+            apex_manifest[(dir, lib_file.basename)] = lib_file
 
 # conv_apex_manifest - Convert the JSON APEX manifest to protobuf, which is needed by apexer.
 def _convert_apex_manifest_json_to_pb(ctx, apex_toolchain):
@@ -232,10 +249,17 @@ _apex = rule(
         "min_sdk_version": attr.string(),
         "updatable": attr.bool(default = True),
         "installable": attr.bool(default = True),
-        "native_shared_libs": attr.label_list(
+        "native_shared_libs_32": attr.label_list(
             providers = [ApexCcInfo],
             aspects = [apex_cc_aspect],
-            cfg = apex_transition,
+            cfg = shared_lib_transition_32,
+            doc = "The libs compiled for 32-bit",
+        ),
+        "native_shared_libs_64": attr.label_list(
+            providers = [ApexCcInfo],
+            aspects = [apex_cc_aspect],
+            cfg = shared_lib_transition_64,
+            doc = "The libs compiled for 64-bit",
         ),
         "binaries": attr.label_list(
             providers = [
@@ -260,8 +284,21 @@ _apex = rule(
             executable = True,
             default = "//build/make/tools/signapk",
         ),
+        "_x86_constraint": attr.label(
+            default = Label("//build/bazel/platforms/arch:x86"),
+        ),
+        "_x86_64_constraint": attr.label(
+            default = Label("//build/bazel/platforms/arch:x86_64"),
+        ),
+        "_arm_constraint": attr.label(
+            default = Label("//build/bazel/platforms/arch:arm"),
+        ),
+        "_arm64_constraint": attr.label(
+            default = Label("//build/bazel/platforms/arch:arm64"),
+        ),
     },
     toolchains = ["//build/bazel/rules/apex:apex_toolchain_type"],
+    fragments = ["platform"],
 )
 
 def apex(
@@ -274,7 +311,8 @@ def apex(
         min_sdk_version = None,
         updatable = True,
         installable = True,
-        native_shared_libs = [],
+        native_shared_libs_32 = [],
+        native_shared_libs_64 = [],
         binaries = [],
         prebuilts = [],
         **kwargs):
@@ -295,7 +333,8 @@ def apex(
         min_sdk_version = min_sdk_version,
         updatable = updatable,
         installable = installable,
-        native_shared_libs = native_shared_libs,
+        native_shared_libs_32 = native_shared_libs_32,
+        native_shared_libs_64 = native_shared_libs_64,
         binaries = binaries,
         prebuilts = prebuilts,
         **kwargs

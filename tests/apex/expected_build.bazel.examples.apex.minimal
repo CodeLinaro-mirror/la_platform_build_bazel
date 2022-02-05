@@ -1,6 +1,6 @@
-6d5
-< ./lib/arm/build.bazel.examples.apex.minimal_dummy_cc_lib.so
-8c7
-< ./lib64/build.bazel.examples.apex.minimal_dummy_cc_lib.so
----
-> ./lib/libc++.so
+7d6
+< ./lib/ld-android.so
+9,11d7
+< ./lib/libc.so
+< ./lib/libdl.so
+< ./lib/libm.so

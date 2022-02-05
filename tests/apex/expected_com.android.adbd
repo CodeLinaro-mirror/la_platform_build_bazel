@@ -1,10 +1,8 @@
-3a4,12
-> ./lib/libadb_pairing_auth.so
-> ./lib/libadb_pairing_connection.so
-> ./lib/libadb_pairing_server.so
-> ./lib/libadbconnection_client.so
-> ./lib/libbase.so
-> ./lib/libc++.so
-> ./lib/libcrypto.so
-> ./lib/libcrypto_utils.so
-> ./lib/libcutils.so
+4d3
+< ./lib/ld-android.so
+11d9
+< ./lib/libc.so
+15,17d12
+< ./lib/libdl.so
+< ./lib/liblog.so
+< ./lib/libm.so
