@@ -1,6 +1,0 @@
-7d6
-< ./lib/ld-android.so
-9,11d7
-< ./lib/libc.so
-< ./lib/libdl.so
-< ./lib/libm.so

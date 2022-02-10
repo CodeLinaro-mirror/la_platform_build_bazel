@@ -10,14 +10,10 @@ apex_diff_test(
     name = "build.bazel.examples.apex.minimal",
     apex1 = "//build/bazel/examples/apex/minimal:build.bazel.examples.apex.minimal",
     apex2 = "@make_injection//:target/product/generic/system/product/apex/build.bazel.examples.apex.minimal.apex",
-    # Expected not to match exactly yet.
-    expected_diff = "expected_build.bazel.examples.apex.minimal",
 )
 
 apex_diff_test(
     name = "com.android.adbd",
     apex1 = "//packages/modules/adb/apex:com.android.adbd",
     apex2 = "@make_injection//:target/product/generic/system/apex/com.android.adbd.capex",
-    # Expected not to match exactly yet.
-    expected_diff = "expected_com.android.adbd",
 )

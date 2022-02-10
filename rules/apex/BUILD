@@ -1,8 +1,23 @@
 load("//build/bazel/rules/apex:toolchain.bzl", "apex_toolchain")
-load("@bazel_skylib//rules:common_settings.bzl", "string_setting")
+load("@bazel_skylib//rules:common_settings.bzl", "string_setting", "string_list_setting")
 
-string_setting(name = "apex_name", build_setting_default = "")
-string_setting(name = "min_sdk_version", build_setting_default = "")
+string_setting(
+    name = "apex_name",
+    build_setting_default = "",
+    visibility = ["//visibility:public"],
+)
+
+string_setting(
+    name = "min_sdk_version",
+    build_setting_default = "",
+    visibility = ["//visibility:public"],
+)
+
+string_list_setting(
+    name = "apex_direct_deps",
+    build_setting_default = [],
+    visibility = ["//visibility:public"],
+)
 
 toolchain_type(name = "apex_toolchain_type")
 
