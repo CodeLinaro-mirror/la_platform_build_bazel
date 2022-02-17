@@ -6,8 +6,11 @@ sh_test(
     srcs = ["verify_bionic_outputs.sh"],
     data = [
         "//bionic/libc",
+        "//bionic/libc:libc_bp2build_cc_library_static",
         "//bionic/libdl:libdl_android",
+        "//bionic/libdl:libdl_android_bp2build_cc_library_static",
         "//bionic/linker:ld-android",
+        "//bionic/linker:ld-android_bp2build_cc_library_static",
         "//prebuilts/clang/host/linux-x86:test_tools",
     ],
     env = {"CLANG_DEFAULT_VERSION": constants.CLANG_DEFAULT_VERSION},
@@ -19,7 +22,7 @@ sh_test(
     srcs = ["compare_libc_stripping.sh"],
     data = [
         "//bionic/libc",
-        "//bionic/libc:libc_bp2build_cc_library_shared_unstripped",
+        "//bionic/libc:libc_unstripped",
     ],
     env = {"CLANG_DEFAULT_VERSION": constants.CLANG_DEFAULT_VERSION},
     deps = ["@bazel_tools//tools/bash/runfiles"],

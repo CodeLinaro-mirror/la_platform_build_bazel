@@ -22,6 +22,7 @@ def cc_library_headers(
         deps = [],
         hdrs = [],
         export_includes = [],
+        export_absolute_includes = [],
         export_system_includes = [],
         native_bridge_supported = False,  # TODO: not supported yet.
         **kwargs):
@@ -32,6 +33,7 @@ def cc_library_headers(
         implementation_deps = implementation_deps,
         deps = deps,
         export_includes = export_includes,
+        export_absolute_includes = export_absolute_includes,
         export_system_includes = export_system_includes,
         hdrs = hdrs,
         native_bridge_supported = native_bridge_supported,

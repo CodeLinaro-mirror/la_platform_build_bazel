@@ -21,10 +21,11 @@ Usage:
 Example:
 
   To generate a report on the `adbd` module, run:
-    ./bp2build-progress report adbd
+    ./bp2build-progress report -m adbd
 
   To generate a graph on the `adbd` module, run:
-    ./bp2build-progress graph adbd > graph.in && dot -Tpng -o graph.png graph.in
+    ./bp2build-progress graph -m adbd > graph.in && dot -Tpng -o graph.png
+    graph.in
 
 """
 
@@ -61,6 +62,37 @@ _ModuleInfo = collections.namedtuple("_ModuleInfo", [
     "kind",
     "dirname",
 ])
+
+_ReportData = collections.namedtuple("_ReportData", [
+    "input_module",
+    "all_unconverted_modules",
+    "blocked_modules",
+    "dirs_with_unconverted_modules",
+    "kind_of_unconverted_modules",
+    "converted",
+])
+
+
+def combine_report_data(data):
+  ret = _ReportData(
+      input_module=set(),
+      all_unconverted_modules=collections.defaultdict(set),
+      blocked_modules=collections.defaultdict(set),
+      dirs_with_unconverted_modules=set(),
+      kind_of_unconverted_modules=set(),
+      converted=set(),
+  )
+  for item in data:
+    ret.input_module.add(item.input_module)
+    for key, value in item.all_unconverted_modules.items():
+      ret.all_unconverted_modules[key].update(value)
+    for key, value in item.blocked_modules.items():
+      ret.blocked_modules[key].update(value)
+    ret.dirs_with_unconverted_modules.update(item.dirs_with_unconverted_modules)
+    ret.kind_of_unconverted_modules.update(item.kind_of_unconverted_modules)
+    if len(ret.converted) == 0:
+      ret.converted.update(item.converted)
+  return ret
 
 
 def generate_module_info(module, use_queryview):
@@ -142,7 +174,7 @@ digraph mygraph {{
 
   make_node = lambda module, color: \
       ('"{name}" [label="{name}\\n{kind}" color=black, style=filled, '
-       'fillcolor={color}]').format(name=module.name, kind=module.kind, color=color)
+       "fillcolor={color}]").format(name=module.name, kind=module.kind, color=color)
   make_edge = lambda module, dep: \
       '"%s" -> "%s"' % (module.name, dep)
 
@@ -171,27 +203,22 @@ digraph mygraph {{
 
 
 # Generate a report for each module in the transitive closure, and the blockers for each module
-def generate_report(modules, converted, input_module):
-  report_lines = []
-
-  report_lines.append("# bp2build progress report for: %s\n" % input_module)
-  report_lines.append("Ignored module types: %s\n" % sorted(IGNORED_KINDS))
-  report_lines.append("# Transitive dependency closure:")
-
+def generate_report_data(modules, converted, input_module):
   # Map of [number of unconverted deps] to list of entries,
   # with each entry being the string: "<module>: <comma separated list of unconverted modules>"
-  blocked_modules = collections.defaultdict(list)
+  blocked_modules = collections.defaultdict(set)
 
-  # Map of unconverted modules to the number of modules they're blocking
-  # (i.e. number of reverse deps)
-  all_unconverted_modules = collections.defaultdict(int)
+  # Map of unconverted modules to the modules they're blocking
+  # (i.e. reverse deps)
+  all_unconverted_modules = collections.defaultdict(set)
 
   dirs_with_unconverted_modules = set()
+  kind_of_unconverted_modules = set()
 
   for module, deps in sorted(modules.items()):
     unconverted_deps = set(dep for dep in deps if dep not in converted)
     for dep in unconverted_deps:
-      all_unconverted_modules[dep] += 1
+      all_unconverted_modules[dep].add(module)
 
     unconverted_count = len(unconverted_deps)
     if module.name not in converted:
@@ -200,36 +227,61 @@ def generate_report(modules, converted, input_module):
           kind=module.kind,
           dirname=module.dirname,
           unconverted_deps=", ".join(sorted(unconverted_deps)))
-      blocked_modules[unconverted_count].append(report_entry)
+      blocked_modules[unconverted_count].add(report_entry)
       dirs_with_unconverted_modules.add(module.dirname)
+      kind_of_unconverted_modules.add(module.kind)
 
-  for count, modules in sorted(blocked_modules.items()):
+  return _ReportData(
+      input_module=input_module,
+      all_unconverted_modules=all_unconverted_modules,
+      blocked_modules=blocked_modules,
+      dirs_with_unconverted_modules=dirs_with_unconverted_modules,
+      kind_of_unconverted_modules=kind_of_unconverted_modules,
+      converted=converted,
+  )
+
+
+def generate_report(report_data):
+  report_lines = []
+  input_modules = sorted(report_data.input_module)
+
+  report_lines.append("# bp2build progress report for: %s\n" %
+                      input_modules)
+  report_lines.append("Ignored module types: %s\n" % sorted(IGNORED_KINDS))
+  report_lines.append("# Transitive dependency closure:")
+
+  for count, modules in sorted(report_data.blocked_modules.items()):
     report_lines.append("\n%d unconverted deps remaining:" % count)
-    for module_string in modules:
+    for module_string in sorted(modules):
       report_lines.append("  " + module_string)
 
   report_lines.append("\n")
-  report_lines.append("# Unconverted deps of {}:\n".format(input_module))
+  report_lines.append("# Unconverted deps of {}:\n".format(
+      input_modules))
   for count, dep in sorted(
-      ((count, dep) for dep, count in all_unconverted_modules.items()),
+      ((len(unconverted), dep)
+       for dep, unconverted in report_data.all_unconverted_modules.items()),
       reverse=True):
     report_lines.append("%s: blocking %d modules" % (dep, count))
 
   report_lines.append("\n")
-  report_lines.append("Dirs with unconverted modules:\n\n{}".format("\n".join(
-      sorted(dirs_with_unconverted_modules))))
+  report_lines.append("# Dirs with unconverted modules:\n\n{}".format("\n".join(
+      sorted(report_data.dirs_with_unconverted_modules))))
+
+  report_lines.append("\n")
+  report_lines.append("# Kinds with unconverted modules:\n\n{}".format("\n".join(
+      sorted(report_data.kind_of_unconverted_modules))))
 
   report_lines.append("\n")
   report_lines.append("# Converted modules:\n\n%s" %
-                      "\n".join(sorted(converted)))
+                      "\n".join(sorted(report_data.converted)))
 
   report_lines.append("\n")
   report_lines.append(
       "Generated by: https://cs.android.com/android/platform/superproject/+/master:build/bazel/scripts/bp2build-progress/bp2build-progress.py"
   )
-  report_lines.append(
-      "Generated at: %s" %
-      datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S %z"))
+  report_lines.append("Generated at: %s" %
+                      datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S %z"))
   print("\n".join(report_lines))
 
 
@@ -243,7 +295,7 @@ def adjacency_list_from_json(module_graph):
   # Do a single pass to find all top-level modules to be ignored
   for module in module_graph:
     name = module["Name"]
-    if module["Type"] in IGNORED_KINDS:
+    if ignore_kind(module["Type"]):
       ignored.add(module["Name"])
       continue
     name_to_info[name] = _ModuleInfo(
@@ -274,6 +326,10 @@ def adjacency_list_from_json(module_graph):
   return module_adjacency_list
 
 
+def ignore_kind(kind):
+  return kind in IGNORED_KINDS or "defaults" in kind
+
+
 def bazel_target_to_dir(full_target):
   dirname, _ = full_target.split(":")
   return dirname[2:]
@@ -291,29 +347,39 @@ def adjacency_list_from_queryview_xml(module_graph):
   name_with_variant_to_name = dict()
 
   for module in module_graph:
+    ignore = False
     if module.tag != "rule":
       continue
     kind = module.attrib["class"]
     name_with_variant = module.attrib["name"]
+    name = None
+    variant = ""
     for attr in module:
       attr_name = attr.attrib["name"]
       if attr_name == "soong_module_name":
         name = attr.attrib["value"]
-        if kind in IGNORED_KINDS:
-          ignored.add(name_with_variant)
-        else:
-          name_with_variant_to_name.setdefault(name_with_variant, name)
-          name_to_info.setdefault(
-              name,
-              _ModuleInfo(
-                  name=name,
-                  kind=kind,
-                  dirname=bazel_target_to_dir(name_with_variant),
-              ))
       elif attr_name == "soong_module_variant":
         variant = attr.attrib["value"]
-        if variant.startswith("windows"):
-          ignored.add(name_with_variant)
+      elif attr_name == "soong_module_type" and kind == "generic_soong_module":
+        kind = attr.attrib["value"]
+      # special handling for filegroup srcs, if a source has the same name as
+      # the module, we don't convert it
+      elif kind == "filegroup" and attr_name == "srcs":
+        for item in attr:
+          if item.attrib["value"] == name:
+            ignore = True
+
+    if ignore_kind(kind) or variant.startswith("windows") or ignore:
+      ignored.add(name_with_variant)
+    else:
+      name_with_variant_to_name.setdefault(name_with_variant, name)
+      name_to_info.setdefault(
+          name,
+          _ModuleInfo(
+              name=name,
+              kind=kind,
+              dirname=bazel_target_to_dir(name_with_variant),
+          ))
 
   # An adjacency list for all modules in the transitive closure, excluding ignored modules.
   module_adjacency_list = dict()
@@ -342,31 +408,16 @@ def adjacency_list_from_queryview_xml(module_graph):
   return module_adjacency_list
 
 
-def main():
-  parser = argparse.ArgumentParser(description="")
-  parser.add_argument("mode", help="mode: graph or report")
-  parser.add_argument("module", help="name of Soong module")
-  parser.add_argument(
-      "--use_queryview",
-      type=bool,
-      default=False,
-      required=False,
-      help="whether to use queryview or module_info")
-  args = parser.parse_args()
-
-  mode = args.mode
-  top_level_module = args.module
-  use_queryview = args.use_queryview
-
+def get_module_adjacency_list(top_level_module, use_queryview):
   # The main module graph containing _all_ modules in the Soong build,
   # and the list of converted modules.
   try:
     module_graph, converted = generate_module_info(top_level_module,
                                                    use_queryview)
   except subprocess.CalledProcessError as err:
-    print("Error running: '%s':", ' '.join(err.cmd))
-    print("Output:\n%s" % err.output.decode('utf-8'))
-    print("Error:\n%s" % err.stderr.decode('utf-8'))
+    print("Error running: '%s':", " ".join(err.cmd))
+    print("Output:\n%s" % err.output.decode("utf-8"))
+    print("Error:\n%s" % err.stderr.decode("utf-8"))
     sys.exit(-1)
 
   module_adjacency_list = None
@@ -375,12 +426,49 @@ def main():
   else:
     module_adjacency_list = adjacency_list_from_json(module_graph)
 
-  if mode == "graph":
-    generate_dot_file(module_adjacency_list, converted, top_level_module)
-  elif mode == "report":
-    generate_report(module_adjacency_list, converted, top_level_module)
-  else:
-    raise RuntimeError("unknown mode: %s" % mode)
+  return module_adjacency_list, converted
+
+
+def main():
+  parser = argparse.ArgumentParser(description="")
+  parser.add_argument("mode", help="mode: graph or report")
+  parser.add_argument(
+      "--module",
+      "-m",
+      action="append",
+      help="name(s) of Soong module(s). Multiple modules only supported for report"
+  )
+  parser.add_argument(
+      "--use_queryview",
+      type=bool,
+      default=False,
+      required=False,
+      help="whether to use queryview or module_info")
+  args = parser.parse_args()
+
+  if len(args.module) > 1 and args.mode != "report":
+    print("Can only support one module with mode {}", args.mode)
+
+  mode = args.mode
+  use_queryview = args.use_queryview
+
+  report_infos = []
+  for top_level_module in args.module:
+    module_adjacency_list, converted = get_module_adjacency_list(
+        top_level_module, use_queryview)
+
+    if mode == "graph":
+      generate_dot_file(module_adjacency_list, converted, top_level_module)
+    elif mode == "report":
+      report_infos.append(
+          generate_report_data(module_adjacency_list, converted,
+                               top_level_module))
+    else:
+      raise RuntimeError("unknown mode: %s" % mode)
+
+  if mode == "report":
+    combinded_data = combine_report_data(report_infos)
+    generate_report(combinded_data)
 
 
 if __name__ == "__main__":

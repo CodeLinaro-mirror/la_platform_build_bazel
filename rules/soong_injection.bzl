@@ -21,6 +21,7 @@ def _impl(rctx):
     rctx.symlink(soong_injection_dir + "/mixed_builds", "mixed_builds")
     rctx.symlink(soong_injection_dir + "/cc_toolchain", "cc_toolchain")
     rctx.symlink(soong_injection_dir + "/product_config", "product_config")
+    rctx.symlink(soong_injection_dir + "/api_levels", "api_levels")
     rctx.symlink(soong_injection_dir + "/metrics", "metrics")
 
 soong_injection_repository = repository_rule(

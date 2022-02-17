@@ -22,7 +22,7 @@ source "${RUNFILES_DIR}/bazel_tools/tools/bash/runfiles/runfiles.bash"
 function test_libc_stripping_basic() {
     local readonly base="__main__/bionic/libc"
     local readonly stripped_path="${base}/libc.so"
-    local readonly unstripped_path="${base}/liblibc_bp2build_cc_library_shared_unstripped.so"
+    local readonly unstripped_path="${base}/liblibc_unstripped.so"
     local stripped="$(rlocation $stripped_path)"
     local unstripped="$(rlocation $unstripped_path)"
 

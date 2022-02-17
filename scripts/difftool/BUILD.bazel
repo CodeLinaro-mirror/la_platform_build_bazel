@@ -1,0 +1,26 @@
+py_binary(
+    name = "collect",
+    srcs = ["collect.py"],
+    python_version = "PY3",
+)
+
+py_library(
+    name = "difftool_commands",
+    srcs = [
+        "clangcompile.py",
+        "commands.py",
+    ],
+)
+
+py_test(
+    name = "difftool_test",
+    srcs = ["difftool_test.py"],
+    deps = [":difftool"],
+)
+
+py_binary(
+    name = "difftool",
+    srcs = ["difftool.py"],
+    deps = [":difftool_commands"],
+    python_version = "PY3",
+)

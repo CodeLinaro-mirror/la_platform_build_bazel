@@ -74,6 +74,17 @@ prebuilt_etc {
     src: "dummy_prebuilt_etc_data_3",
 }
 
+cc_binary {
+    name: "build.bazel.examples.apex.cc_binary",
+    srcs: ["main.cc"],
+
+    apex_available: ["build.bazel.examples.apex.minimal"],
+
+    // Because the APEX sets these
+    product_specific: true,
+    min_sdk_version: "30",
+}
+
 apex {
     name: "build.bazel.examples.apex.minimal",
     manifest: "manifest.json",
@@ -94,4 +105,10 @@ apex {
        "build.bazel.examples.apex.minimal_dummy_unnamed_prebuilt_etc",
        "build.bazel.examples.apex.minimal_dummy_prebuilt_etc_without_subdir",
     ],
+
+    binaries: [
+        "build.bazel.examples.apex.cc_binary",
+    ],
+
+    certificate: ":build.bazel.examples.apex.minimal.certificate"
 }

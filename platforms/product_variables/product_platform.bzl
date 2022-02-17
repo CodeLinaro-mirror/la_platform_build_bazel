@@ -18,7 +18,19 @@ product_variables_providing_rule = rule(
 _arch_os_only_suffix = "_arch_os"
 _product_only_suffix = "_product"
 
+def add_providing_var(providing_vars, typ, var, value):
+    if typ == "bool":
+        providing_vars[var] = "1" if value else "0"
+    elif typ == "list":
+        providing_vars[var] = ",".join(value)
+    elif typ == "int":
+        providing_vars[var] = str(value)
+    elif typ == "string":
+        providing_vars[var] = value
+
 def product_variable_config(name, product_config_vars):
+    constraints = []
+
     local_vars = dict(product_config_vars)
 
     # Native_coverage is not set within soong.variables, but is hardcoded
@@ -29,7 +41,42 @@ def product_variable_config(name, product_config_vars):
     )
 
     providing_vars = {}
-    constraints = []
+
+    # Generate constraints for Soong config variables (bool, value, string typed).
+    vendor_vars = local_vars.pop("VendorVars", default = {})
+    for (namespace, variables) in vendor_vars.items():
+        for (var, value) in variables.items():
+            # All vendor vars are Starlark string-typed, even though they may be
+            # boxed bools/strings/arbitrary printf'd values, like numbers, so
+            # we'll need to do some translation work here by referring to
+            # soong_injection's generated data.
+
+            if value == "":
+                # Variable is not set so skip adding this as a constraint.
+                continue
+
+            # Create the identifier for the constraint var (or select key)
+            config_var = namespace + "__" + var
+
+            # List of all soong_config_module_type variables.
+            if not config_var in constants.SoongConfigVariables:
+                continue
+
+            # Normalize all constraint vars (i.e. select keys) to be lowercased.
+            constraint_var = config_var.lower()
+
+            if config_var in constants.SoongConfigBoolVariables:
+                constraints.append("//build/bazel/product_variables:" + constraint_var)
+            elif config_var in constants.SoongConfigStringVariables:
+                # The string value is part of the the select key.
+                constraints.append("//build/bazel/product_variables:" + constraint_var + "__" + value.lower())
+            elif config_var in constants.SoongConfigValueVariables:
+                # For value variables, providing_vars add support for substituting
+                # the value using TemplateVariableInfo.
+                constraints.append("//build/bazel/product_variables:" + constraint_var)
+                add_providing_var(providing_vars, "string", constraint_var, value)
+
+
     for (var, value) in local_vars.items():
         # TODO(b/187323817): determine how to handle remaining product
         # variables not used in product_variables
@@ -39,17 +86,10 @@ def product_variable_config(name, product_config_vars):
 
         # variable.go excludes nil values
         add_constraint = (value != None)
+        add_providing_var(providing_vars, type(value), var, value)
         if type(value) == "bool":
-            providing_vars[var] = str(1 if value else 0)
-
             # variable.go special cases bools
             add_constraint = value
-        elif type(value) == "list":
-            providing_vars[var] = ",".join(value)
-        elif type(value) == "int":
-            providing_vars[var] = str(value)
-        elif type(value) == "string":
-            providing_vars[var] = value
 
         if add_constraint:
             constraints.append("//build/bazel/product_variables:" + constraint_var)

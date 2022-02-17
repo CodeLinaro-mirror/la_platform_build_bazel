@@ -16,6 +16,7 @@ limitations under the License.
 
 load(":cc_library_common.bzl", "add_lists_defaulting_to_none", "disable_crt_link", "system_dynamic_deps_defaults")
 load(":cc_library_static.bzl", "cc_library_static")
+load(":cc_stub_library.bzl", "cc_stub_library")
 load(":generate_toc.bzl", "shared_library_toc", _CcTocInfo = "CcTocInfo")
 load(":stl.bzl", "shared_stl_deps")
 load(":stripped_cc_common.bzl", "stripped_shared_library")
@@ -32,7 +33,7 @@ def cc_library_shared(
         dynamic_deps = [],
         implementation_dynamic_deps = [],
         linkopts = [],
-
+        target_compatible_with = [],
         # Ultimately _static arguments for shared_root production
         srcs = [],
         srcs_c = [],
@@ -47,21 +48,35 @@ def cc_library_shared(
         whole_archive_deps = [],
         system_dynamic_deps = None,
         export_includes = [],
+        export_absolute_includes = [],
         export_system_includes = [],
         local_includes = [],
         absolute_includes = [],
         rtti = False,
-        use_libcrt = True,
+        use_libcrt = True,  # FIXME: Unused below?
         stl = "",
         cpp_std = "",
+        c_std = "",
         link_crt = True,
         additional_linker_inputs = None,
 
         # Purely _shared arguments
         strip = {},
         soname = "",
+
+        # TODO(b/202299295): Handle data attribute.
+        data = [],
+
+        use_version_lib = False,
+
+        stubs_symbol_file = None,
+        stubs_versions = [],
         **kwargs):
     "Bazel macro to correspond with the cc_library_shared Soong module."
+
+    if use_version_lib:
+      libbuildversionLabel = "//build/soong/cc/libbuildversion:libbuildversion"
+      whole_archive_deps = whole_archive_deps + [libbuildversionLabel]
 
     shared_root_name = name + "_root"
     unstripped_name = name + "_unstripped"
@@ -90,18 +105,22 @@ def cc_library_shared(
         conlyflags = conlyflags,
         asflags = asflags,
         export_includes = export_includes,
+        export_absolute_includes = export_absolute_includes,
         export_system_includes = export_system_includes,
         local_includes = local_includes,
         absolute_includes = absolute_includes,
         rtti = rtti,
         stl = stl,
         cpp_std = cpp_std,
+        c_std = c_std,
         dynamic_deps = dynamic_deps,
         implementation_deps = implementation_deps,
         implementation_dynamic_deps = implementation_dynamic_deps,
         system_dynamic_deps = system_dynamic_deps,
         deps = deps + whole_archive_deps,
         features = features,
+        use_version_lib = use_version_lib,
+        target_compatible_with = target_compatible_with,
     )
 
     stl_static, stl_shared = shared_stl_deps(stl)
@@ -116,10 +135,12 @@ def cc_library_shared(
     native.cc_library(
         name = imp_deps_stub,
         deps = implementation_deps + stl_static,
+        target_compatible_with = target_compatible_with,
     )
     native.cc_library(
         name = deps_stub,
         deps = deps,
+        target_compatible_with = target_compatible_with,
     )
 
     shared_dynamic_deps = add_lists_defaulting_to_none(
@@ -144,19 +165,45 @@ def cc_library_shared(
         additional_linker_inputs = additional_linker_inputs,
         roots = [shared_root_name, imp_deps_stub, deps_stub] + whole_archive_deps,
         features = features,
+        target_compatible_with = target_compatible_with,
         **kwargs
     )
 
     stripped_shared_library(
         name = stripped_name,
         src = unstripped_name,
+        target_compatible_with = target_compatible_with,
         **strip
     )
 
     shared_library_toc(
         name = toc_name,
         src = stripped_name,
+        target_compatible_with = target_compatible_with,
     )
+
+    # Emit the stub version of this library (e.g. for libraries that are
+    # provided by the NDK)
+    #
+    # TODO(b/207812332): This only calls ndkstubgen to generate the src now.
+    # Make this compile into an .so as well, and include the stub .so in a
+    # _cc_library_shared_proxy provider so dependents can easily determine if
+    # this target has stubs for a specific API version.
+    if stubs_symbol_file and len(stubs_versions) > 0:
+        # TODO(b/193663198): This unconditionally creates stubs for every version, but
+        # that's not always true depending on whether this module is available
+        # on the host, ramdisk, vendor ramdisk. We currently don't have
+        # information about the image variant yet, so we'll create stub targets
+        # for all shared libraries with the stubs property for now.
+        #
+        # See: https://cs.android.com/android/platform/superproject/+/master:build/soong/cc/library.go;l=2316-2377;drc=3d3b35c94ed2a3432b2e5e7e969a3a788a7a80b5
+        for version in stubs_versions:
+            stubs_library_name = "_".join([name, version, "stubs"])
+            cc_stub_library(
+                name = stubs_library_name,
+                symbol_file = stubs_symbol_file,
+                version = version,
+            )
 
     _cc_library_shared_proxy(
         name = name,
@@ -164,6 +211,7 @@ def cc_library_shared(
         root = shared_root_name,
         table_of_contents = toc_name,
         output_file = soname,
+        target_compatible_with = target_compatible_with,
     )
 
 def _swap_shared_linker_input(ctx, shared_info, new_output):

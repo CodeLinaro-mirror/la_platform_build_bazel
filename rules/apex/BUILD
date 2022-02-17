@@ -31,3 +31,30 @@ toolchain(
     toolchain = ":prebuilt_apex_toolchain",
     toolchain_type = "//build/bazel/rules/apex:apex_toolchain_type",
 )
+
+py_binary(
+    name = "bazel_apexer_wrapper",
+    srcs = ["bazel_apexer_wrapper.py"],
+    visibility = ["//visibility:public"],
+)
+
+sh_test(
+    name = "bazel_apexer_wrapper_test",
+    srcs = ["bazel_apexer_wrapper_test.sh"],
+    deps = ["@bazel_tools//tools/bash/runfiles"],
+    data = [
+        ":bazel_apexer_wrapper",
+        "test.pem",
+        "@make_injection//:host/linux-x86/bin/aapt2",
+        "@make_injection//:host/linux-x86/bin/avbtool",
+        "@make_injection//:host/linux-x86/bin/apexer",
+        "@make_injection//:host/linux-x86/bin/conv_apex_manifest",
+        "@make_injection//:host/linux-x86/bin/deapexer",
+        "@make_injection//:host/linux-x86/bin/debugfs",
+        "@make_injection//:host/linux-x86/bin/e2fsdroid",
+        "@make_injection//:host/linux-x86/bin/mke2fs",
+        "@make_injection//:host/linux-x86/bin/resize2fs",
+        "@make_injection//:host/linux-x86/bin/sefcontext_compile",
+        "//prebuilts/sdk/current:public/android.jar",
+    ]
+)
