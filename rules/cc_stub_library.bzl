@@ -18,10 +18,17 @@ load("//build/bazel/platforms:rule_utilities.bzl", "ARCH_CONSTRAINT_ATTRS", "get
 # This file contains the implementation for the cc_stub_library rule.
 #
 # TODO(b/207812332):
-# - compiling/linking generated stub.c file into a .so: https://cs.android.com/android/platform/superproject/+/master:build/soong/cc/library.go;l=1013;drc=d8a72d7dc91b2122b7b10b47b80cf2f7c65f9049
 # - ndk_api_coverage_parser: https://cs.android.com/android/platform/superproject/+/master:build/soong/cc/coverage.go;l=248-262;drc=master
 
-def _cc_stub_library_impl(ctx):
+CcStubInfo = provider(
+    fields = {
+        "stub_map": "The .map file containing library symbols for the specific API version.",
+        "version": "The API version of this library.",
+        "abi_symbol_list": "A plain-text list of all symbols of this library for the specific API version."
+    }
+)
+
+def _cc_stub_gen_impl(ctx):
     # The name of this target.
     name = ctx.attr.name
 
@@ -52,13 +59,19 @@ def _cc_stub_library_impl(ctx):
         arguments = [ndkstubgen_args],
     )
 
-    files = depset(direct = outputs)
     return [
-        DefaultInfo(files = files)
+        # DefaultInfo.files contains the .stub.c file only so that this target
+        # can be used directly in the srcs of a cc_library.
+        DefaultInfo(files = depset([out_stub_c])),
+        CcStubInfo(
+            stub_map = out_stub_map,
+            abi_symbol_list = out_abi_symbol_list,
+            version = ctx.attr.version,
+        ),
     ]
 
-cc_stub_library = rule(
-    implementation = _cc_stub_library_impl,
+cc_stub_gen = rule(
+    implementation = _cc_stub_gen_impl,
     attrs = dicts.add({
         # Public attributes
         "symbol_file": attr.label(mandatory = True, allow_single_file = [".map.txt"]),
@@ -70,3 +83,4 @@ cc_stub_library = rule(
         "_ndkstubgen": attr.label(default = "//build/soong/cc/ndkstubgen", executable = True, cfg = "host"),
     }, ARCH_CONSTRAINT_ATTRS),
 )
+

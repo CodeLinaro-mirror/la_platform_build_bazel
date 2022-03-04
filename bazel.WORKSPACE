@@ -1,15 +1,13 @@
-toplevel_output_directories(paths = ["out"])
-
-load("//build/bazel/rules:lunch.bzl", "lunch")
 load("//build/bazel/rules:soong_injection.bzl", "soong_injection_repository")
 load("//build/bazel/rules:make_injection.bzl", "make_injection_repository")
-
-lunch()
 
 register_toolchains(
     "//prebuilts/clang/host/linux-x86:all"
 )
 
+# This repository provides files that Soong emits during bp2build (other than
+# converted BUILD files), mostly .bzl files containing constants to support the
+# converted BUILD files.
 soong_injection_repository(name="soong_injection")
 
 # This is a repository rule to allow Bazel builds to depend on Soong-built

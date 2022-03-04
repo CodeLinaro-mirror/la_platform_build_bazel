@@ -153,7 +153,13 @@ def _run_apexer(ctx, apex_toolchain, apex_content_inputs, bazel_apexer_wrapper_m
     args.add_all(["--file_contexts", file_contexts.path])
     args.add_all(["--key", privkey.path])
     args.add_all(["--pubkey", pubkey.path])
-    args.add_all(["--min_sdk_version", ctx.attr.min_sdk_version])
+    min_sdk_version = ctx.attr.min_sdk_version
+    # TODO(b/215339575): This is a super rudimentary way to convert "current" to a numerical number.
+    # Generalize this to API level handling logic in a separate Starlark utility, preferably using
+    # API level maps dumped from api_levels.go
+    if min_sdk_version == "current":
+        min_sdk_version = "10000"
+    args.add_all(["--min_sdk_version", min_sdk_version])
     args.add_all(["--bazel_apexer_wrapper_manifest", bazel_apexer_wrapper_manifest])
     args.add_all(["--apexer_tool_path", apex_toolchain.apexer.dirname])
     args.add_all(["--apex_output_file", apex_output_file])
@@ -246,7 +252,7 @@ _apex = rule(
         "file_contexts": attr.label(allow_single_file = True, mandatory = True),
         "key": attr.label(providers = [ApexKeyInfo]),
         "certificate": attr.label(providers = [AndroidAppCertificateInfo]),
-        "min_sdk_version": attr.string(),
+        "min_sdk_version": attr.string(default = "current"),
         "updatable": attr.bool(default = True),
         "installable": attr.bool(default = True),
         "native_shared_libs_32": attr.label_list(

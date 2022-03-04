@@ -1,8 +1,0 @@
-4d3
-< ./lib/ld-android.so
-11d9
-< ./lib/libc.so
-15,17d12
-< ./lib/libdl.so
-< ./lib/liblog.so
-< ./lib/libm.so
