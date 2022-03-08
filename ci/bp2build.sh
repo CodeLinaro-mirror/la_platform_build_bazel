@@ -69,6 +69,33 @@ tools/bazel --max_idle_secs=5 build ${BUILD_FLAGS} --platforms //build/bazel/pla
 tools/bazel --max_idle_secs=5 build ${BUILD_FLAGS} --platforms //build/bazel/platforms:android_arm -k ${BUILD_TARGETS}
 tools/bazel --max_idle_secs=5 build ${BUILD_FLAGS} --platforms //build/bazel/platforms:android_arm64 -k ${BUILD_TARGETS}
 
+HOST_INCOMPATIBLE_TARGETS=(
+  # TODO(b/217756861): Apex toolchain is incompatible with host arches but apex modules do
+  # not have this restriction
+  -//build/bazel/examples/apex/...
+  -//packages/modules/adb/apex:com.android.adbd
+  -//system/timezone/apex:com.android.tzdata
+  -//build/bazel/tests/apex/...
+
+  # TODO(b/217757720): linkopts using ${<val} for make substitution rather than $${<val}
+  -//bionic/benchmarks/spawn/...
+
+  # TODO(b/217927043): Determine how to address targets that are device only
+  -//system/core/libpackagelistparser:all
+  -//external/icu/libicu:all
+  //external/icu/libicu:libicu
+  -//external/icu/icu4c/source/tools/ctestfw:all
+
+  # TODO(b/217926427): determine why these host_supported modules do not build on host
+  -//packages/modules/adb:all
+  -//packages/modules/adb/pairing_connection:all
+)
+
+# build for host
+tools/bazel --max_idle_secs=5 build ${BUILD_FLAGS} \
+  --platforms //build/bazel/platforms:linux_x86_64 \
+  -- ${BUILD_TARGETS} "${HOST_INCOMPATIBLE_TARGETS[@]}"
+
 ###########
 # Run tests
 ###########
@@ -88,8 +115,9 @@ fi
 # Generate bp2build progress reports and graphs for these modules into the dist
 # dir so that they can be downloaded from the CI artifact list.
 BP2BUILD_PROGRESS_MODULES=(
-  adbd
-  com.android.adbd
+  com.android.runtime
+  com.android.neuralnetworks
+  com.android.media.swcodec
 )
 bp2build_progress_script="${AOSP_ROOT}/build/bazel/scripts/bp2build-progress/bp2build-progress.py"
 bp2build_progress_output_dir="${DIST_DIR}/bp2build-progress"

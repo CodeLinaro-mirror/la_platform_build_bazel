@@ -33,9 +33,8 @@ soong_config_variables(
 # }),
 [
     (constraint_setting(name = product_variable+"_constraint"),
-   constraint_value(name = product_variable, constraint_setting = product_variable+"_constraint",)
-   )
- for product_variable in constants.ProductVariables.keys()
+     constraint_value(name = product_variable, constraint_setting = product_variable+"_constraint",)
+    ) for product_variable in constants.ProductVariables
 ]
 
 # Caution: do not use these arch-variant product variables directly.

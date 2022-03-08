@@ -159,6 +159,7 @@ def _cc_proto_library(
         name,
         deps = [],
         plugin = None,
+        target_compatible_with = [],
         out_format = None,
         proto_dep = None):
     proto_lib_name = name + "_proto_gen"
@@ -191,16 +192,19 @@ def _cc_proto_library(
             proto_dep,
         ],
         local_includes = ["."],
+        target_compatible_with = target_compatible_with,
     )
 
 def cc_lite_proto_library(
         name,
         deps = [],
-        plugin = None):
+        plugin = None,
+        target_compatible_with = []):
     _cc_proto_library(
         name,
         deps = deps,
         plugin = plugin,
+        target_compatible_with = target_compatible_with,
         out_format = "lite",
         proto_dep = "//external/protobuf:libprotobuf-cpp-lite",
     )
@@ -208,10 +212,12 @@ def cc_lite_proto_library(
 def cc_proto_library(
         name,
         deps = [],
-        plugin = None):
+        plugin = None,
+        target_compatible_with = []):
     _cc_proto_library(
         name,
         deps = deps,
         plugin = plugin,
+        target_compatible_with = target_compatible_with,
         proto_dep = "//external/protobuf:libprotobuf-cpp-full",
     )

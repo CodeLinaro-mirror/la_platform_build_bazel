@@ -84,7 +84,7 @@ def _prepare_apexer_wrapper_inputs(ctx):
 
     apex_content_inputs = []
 
-    bazel_apexer_wrapper_manifest = ctx.actions.declare_file("bazel_apexer_wrapper_manifest")
+    bazel_apexer_wrapper_manifest = ctx.actions.declare_file("%s_bazel_apexer_wrapper_manifest" % ctx.attr.name)
     file_lines = []
 
     # Store the apex file target directory, file name and the path in the source tree in a file.
@@ -154,6 +154,7 @@ def _run_apexer(ctx, apex_toolchain, apex_content_inputs, bazel_apexer_wrapper_m
     args.add_all(["--key", privkey.path])
     args.add_all(["--pubkey", pubkey.path])
     min_sdk_version = ctx.attr.min_sdk_version
+
     # TODO(b/215339575): This is a super rudimentary way to convert "current" to a numerical number.
     # Generalize this to API level handling logic in a separate Starlark utility, preferably using
     # API level maps dumped from api_levels.go
@@ -196,40 +197,66 @@ def _run_apexer(ctx, apex_toolchain, apex_content_inputs, bazel_apexer_wrapper_m
 
     return apex_output_file
 
-# Sign the generated unsigned apex file with signapk
-def _run_signapk(ctx, unsigned_apex_output_file):
+# Sign a file with signapk.
+def _run_signapk(ctx, unsigned_file, output_file_name, private_key, public_key, mnemonic):
     # Inputs
-    apex_cert_info = ctx.attr.certificate[AndroidAppCertificateInfo]
-    privkey = apex_cert_info.pk8
-    pubkey = apex_cert_info.pem
-
     inputs = [
-        unsigned_apex_output_file,
-        privkey,
-        pubkey,
+        unsigned_file,
+        private_key,
+        public_key,
         ctx.executable._signapk,
     ]
 
     # Outputs
-    signed_apex_output_file = ctx.actions.declare_file(ctx.attr.name + ".apex")
-    outputs = [signed_apex_output_file]
+    signed_file = ctx.actions.declare_file(output_file_name)
+    outputs = [signed_file]
 
     # Arguments
     args = ctx.actions.args()
     args.add_all(["-a", 4096])
     args.add_all(["--align-file-size"])
-    args.add_all([pubkey, privkey])
-    args.add_all([unsigned_apex_output_file, signed_apex_output_file])
+    args.add_all([public_key, private_key])
+    args.add_all([unsigned_file, signed_file])
 
     ctx.actions.run(
         inputs = inputs,
         outputs = outputs,
         executable = ctx.executable._signapk,
         arguments = [args],
-        mnemonic = "BazelApexSigning",
+        mnemonic = mnemonic,
     )
 
-    return signed_apex_output_file
+    return signed_file
+
+# Compress a file with apex_compression_tool.
+def _run_apex_compression_tool(ctx, apex_toolchain, input_file, output_file_name):
+    # Inputs
+    inputs = [
+        input_file,
+        apex_toolchain.apex_compression_tool,
+        apex_toolchain.avbtool,
+        apex_toolchain.soong_zip,
+    ]
+
+    # Outputs
+    compressed_file = ctx.actions.declare_file(output_file_name)
+    outputs = [compressed_file]
+
+    # Arguments
+    args = ctx.actions.args()
+    args.add_all(["compress"])
+    args.add_all(["--apex_compression_tool", apex_toolchain.soong_zip.dirname])
+    args.add_all(["--input", input_file])
+    args.add_all(["--output", compressed_file])
+
+    ctx.actions.run(
+        inputs = inputs,
+        outputs = outputs,
+        executable = apex_toolchain.apex_compression_tool,
+        arguments = [args],
+        mnemonic = "BazelApexCompressing",
+    )
+    return compressed_file
 
 # See the APEX section in the README on how to use this rule.
 def _apex_rule_impl(ctx):
@@ -239,9 +266,18 @@ def _apex_rule_impl(ctx):
     apex_manifest_pb = _convert_apex_manifest_json_to_pb(ctx, apex_toolchain)
 
     unsigned_apex_output_file = _run_apexer(ctx, apex_toolchain, apex_content_inputs, bazel_apexer_wrapper_manifest, apex_manifest_pb)
-    signed_apex_output_file = _run_signapk(ctx, unsigned_apex_output_file)
 
-    files_to_build = depset([signed_apex_output_file])
+    apex_cert_info = ctx.attr.certificate[AndroidAppCertificateInfo]
+    private_key = apex_cert_info.pk8
+    public_key = apex_cert_info.pem
+    signed_apex_output_file = _run_signapk(ctx, unsigned_apex_output_file, ctx.attr.name + ".apex", private_key, public_key, "BazelApexSigning")
+
+    output_file = signed_apex_output_file
+    if ctx.attr.compressible:
+        compressed_apex_output_file = _run_apex_compression_tool(ctx, apex_toolchain, signed_apex_output_file, ctx.attr.name + ".capex.unsigned")
+        output_file = _run_signapk(ctx, compressed_apex_output_file, ctx.attr.name + ".capex", private_key, public_key, "BazelCompressedApexSigning")
+
+    files_to_build = depset([output_file])
     return [DefaultInfo(files = files_to_build)]
 
 _apex = rule(
@@ -255,6 +291,7 @@ _apex = rule(
         "min_sdk_version": attr.string(default = "current"),
         "updatable": attr.bool(default = True),
         "installable": attr.bool(default = True),
+        "compressible": attr.bool(default = False),
         "native_shared_libs_32": attr.label_list(
             providers = [ApexCcInfo],
             aspects = [apex_cc_aspect],
@@ -317,6 +354,7 @@ def apex(
         min_sdk_version = None,
         updatable = True,
         installable = True,
+        compressible = False,
         native_shared_libs_32 = [],
         native_shared_libs_64 = [],
         binaries = [],
@@ -339,6 +377,7 @@ def apex(
         min_sdk_version = min_sdk_version,
         updatable = updatable,
         installable = installable,
+        compressible = compressible,
         native_shared_libs_32 = native_shared_libs_32,
         native_shared_libs_64 = native_shared_libs_64,
         binaries = binaries,

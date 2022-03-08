@@ -101,11 +101,16 @@ def file_differences(left_path, right_path):
   right_type = _artifact_type(right_path)
   if left_type != right_type:
     errors += ["file types differ: %s and %s" % (left_type, right_type)]
+    return errors
 
-  result = subprocess.run(["diff", str(left_path), str(right_path)],
-                          check=False, capture_output=True, encoding="utf-8")
-  if result.returncode != 0:
-    errors += [result.stdout]
+  if left_type == ArtifactType.CC_OBJECT:
+    errors += clangcompile.file_differences(left_path, right_path)
+  else:
+    result = subprocess.run(["diff", str(left_path), str(right_path)],
+                            check=False, capture_output=True, encoding="utf-8")
+    if result.returncode != 0:
+      errors += [result.stdout]
+
   return errors
 
 

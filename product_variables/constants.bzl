@@ -6,42 +6,24 @@ load(
     _soong_config_string_variables = "soong_config_string_variables",
     _soong_config_value_variables = "soong_config_value_variables",
 )
-
+load(
+    "@soong_injection//product_config:product_variables.bzl",
+    _product_var_constraints = "product_var_constraints",
+    _arch_variant_product_var_constraints = "arch_variant_product_var_constraints",
+)
 
 _soong_config_variables = _soong_config_bool_variables.keys() + \
     _soong_config_string_variables.keys() + \
     _soong_config_value_variables.keys()
 
-# Stored as a map to provide easy checks for existence
 _product_variables = {
-    "arc": True,
-    "binder32bit": True,
-    "debuggable": True,
-    "enforce_vintf_manifest": True,
-    "eng": True,
-    "flatten_apex": True,
-    "malloc_not_svelte": True,
-    "malloc_pattern_fill_contents": True,
-    "malloc_zero_contents": True,
-    "native_coverage": True,
-    "override_rs_driver": True,
-    "pdk": True,
-    "platform_sdk_version": True,
-    "safestack": True,
-    "treble_linker_namespaces": True,
-    "uml": True,
-    "unbundled_build": True,
+    var: True
+    for var in _product_var_constraints
 }
 
 _arch_variant_product_variables = {
-    "arc": True,
-    "malloc_not_svelte": True,
-    "malloc_pattern_fill_contents": True,
-    "malloc_zero_contents": True,
-    "native_coverage": True,
-    "pdk": True,
-    "safestack": True,
-    "unbundled_build": True,
+    var: True
+    for var in _arch_variant_product_var_constraints
 }
 
 _arch_variant_to_constraints = {
