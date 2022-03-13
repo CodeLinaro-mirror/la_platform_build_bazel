@@ -25,7 +25,6 @@ declare -r script=$(realpath $1); shift
 rc=0
 
 [[ -x $script ]] || die "%s is not an executable script" $script
-[[ -d .repo ]] || die "$PWD is not an Android source tree (.repo/ is missing)"
 declare -r bugid="$(sed -nr 's/^##CL (Bug:|Fixes:) +([0-9]+)$/\2/p' $script)"
 [[ -n "$bugid" ]] || die "$script contains neither '##CL Bug: ' nor '##CL Fixes: 'tag"
 

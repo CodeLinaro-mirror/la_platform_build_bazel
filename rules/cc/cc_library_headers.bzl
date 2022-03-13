@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-load("//build/bazel/rules:cc_library_static.bzl", "cc_library_static")
+load(":cc_library_static.bzl", "cc_library_static")
 
 def cc_library_headers(
         name,

@@ -121,7 +121,11 @@ def generate_module_info(module, use_queryview):
   if use_queryview:
     result = subprocess.check_output(
         [
-            "tools/bazel", "query", "--config=queryview", "--output=xml",
+            "tools/bazel",
+            "query",
+            "--config=ci",
+            "--config=queryview",
+            "--output=xml",
             'deps(attr("soong_module_name", "^{}$", //...))'.format(module)
         ],
         cwd=src_root_dir,

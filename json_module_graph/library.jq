@@ -116,3 +116,14 @@ def findEdge($from;$to):
   .Deps |= [.[] | select(.Name == $to)] |
   select((.Deps | length) > 0)
 ;
+
+def nonNullAction: .Module.Actions != null
+;
+
+def getActionInputs: .Module.Actions | .[] |
+  .Inputs | if . == null then [] else . end | .[]
+;
+
+# Gets the directory path by the given file path.
+def getDirPath: sub("(?<p>.*)\\/.*"; "\(.p)")
+;

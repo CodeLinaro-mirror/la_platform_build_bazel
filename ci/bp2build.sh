@@ -27,21 +27,14 @@ tar -czf "${DIST_DIR}/bp2build_generated_workspace.tar.gz" -C out/soong/bp2build
 # output should not be parsed as such.
 rm -f out/ninja_build
 
-# We could create .bazelrc files and use them on buildbots with --bazelrc, but
-# it's simpler to use a list for now.
-BUILD_FLAGS_LIST=(
-  --color=no
-  --curses=no
-  --show_progress_rate_limit=5
+# Before you add flags to this list, cosnider adding it to the "ci" bazelrc
+# config instead of this list so that flags are not duplicated between scripts
+# and bazelrc, and bazelrc is the Bazel-native way of organizing flags.
+FLAGS_LIST=(
   --config=bp2build
+  --config=ci
 )
-BUILD_FLAGS="${BUILD_FLAGS_LIST[@]}"
-
-TEST_FLAGS_LIST=(
-  --keep_going
-  --test_output=errors
-)
-TEST_FLAGS="${TEST_FLAGS_LIST[@]}"
+FLAGS="${FLAGS_LIST[@]}"
 
 ###############
 # Build targets
@@ -64,10 +57,10 @@ BUILD_TARGETS_LIST=(
 )
 BUILD_TARGETS="${BUILD_TARGETS_LIST[@]}"
 # Iterate over various architectures supported in the platform build.
-tools/bazel --max_idle_secs=5 build ${BUILD_FLAGS} --platforms //build/bazel/platforms:android_x86 -k ${BUILD_TARGETS}
-tools/bazel --max_idle_secs=5 build ${BUILD_FLAGS} --platforms //build/bazel/platforms:android_x86_64 -k ${BUILD_TARGETS}
-tools/bazel --max_idle_secs=5 build ${BUILD_FLAGS} --platforms //build/bazel/platforms:android_arm -k ${BUILD_TARGETS}
-tools/bazel --max_idle_secs=5 build ${BUILD_FLAGS} --platforms //build/bazel/platforms:android_arm64 -k ${BUILD_TARGETS}
+tools/bazel --max_idle_secs=5 build ${FLAGS} --platforms //build/bazel/platforms:android_x86 -k ${BUILD_TARGETS}
+tools/bazel --max_idle_secs=5 build ${FLAGS} --platforms //build/bazel/platforms:android_x86_64 -k ${BUILD_TARGETS}
+tools/bazel --max_idle_secs=5 build ${FLAGS} --platforms //build/bazel/platforms:android_arm -k ${BUILD_TARGETS}
+tools/bazel --max_idle_secs=5 build ${FLAGS} --platforms //build/bazel/platforms:android_arm64 -k ${BUILD_TARGETS}
 
 HOST_INCOMPATIBLE_TARGETS=(
   # TODO(b/217756861): Apex toolchain is incompatible with host arches but apex modules do
@@ -76,9 +69,7 @@ HOST_INCOMPATIBLE_TARGETS=(
   -//packages/modules/adb/apex:com.android.adbd
   -//system/timezone/apex:com.android.tzdata
   -//build/bazel/tests/apex/...
-
-  # TODO(b/217757720): linkopts using ${<val} for make substitution rather than $${<val}
-  -//bionic/benchmarks/spawn/...
+  -//build/bazel/ci/dist/...
 
   # TODO(b/217927043): Determine how to address targets that are device only
   -//system/core/libpackagelistparser:all
@@ -92,21 +83,22 @@ HOST_INCOMPATIBLE_TARGETS=(
 )
 
 # build for host
-tools/bazel --max_idle_secs=5 build ${BUILD_FLAGS} \
+tools/bazel --max_idle_secs=5 build ${FLAGS} \
   --platforms //build/bazel/platforms:linux_x86_64 \
   -- ${BUILD_TARGETS} "${HOST_INCOMPATIBLE_TARGETS[@]}"
 
 ###########
 # Run tests
 ###########
-tools/bazel --max_idle_secs=5 test ${BUILD_FLAGS} ${TEST_FLAGS} //build/bazel/tests/... //build/bazel/rules/apex/...
+tools/bazel --max_idle_secs=5 test ${FLAGS} //build/bazel/tests/... //build/bazel/rules/apex/...
 
-# Test copying of some files to $DIST_DIR (set above, or from the CI invocation).
-tools/bazel --max_idle_secs=5 run //build/bazel_common_rules/dist:dist_bionic_example --config=bp2build -- --dist_dir="${DIST_DIR}"
-if [[ ! -f "${DIST_DIR}/bionic/libc/libc.so" ]]; then
-  >&2 echo "Expected dist dir to exist at ${DIST_DIR} and contain the libc shared library, but the file was not found."
-  exit 1
-fi
+###########
+# Dist mainline modules
+###########
+tools/bazel --max_idle_secs=5 run //build/bazel/ci/dist:mainline_modules ${FLAGS} --platforms=//build/bazel/platforms:android_x86 -- --dist_dir="${DIST_DIR}/mainline_modules_x86"
+tools/bazel --max_idle_secs=5 run //build/bazel/ci/dist:mainline_modules ${FLAGS} --platforms=//build/bazel/platforms:android_x86_64 -- --dist_dir="${DIST_DIR}/mainline_modules_x86_64"
+tools/bazel --max_idle_secs=5 run //build/bazel/ci/dist:mainline_modules ${FLAGS} --platforms=//build/bazel/platforms:android_arm -- --dist_dir="${DIST_DIR}/mainline_modules_arm"
+tools/bazel --max_idle_secs=5 run //build/bazel/ci/dist:mainline_modules ${FLAGS} --platforms=//build/bazel/platforms:android_arm64 -- --dist_dir="${DIST_DIR}/mainline_modules_arm64"
 
 ###################
 # bp2build-progress

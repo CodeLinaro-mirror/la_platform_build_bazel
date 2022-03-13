@@ -69,6 +69,14 @@ common:queryview --package_path=%workspace%/out/soong/queryview
 # Note that this hardcodes the output dir. It will not work if $OUT_DIR != out.
 common:bp2build --package_path=%workspace%/out/soong/workspace
 
+# Configurations specific to CI builds, generally to improve signal-to-noise ratio in server logs.
+common:ci --color=no
+common:ci --curses=no
+common:ci --show_progress_rate_limit=5
+common:ci --noshow_loading_progress
+test:ci --keep_going
+test:ci --test_output=errors
+
 # Support a local user-specific bazelrc file.
 try-import %workspace%/user.bazelrc
 

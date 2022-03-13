@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-load(":cc_constants.bzl", "constants")
+load("//build/bazel/rules/cc:cc_constants.bzl", "constants")
 
 def extension(f):
     return f.split(".")[-1]
