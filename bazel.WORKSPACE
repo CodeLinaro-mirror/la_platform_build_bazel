@@ -19,16 +19,17 @@ make_injection_repository(
         "aapt2",
         "apex_compression_tool",
         "apexer",
-        "avbtool",
         "conv_apex_manifest",
         "deapexer",
         "debugfs",
         "e2fsdroid",
+        "merge_zips",
         "mke2fs",
         "resize2fs",
         "sefcontext_compile",
         "signapk",
         "soong_zip",
+        "zip2zip",
     ],
     target_module_files = {
         # For APEX comparisons

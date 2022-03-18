@@ -1,6 +1,7 @@
 """Parallels variable.go to provide variables and create a platform based on converted config."""
 
 load("//build/bazel/product_variables:constants.bzl", "constants")
+load("//build/bazel/platforms/arch/variants:constants.bzl", _arch_constants = "constants")
 
 def _product_variables_providing_rule_impl(ctx):
     return [
@@ -76,7 +77,6 @@ def product_variable_config(name, product_config_vars):
                 constraints.append("//build/bazel/product_variables:" + constraint_var)
                 add_providing_var(providing_vars, "string", constraint_var, value)
 
-
     for (var, value) in local_vars.items():
         # TODO(b/187323817): determine how to handle remaining product
         # variables not used in product_variables
@@ -100,6 +100,9 @@ def product_variable_config(name, product_config_vars):
     )
 
     arch = local_vars.get("DeviceArch")
+    arch_variant = local_vars.get("DeviceArchVariant")
+    cpu_variant = local_vars.get("DeviceCpuVariant")
+
     os = "android"
 
     native.platform(
@@ -107,13 +110,44 @@ def product_variable_config(name, product_config_vars):
         constraint_values = constraints + [
             "//build/bazel/platforms/arch:" + arch,
             "//build/bazel/platforms/os:" + os,
-        ],
+        ] + android_variant_constraints(arch, arch_variant, cpu_variant),
     )
+
+    arch = local_vars.get("DeviceSecondaryArch")
+    arch_variant = local_vars.get("DeviceSecondaryArchVariant")
+    cpu_variant = local_vars.get("DeviceSecondaryCpuVariant")
+
+    if arch:
+        native.platform(
+            name = name + "_secondary",
+            constraint_values = constraints + [
+                "//build/bazel/platforms/arch:" + arch,
+                "//build/bazel/platforms/os:" + os,
+            ] + android_variant_constraints(arch, arch_variant, cpu_variant),
+        )
 
     product_variables_providing_rule(
         name = name + "_product_vars",
         product_vars = providing_vars,
     )
+
+def _is_variant_default(arch, variant):
+    return variant == None or variant in (arch, "generic")
+
+def android_variant_constraints(arch, arch_variant = None, cpu_variant = None):
+    additional_constraints = []
+    if not _is_variant_default(arch, arch_variant):
+        additional_constraints.append("//build/bazel/platforms/arch/variants:" + arch_variant)
+    else:
+        arch_variant = ""
+
+    features = _arch_constants.AndroidArchToVariantToFeatures[arch].get(arch_variant, [])
+    for feature in features:
+        additional_constraints.append("//build/bazel/platforms/arch/variants:" + feature)
+
+    if not _is_variant_default(arch, cpu_variant):
+        additional_constraints.append("//build/bazel/platforms/arch/variants:" + cpu_variant)
+    return additional_constraints
 
 def android_platform(name = None, constraint_values = [], product = None):
     """ android_platform creates a platform with the specified constraint_values and product constraints."""

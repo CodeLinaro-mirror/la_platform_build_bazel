@@ -10,6 +10,7 @@ fi
 
 # Run a mixed build of "droid"
 build/soong/soong_ui.bash --make-mode \
+  --mk-metrics \
   BP2BUILD_VERBOSE=1 \
   USE_BAZEL_ANALYSIS=1 \
   BAZEL_STARTUP_ARGS="--max_idle_secs=5" \

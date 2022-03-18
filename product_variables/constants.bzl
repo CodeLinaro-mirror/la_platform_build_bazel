@@ -8,13 +8,13 @@ load(
 )
 load(
     "@soong_injection//product_config:product_variables.bzl",
-    _product_var_constraints = "product_var_constraints",
     _arch_variant_product_var_constraints = "arch_variant_product_var_constraints",
+    _product_var_constraints = "product_var_constraints",
 )
 
 _soong_config_variables = _soong_config_bool_variables.keys() + \
-    _soong_config_string_variables.keys() + \
-    _soong_config_value_variables.keys()
+                          _soong_config_string_variables.keys() + \
+                          _soong_config_value_variables.keys()
 
 _product_variables = {
     var: True

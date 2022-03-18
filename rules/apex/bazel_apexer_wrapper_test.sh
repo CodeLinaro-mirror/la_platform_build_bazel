@@ -18,6 +18,7 @@
 set -xeuo pipefail
 
 apexer_tool_path="${RUNFILES_DIR}/__main__/external/make_injection/host/linux-x86/bin"
+avb_tool_path="${RUNFILES_DIR}/__main__/external/avb"
 android_jar="${RUNFILES_DIR}/__main__/prebuilts/sdk/current/public/android.jar"
 
 input_dir=$(mktemp -d)
@@ -81,7 +82,8 @@ dir7,three_level_sym_in_execroot,"${input_dir}/three_level_sym_in_execroot"
   --manifest ${manifest_file} \
   --file_contexts ${file_contexts_file} \
   --key "${RUNFILES_DIR}/__main__/build/bazel/rules/apex/test.pem" \
-  --apexer_tool_path ${apexer_tool_path} \
+  --apexer_path ${apexer_tool_path} \
+  --apexer_tool_paths ${apexer_tool_path}:${avb_tool_path} \
   --apex_output_file ${output_file} \
   --bazel_apexer_wrapper_manifest ${bazel_apexer_wrapper_manifest_file} \
   --android_jar_path ${android_jar}

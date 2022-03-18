@@ -35,7 +35,7 @@ def _apex_toolchain_impl(ctx):
     toolchain_info = platform_common.ToolchainInfo(
         toolchain_info = ApexToolchainInfo(
             aapt2 = ctx.file.aapt2,
-            avbtool = ctx.file.avbtool,
+            avbtool = ctx.attr.avbtool,
             apexer = ctx.file.apexer,
             mke2fs = ctx.file.mke2fs,
             resize2fs = ctx.file.resize2fs,
@@ -53,7 +53,7 @@ apex_toolchain = rule(
     implementation = _apex_toolchain_impl,
     attrs = {
         "aapt2": attr.label(allow_single_file = True, cfg = "host", executable = True),
-        "avbtool": attr.label(allow_single_file = True, cfg = "host", executable = True),
+        "avbtool": attr.label(cfg = "host", executable = True),
         "apexer": attr.label(allow_single_file = True, cfg = "host", executable = True),
         "mke2fs": attr.label(allow_single_file = True, cfg = "host", executable = True),
         "resize2fs": attr.label(allow_single_file = True, cfg = "host", executable = True),

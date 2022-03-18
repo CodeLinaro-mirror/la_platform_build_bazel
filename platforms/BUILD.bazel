@@ -12,7 +12,7 @@
 # These model after the arch and OS definitions in build/soong/android/arch.go.
 
 load("@soong_injection//product_config:product_variables.bzl", "product_vars")
-load("//build/bazel/platforms:product_variables/product_platform.bzl", "android_platform", "product_variable_config")
+load("//build/bazel/platforms:product_variables/product_platform.bzl", "android_platform", "android_variant_constraints", "product_variable_config")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -106,7 +106,7 @@ android_platform(
     constraint_values = [
         "//build/bazel/platforms/arch:arm",
         "//build/bazel/platforms/os:android",
-    ],
+    ] + android_variant_constraints("arm", "armv7-a-neon"),  # default to armv7-a-neon
     product = ":android_target",
 )
 
@@ -115,7 +115,7 @@ android_platform(
     constraint_values = [
         "//build/bazel/platforms/arch:arm64",
         "//build/bazel/platforms/os:android",
-    ],
+    ] + android_variant_constraints("arm64", "armv8-a"),  # default to armv8-a
     product = ":android_target",
 )
 
@@ -124,7 +124,7 @@ android_platform(
     constraint_values = [
         "//build/bazel/platforms/arch:x86",
         "//build/bazel/platforms/os:android",
-    ],
+    ] + android_variant_constraints("x86"),
     product = ":android_target",
 )
 
@@ -133,6 +133,6 @@ android_platform(
     constraint_values = [
         "//build/bazel/platforms/arch:x86_64",
         "//build/bazel/platforms/os:android",
-    ],
+    ] + android_variant_constraints("x86_64"),
     product = ":android_target",
 )

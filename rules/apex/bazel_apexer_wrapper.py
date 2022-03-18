@@ -97,7 +97,8 @@ def _create_apex(args, work_dir):
 
     canned_fs_config = _generate_canned_fs_config(work_dir, apex_subdirs_set, apex_filepaths)
 
-    cmd = [os.path.join(args.apexer_tool_path, 'apexer')]
+    # Construct the main apexer command.
+    cmd = [args.apexer_path]
     cmd.append('--verbose')
     cmd.append('--force')
     cmd.append('--include_build_info')
@@ -107,7 +108,7 @@ def _create_apex(args, work_dir):
     cmd.extend(['--payload_type', 'image'])
     cmd.extend(['--target_sdk_version', '10000'])
     cmd.extend(['--payload_fs_type', 'ext4'])
-    cmd.extend(['--apexer_tool_path', args.apexer_tool_path])
+    cmd.extend(['--apexer_tool_path', args.apexer_tool_paths])
 
     if args.android_manifest != None:
         cmd.extend(['--android_manifest', args.android_manifest])
@@ -177,9 +178,13 @@ def _parse_args(argv):
         '--pubkey',
         help='path to the public key file. Used to bundle the public key in APEX for testing.')
     parser.add_argument(
-        '--apexer_tool_path',
+        '--apexer_path',
         required=True,
-        help='Directory containing all the tools used by apexer.')
+        help='Path to the apexer binary.')
+    parser.add_argument(
+        '--apexer_tool_paths',
+        required=True,
+        help='Directories containing all the tools used by apexer, separated by ":" character.')
     parser.add_argument(
         '--min_sdk_version',
         help='Default Min SDK version to use for AndroidManifest.xml')

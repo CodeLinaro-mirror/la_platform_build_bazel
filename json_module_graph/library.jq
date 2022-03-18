@@ -127,3 +127,19 @@ def getActionInputs: .Module.Actions | .[] |
 # Gets the directory path by the given file path.
 def getDirPath: sub("(?<p>.*)\\/.*"; "\(.p)")
 ;
+
+# Returns the names of modules of type $arg
+def modulesOfType($arg):
+  [.[] | select(.Type == $arg) | .Name] | unique
+;
+
+# Returns the modules in the transitive closure of $arg.
+# $arg must be an array of modules names
+def fullTransitiveDeps($arg):
+  [((moduleGraphNoVariants | removeSelfEdges) as $m |
+  $arg |
+  transitiveDeps($m)) as $names |
+  .[] |
+  select (IN(.Name; $names | .[]))] |
+  sort_by(.Name)
+;

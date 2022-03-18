@@ -16,7 +16,7 @@
 """A json-module-graph postprocessing script to generate a bp2build progress tracker.
 
 Usage:
-  ./bp2build-progress.py [report|graph] <module name>
+  ./bp2build-progress.py [report|graph] -m <module name>
 
 Example:
 
@@ -30,32 +30,13 @@ Example:
 """
 
 import argparse
-import os
-import os.path
-import json
-import subprocess
 import collections
 import datetime
-import xml.etree.ElementTree
+import dependency_analysis
+import os.path
+import queue
+import subprocess
 import sys
-
-# This list of module types are omitted from the report and graph
-# for brevity and simplicity. Presence in this list doesn't mean
-# that they shouldn't be converted, but that they are not that useful
-# to be recorded in the graph or report currently.
-IGNORED_KINDS = set([
-    "license_kind",
-    "license",
-    "cc_defaults",
-    "cc_prebuilt_object",
-    "cc_prebuilt_library_headers",
-    "cc_prebuilt_library_shared",
-    "cc_prebuilt_library_static",
-    "cc_prebuilt_library_static",
-    "cc_prebuilt_library",
-    "ndk_prebuilt_static_stl",
-    "ndk_library",
-])
 
 _ModuleInfo = collections.namedtuple("_ModuleInfo", [
     "name",
@@ -93,77 +74,6 @@ def combine_report_data(data):
     if len(ret.converted) == 0:
       ret.converted.update(item.converted)
   return ret
-
-
-def generate_module_info(module, use_queryview):
-  src_root_dir = os.path.abspath(__file__ + "/../../../../..")
-
-  module_info_target = "queryview" if use_queryview else "json-module-graph"
-
-  # Run soong to build json-module-graph and bp2build/soong_injection
-  subprocess.check_output(
-      [
-          "build/soong/soong_ui.bash",
-          "--make-mode",
-          "--skip-soong-tests",
-          "bp2build",
-          module_info_target,
-      ],
-      cwd=src_root_dir,
-      env={
-          # Use aosp_arm as the canonical target product.
-          "TARGET_PRODUCT": "aosp_arm",
-          "TARGET_BUILD_VARIANT": "userdebug",
-      },
-  )
-
-  module_info = None
-  if use_queryview:
-    result = subprocess.check_output(
-        [
-            "tools/bazel",
-            "query",
-            "--config=ci",
-            "--config=queryview",
-            "--output=xml",
-            'deps(attr("soong_module_name", "^{}$", //...))'.format(module)
-        ],
-        cwd=src_root_dir,
-    )
-    module_graph = xml.etree.ElementTree.fromstring(result)
-    module_info = module_graph
-  else:
-    # Run query.sh on the module graph for the top level module
-    result = subprocess.check_output(
-        [
-            "build/bazel/json_module_graph/query.sh", "fullTransitiveDeps",
-            "out/soong/module-graph.json", module
-        ],
-        cwd=src_root_dir,
-    )
-    module_graph = json.loads(result)
-    module_info = module_graph
-
-  # Parse the list of converted module names from bp2build
-  converted_modules = []
-  with open(
-      os.path.join(
-          src_root_dir,
-          "out/soong/soong_injection/metrics/converted_modules.txt")) as f:
-    # Read line by line, excluding comments.
-    # Each line is a module name.
-    ret = [line.strip() for line in f.readlines() if not line.startswith("#")]
-  converted_modules = set(ret)
-
-  return module_info, converted_modules
-
-
-def get_os_variation(module):
-  dep_variations = module.get("Variations")
-  dep_variation_os = ""
-  if dep_variations != None:
-    dep_variation_os = dep_variations.get("os")
-  return dep_variation_os
 
 
 # Generate a dot file containing the transitive closure of the module.
@@ -249,9 +159,9 @@ def generate_report(report_data):
   report_lines = []
   input_modules = sorted(report_data.input_module)
 
-  report_lines.append("# bp2build progress report for: %s\n" %
-                      input_modules)
-  report_lines.append("Ignored module types: %s\n" % sorted(IGNORED_KINDS))
+  report_lines.append("# bp2build progress report for: %s\n" % input_modules)
+  report_lines.append("Ignored module types: %s\n" %
+                      sorted(dependency_analysis.IGNORED_KINDS))
   report_lines.append("# Transitive dependency closure:")
 
   for count, modules in sorted(report_data.blocked_modules.items()):
@@ -260,8 +170,7 @@ def generate_report(report_data):
       report_lines.append("  " + module_string)
 
   report_lines.append("\n")
-  report_lines.append("# Unconverted deps of {}:\n".format(
-      input_modules))
+  report_lines.append("# Unconverted deps of {}:\n".format(input_modules))
   for count, dep in sorted(
       ((len(unconverted), dep)
        for dep, unconverted in report_data.all_unconverted_modules.items()),
@@ -273,8 +182,8 @@ def generate_report(report_data):
       sorted(report_data.dirs_with_unconverted_modules))))
 
   report_lines.append("\n")
-  report_lines.append("# Kinds with unconverted modules:\n\n{}".format("\n".join(
-      sorted(report_data.kind_of_unconverted_modules))))
+  report_lines.append("# Kinds with unconverted modules:\n\n{}".format(
+      "\n".join(sorted(report_data.kind_of_unconverted_modules))))
 
   report_lines.append("\n")
   report_lines.append("# Converted modules:\n\n%s" %
@@ -289,33 +198,43 @@ def generate_report(report_data):
   print("\n".join(report_lines))
 
 
-def adjacency_list_from_json(module_graph):
-  # The set of ignored modules. These modules are not shown in the graph or report.
+def adjacency_list_from_json(module_graph, ignore_by_name, top_level_module):
+  # The set of ignored modules. These modules (and their dependencies) are not shown
+  # in the graph or report.
   ignored = set()
 
   # A map of module name to _ModuleInfo
   name_to_info = dict()
+  module_graph_map = dict()
+  q = queue.Queue()
 
   # Do a single pass to find all top-level modules to be ignored
   for module in module_graph:
     name = module["Name"]
-    if ignore_kind(module["Type"]):
+    if dependency_analysis.is_windows_variation(module):
+      continue
+    if ignore_kind(module["Type"]) or name in ignore_by_name:
       ignored.add(module["Name"])
       continue
     name_to_info[name] = _ModuleInfo(
         name=name,
         kind=module["Type"],
         dirname=os.path.dirname(module["Blueprint"]))
+    module_graph_map[module["Name"]] = module
+    if module["Name"] == top_level_module:
+      q.put(module["Name"])
 
   # An adjacency list for all modules in the transitive closure, excluding ignored modules.
   module_adjacency_list = {}
-
+  visited = set()
   # Create the adjacency list.
-  for module in module_graph:
-    module_name = module["Name"]
+  while not q.empty():
+    module_name = q.get()
+    module = module_graph_map[module_name]
+    visited.add(module_name)
     if module_name in ignored:
       continue
-    if get_os_variation(module) == "windows":
+    if dependency_analysis.is_windows_variation(module):
       # ignore the windows variations of modules
       continue
 
@@ -326,12 +245,14 @@ def adjacency_list_from_json(module_graph):
       if dep_name in ignored or dep_name == module_name:
         continue
       module_adjacency_list[module_info].add(dep_name)
+      if dep_name not in visited:
+        q.put(dep_name)
 
   return module_adjacency_list
 
 
 def ignore_kind(kind):
-  return kind in IGNORED_KINDS or "defaults" in kind
+  return kind in dependency_analysis.IGNORED_KINDS or "defaults" in kind
 
 
 def bazel_target_to_dir(full_target):
@@ -339,8 +260,10 @@ def bazel_target_to_dir(full_target):
   return dirname[2:]
 
 
-def adjacency_list_from_queryview_xml(module_graph):
-  # The set of ignored modules. These modules are not shown in the graph or report.
+def adjacency_list_from_queryview_xml(module_graph, ignore_by_name,
+                                      top_level_module):
+  # The set of ignored modules. These modules (and their dependencies) are
+  # not shown in the graph or report.
   ignored = set()
 
   # A map of module name to ModuleInfo
@@ -349,6 +272,9 @@ def adjacency_list_from_queryview_xml(module_graph):
   # queryview embeds variant in long name, keep a map of the name with vaiarnt
   # to just name
   name_with_variant_to_name = dict()
+
+  module_graph_map = dict()
+  q = queue.Queue()
 
   for module in module_graph:
     ignore = False
@@ -372,10 +298,14 @@ def adjacency_list_from_queryview_xml(module_graph):
         for item in attr:
           if item.attrib["value"] == name:
             ignore = True
+    if name in ignore_by_name:
+      ignore = True
 
     if ignore_kind(kind) or variant.startswith("windows") or ignore:
       ignored.add(name_with_variant)
     else:
+      if name == top_level_module:
+        q.put(name_with_variant)
       name_with_variant_to_name.setdefault(name_with_variant, name)
       name_to_info.setdefault(
           name,
@@ -384,14 +314,17 @@ def adjacency_list_from_queryview_xml(module_graph):
               kind=kind,
               dirname=bazel_target_to_dir(name_with_variant),
           ))
+      module_graph_map[name_with_variant] = module
 
   # An adjacency list for all modules in the transitive closure, excluding ignored modules.
   module_adjacency_list = dict()
-
-  for module in module_graph:
+  visited = set()
+  while not q.empty():
+    name_with_variant = q.get()
+    module = module_graph_map[name_with_variant]
     if module.tag != "rule":
       continue
-    name_with_variant = module.attrib["name"]
+    visited.add(name_with_variant)
     if name_with_variant in ignored:
       continue
 
@@ -407,17 +340,22 @@ def adjacency_list_from_queryview_xml(module_graph):
       dep_name = name_with_variant_to_name[dep_name_with_variant]
       if name == dep_name:
         continue
+      if dep_name_with_variant not in visited:
+        q.put(dep_name_with_variant)
       module_adjacency_list[module_info].add(dep_name)
 
   return module_adjacency_list
 
 
-def get_module_adjacency_list(top_level_module, use_queryview):
+def get_module_adjacency_list(top_level_module, use_queryview, ignore_by_name):
   # The main module graph containing _all_ modules in the Soong build,
   # and the list of converted modules.
   try:
-    module_graph, converted = generate_module_info(top_level_module,
-                                                   use_queryview)
+    module_graph = dependency_analysis.get_queryview_module_info(
+        top_level_module
+    ) if use_queryview else dependency_analysis.get_json_module_info(
+        top_level_module)
+    converted = dependency_analysis.get_bp2build_converted_modules()
   except subprocess.CalledProcessError as err:
     print("Error running: '%s':", " ".join(err.cmd))
     print("Output:\n%s" % err.output.decode("utf-8"))
@@ -426,9 +364,12 @@ def get_module_adjacency_list(top_level_module, use_queryview):
 
   module_adjacency_list = None
   if use_queryview:
-    module_adjacency_list = adjacency_list_from_queryview_xml(module_graph)
+    module_adjacency_list = adjacency_list_from_queryview_xml(
+        module_graph, ignore_by_name, top_level_module)
   else:
-    module_adjacency_list = adjacency_list_from_json(module_graph)
+    module_adjacency_list = adjacency_list_from_json(module_graph,
+                                                     ignore_by_name,
+                                                     top_level_module)
 
   return module_adjacency_list, converted
 
@@ -448,6 +389,13 @@ def main():
       default=False,
       required=False,
       help="whether to use queryview or module_info")
+  parser.add_argument(
+      "--ignore_by_name",
+      type=str,
+      default="",
+      required=False,
+      help="Comma-separated list. When building the tree of transitive dependencies, will not follow dependency edges pointing to module names listed by this flag."
+  )
   args = parser.parse_args()
 
   if len(args.module) > 1 and args.mode != "report":
@@ -455,11 +403,12 @@ def main():
 
   mode = args.mode
   use_queryview = args.use_queryview
+  ignore_by_name = args.ignore_by_name
 
   report_infos = []
   for top_level_module in args.module:
     module_adjacency_list, converted = get_module_adjacency_list(
-        top_level_module, use_queryview)
+        top_level_module, use_queryview, ignore_by_name)
 
     if mode == "graph":
       generate_dot_file(module_adjacency_list, converted, top_level_module)
@@ -471,8 +420,8 @@ def main():
       raise RuntimeError("unknown mode: %s" % mode)
 
   if mode == "report":
-    combinded_data = combine_report_data(report_infos)
-    generate_report(combinded_data)
+    combined_data = combine_report_data(report_infos)
+    generate_report(combined_data)
 
 
 if __name__ == "__main__":

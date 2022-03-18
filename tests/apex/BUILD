@@ -1,5 +1,6 @@
 load(":apex_diff_test.bzl", "apex_diff_test")
 load(":apex_test.bzl", "apex_compression_test")
+load(":apex_aab_test.bzl", "apex_aab_test")
 
 apex_diff_test(
     name = "com.android.tzdata",
@@ -35,4 +36,9 @@ apex_compression_test(
     name = "build.bazel.examples.apex.minimal_capex",
     apex = "//build/bazel/examples/apex/minimal:build.bazel.examples.apex.minimal_compressed.capex",
     compressed = True,
+)
+
+apex_aab_test(
+    name = "build.bazel.examples.apex.minimal_mainline-module",
+    apex = "//build/bazel/examples/apex/minimal:build.bazel.examples.apex.minimal",
 )
