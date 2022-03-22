@@ -17,6 +17,7 @@ make_injection_repository(
     binaries = [
         # APEX tools
         "aapt2",
+        "apex_compression_tool",
         "apexer",
         "avbtool",
         "conv_apex_manifest",
@@ -27,6 +28,7 @@ make_injection_repository(
         "resize2fs",
         "sefcontext_compile",
         "signapk",
+        "soong_zip",
     ],
     target_module_files = {
         # For APEX comparisons

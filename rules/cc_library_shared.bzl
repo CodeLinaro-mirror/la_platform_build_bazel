@@ -329,7 +329,7 @@ def _cc_library_shared_proxy_impl(ctx):
     ctx.actions.symlink(output = ctx.outputs.output_file,
                         target_file = shared_lib)
 
-    files = root_files + [ctx.outputs.output_file, ctx.file.table_of_contents]
+    files = root_files + [ctx.outputs.output_file, ctx.files.table_of_contents[0]]
 
     stub_library_infos = []
     for stub_library in ctx.attr.stub_shared_libraries:
@@ -358,7 +358,12 @@ _cc_library_shared_proxy = rule(
         "shared": attr.label(mandatory = True, providers = [CcSharedLibraryInfo]),
         "root": attr.label(mandatory = True, providers = [CcInfo]),
         "output_file": attr.output(mandatory = True),
-        "table_of_contents": attr.label(mandatory = True, allow_single_file = True, providers = [CcTocInfo]),
+        "table_of_contents": attr.label(
+            mandatory = True,
+            # TODO(b/217908237): reenable allow_single_file
+            # allow_single_file = True,
+            providers = [CcTocInfo],
+        ),
         "stub_shared_libraries": attr.label_list(providers = [CcStubInfo, CcSharedLibraryInfo]),
     },
     fragments = ["cpp"],

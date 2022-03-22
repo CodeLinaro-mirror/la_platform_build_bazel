@@ -42,7 +42,7 @@ def _shared_library_toc_impl(ctx):
             # Only Linux shared libraries for now.
             "--elf",
             "-i",
-            ctx.file.src.path,
+            ctx.files.src[0].path,
             "-o",
             out_file.path,
             "-d",
@@ -58,7 +58,11 @@ def _shared_library_toc_impl(ctx):
 shared_library_toc = rule(
     implementation = _shared_library_toc_impl,
     attrs = {
-        "src": attr.label(allow_single_file = True, mandatory = True),
+        "src": attr.label(
+            # TODO(b/217908237): reenable allow_single_file
+            # allow_single_file = True,
+            mandatory = True,
+        ),
         "_toc_script": attr.label(
             cfg = "host",
             executable = True,
