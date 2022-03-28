@@ -16,6 +16,7 @@ limitations under the License.
 
 load("//build/bazel/product_variables:constants.bzl", "constants")
 load("@rules_cc//cc:find_cc_toolchain.bzl", "find_cpp_toolchain")
+load("@soong_injection//api_levels:api_levels.bzl", "api_levels")
 
 _bionic_targets = ["//bionic/libc", "//bionic/libdl", "//bionic/libm"]
 _static_bionic_targets = ["//bionic/libc:libc_bp2build_cc_library_static", "//bionic/libdl:libdl_bp2build_cc_library_static", "//bionic/libm:libm_bp2build_cc_library_static"]
@@ -115,8 +116,17 @@ def is_external_directory(package_name):
     return secondary_path.contains("google")
   return False
 
+def parse_sdk_version(version):
+    future_version = "10000"
 
-
-
-
-
+    if version == "" or version == "current":
+        return future_version
+    elif version.isdigit() and int(version) in api_levels.values():
+        return version
+    elif version in api_levels.keys():
+        return str(api_levels[version])
+    # We need to handle this case properly later
+    elif version == "apex_inherit":
+        return future_version
+    else:
+        fail("Unknown sdk version: %s" % (version))

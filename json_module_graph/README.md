@@ -1,6 +1,7 @@
 # JSON module graph queries
 
 This directory contains `jq` scripts that query Soong's module graph.
+`jq` may be installed through your distribution's repository.
 
 Usage:
 

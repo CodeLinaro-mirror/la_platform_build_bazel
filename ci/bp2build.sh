@@ -54,13 +54,19 @@ BUILD_TARGETS_LIST=(
   //system/...
   //tools/apksig/...
   //tools/platform-compat/...
+
+  # These tools only build for host currently
+  -//external/e2fsprogs/misc:all
+  -//external/e2fsprogs/resize:all
+  -//external/e2fsprogs/debugfs:all
+  -//external/e2fsprogs/e2fsck:all
 )
 BUILD_TARGETS="${BUILD_TARGETS_LIST[@]}"
 # Iterate over various architectures supported in the platform build.
-tools/bazel --max_idle_secs=5 build ${FLAGS} --platforms //build/bazel/platforms:android_x86 -k ${BUILD_TARGETS}
-tools/bazel --max_idle_secs=5 build ${FLAGS} --platforms //build/bazel/platforms:android_x86_64 -k ${BUILD_TARGETS}
-tools/bazel --max_idle_secs=5 build ${FLAGS} --platforms //build/bazel/platforms:android_arm -k ${BUILD_TARGETS}
-tools/bazel --max_idle_secs=5 build ${FLAGS} --platforms //build/bazel/platforms:android_arm64 -k ${BUILD_TARGETS}
+tools/bazel --max_idle_secs=5 build ${FLAGS} --platforms //build/bazel/platforms:android_x86 -k -- ${BUILD_TARGETS}
+tools/bazel --max_idle_secs=5 build ${FLAGS} --platforms //build/bazel/platforms:android_x86_64 -k -- ${BUILD_TARGETS}
+tools/bazel --max_idle_secs=5 build ${FLAGS} --platforms //build/bazel/platforms:android_arm -k -- ${BUILD_TARGETS}
+tools/bazel --max_idle_secs=5 build ${FLAGS} --platforms //build/bazel/platforms:android_arm64 -k -- ${BUILD_TARGETS}
 
 HOST_INCOMPATIBLE_TARGETS=(
   # TODO(b/217756861): Apex toolchain is incompatible with host arches but apex modules do

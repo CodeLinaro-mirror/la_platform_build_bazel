@@ -249,7 +249,7 @@ apex_aab = rule(
             allow_single_file = True,
             cfg = "host",
             executable = True,
-            default = "@make_injection//:host/linux-x86/bin/zip2zip",
+            default = "//prebuilts/build-tools:linux-x86/bin/zip2zip",
         ),
         "_bundletool": attr.label(
             cfg = "host",

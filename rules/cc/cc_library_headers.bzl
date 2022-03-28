@@ -25,6 +25,8 @@ def cc_library_headers(
         export_absolute_includes = [],
         export_system_includes = [],
         native_bridge_supported = False,  # TODO: not supported yet.
+        sdk_version = "",
+        min_sdk_version = "",
         **kwargs):
     "Bazel macro to correspond with the cc_library_headers Soong module."
 
@@ -40,5 +42,7 @@ def cc_library_headers(
         # do not automatically add libcrt dependency to header libraries
         use_libcrt = False,
         stl = "none",
+        sdk_version = sdk_version,
+        min_sdk_version = min_sdk_version,
         **kwargs
     )
