@@ -96,7 +96,7 @@ tools/bazel --max_idle_secs=5 build ${FLAGS} \
 ###########
 # Run tests
 ###########
-tools/bazel --max_idle_secs=5 test ${FLAGS} //build/bazel/tests/... //build/bazel/rules/apex/...
+tools/bazel --max_idle_secs=5 test ${FLAGS} //build/bazel/tests/... //build/bazel/rules/apex/... //build/bazel/scripts/...
 
 ###########
 # Dist mainline modules

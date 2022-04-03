@@ -180,6 +180,7 @@ def _run_apexer(ctx, apex_toolchain, apex_content_inputs, bazel_apexer_wrapper_m
         apex_toolchain.apexer.dirname,
 
         # These are real Bazel targets
+        apex_toolchain.aapt2.dirname,
         avbtool_files.executable.dirname,
         e2fsdroid_files.executable.dirname,
         mke2fs_files.executable.dirname,
@@ -206,10 +207,10 @@ def _run_apexer(ctx, apex_toolchain, apex_content_inputs, bazel_apexer_wrapper_m
         e2fsdroid_files,
         mke2fs_files,
         resize2fs_files,
+        apex_toolchain.aapt2,
 
         apex_toolchain.apexer,
         apex_toolchain.sefcontext_compile,
-        apex_toolchain.aapt2,
     ]
 
     if android_manifest != None:

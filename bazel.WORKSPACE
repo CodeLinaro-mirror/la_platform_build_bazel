@@ -16,12 +16,10 @@ make_injection_repository(
     name = "make_injection",
     binaries = [
         # APEX tools
-        "aapt2",
         "apex_compression_tool",
         "apexer",
         "conv_apex_manifest",
         "deapexer",
-        "merge_zips",
         "sefcontext_compile",
     ],
     target_module_files = {

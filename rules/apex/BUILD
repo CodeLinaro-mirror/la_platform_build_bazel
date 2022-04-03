@@ -23,7 +23,7 @@ toolchain_type(name = "apex_toolchain_type")
 
 apex_toolchain(
     name = "prebuilt_apex_toolchain",
-    aapt2 = "@make_injection//:host/linux-x86/bin/aapt2",
+    aapt2 = "//prebuilts/sdk/tools:linux/bin/aapt2",
     avbtool = "//external/avb:avbtool",
     apexer = "@make_injection//:host/linux-x86/bin/apexer",
     mke2fs = "//external/e2fsprogs/misc:mke2fs",
@@ -68,7 +68,7 @@ sh_test(
         "//external/e2fsprogs/resize:resize2fs",
         "//external/e2fsprogs/debugfs:debugfs",
         "//prebuilts/build-tools:linux-x86/bin/soong_zip",
-        "@make_injection//:host/linux-x86/bin/aapt2",
+        "//prebuilts/sdk/tools:linux/bin/aapt2",
         "@make_injection//:host/linux-x86/bin/apex_compression_tool",
         "@make_injection//:host/linux-x86/bin/apexer",
         "@make_injection//:host/linux-x86/bin/conv_apex_manifest",
