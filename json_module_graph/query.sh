@@ -45,4 +45,10 @@ else
   ARG=""
 fi
 
-jq $JQARGS -L "$LIBDIR" -f "$LIBDIR/$COMMAND".jq "$GRAPH" --arg arg "$ARG"
+if [[ "$#" -gt 3 ]]; then
+  ARG2="$4"
+else
+  ARG2=""
+fi
+
+jq $JQARGS -L "$LIBDIR" -f "$LIBDIR/$COMMAND".jq "$GRAPH" --arg arg "$ARG" --arg arg2 "$ARG2"

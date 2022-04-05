@@ -10,8 +10,8 @@ package(default_visibility = ["//visibility:public"])
 # Android.bp files and not hardcoded into Soong.
 soong_config_variables(
     bool_vars = constants.SoongConfigBoolVariables,
-    value_vars = constants.SoongConfigValueVariables,
     string_vars = constants.SoongConfigStringVariables,
+    value_vars = constants.SoongConfigValueVariables,
 )
 
 # Generate one constraint_value for each product_variable
@@ -32,9 +32,14 @@ soong_config_variables(
 #   "//conditions:default": [],
 # }),
 [
-    (constraint_setting(name = product_variable+"_constraint"),
-     constraint_value(name = product_variable, constraint_setting = product_variable+"_constraint",)
-    ) for product_variable in constants.ProductVariables
+    (
+        constraint_setting(name = product_variable + "_constraint"),
+        constraint_value(
+            name = product_variable,
+            constraint_setting = product_variable + "_constraint",
+        ),
+    )
+    for product_variable in constants.ProductVariables
 ]
 
 # Caution: do not use these arch-variant product variables directly.

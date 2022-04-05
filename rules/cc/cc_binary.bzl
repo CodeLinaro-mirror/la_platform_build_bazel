@@ -47,7 +47,7 @@ def cc_binary(
         features = [],
         target_compatible_with = [],
         **kwargs):
-    "Bazel macro to correspond with the cc_library_shared Soong module."
+    "Bazel macro to correspond with the cc_binary Soong module."
 
     root_name = name + "_root"
     unstripped_name = name + "_unstripped"

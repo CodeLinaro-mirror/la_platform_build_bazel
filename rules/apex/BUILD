@@ -24,7 +24,7 @@ toolchain_type(name = "apex_toolchain_type")
 apex_toolchain(
     name = "prebuilt_apex_toolchain",
     aapt2 = "@make_injection//:host/linux-x86/bin/aapt2",
-    avbtool = "@make_injection//:host/linux-x86/bin/avbtool",
+    avbtool = "//external/avb:avbtool",
     apexer = "@make_injection//:host/linux-x86/bin/apexer",
     mke2fs = "@make_injection//:host/linux-x86/bin/mke2fs",
     resize2fs = "@make_injection//:host/linux-x86/bin/resize2fs",
@@ -63,7 +63,7 @@ sh_test(
         ":bazel_apexer_wrapper",
         "test.pem",
         "@make_injection//:host/linux-x86/bin/aapt2",
-        "@make_injection//:host/linux-x86/bin/avbtool",
+        "//external/avb:avbtool",
         "@make_injection//:host/linux-x86/bin/apex_compression_tool",
         "@make_injection//:host/linux-x86/bin/apexer",
         "@make_injection//:host/linux-x86/bin/conv_apex_manifest",

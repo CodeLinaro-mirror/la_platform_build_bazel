@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-load("//build/bazel/rules:cc_library_shared.bzl", "CcStubLibrariesInfo")
+load("//build/bazel/rules/cc:cc_library_shared.bzl", "CcStubLibrariesInfo")
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
 ApexCcInfo = provider(
@@ -101,6 +101,9 @@ def _apex_cc_aspect_impl(target, ctx):
         # Propagate along the dynamic_deps edge
         for dep in ctx.rule.attr.dynamic_deps:
             transitive_deps.append(dep)
+    elif ctx.rule.kind == "_bssl_hash_injection" and hasattr(ctx.rule.attr, "src"):
+        # Propagate along the src edge
+        transitive_deps.append(ctx.rule.attr.src)
     elif ctx.rule.kind == "stripped_shared_library" and hasattr(ctx.rule.attr, "src"):
         # Propagate along the src edge
         transitive_deps.append(ctx.rule.attr.src)

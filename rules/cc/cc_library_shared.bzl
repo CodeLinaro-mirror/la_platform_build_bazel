@@ -71,12 +71,13 @@ def cc_library_shared(
 
         stubs_symbol_file = None,
         stubs_versions = [],
+        inject_bssl_hash = False,
         **kwargs):
     "Bazel macro to correspond with the cc_library_shared Soong module."
 
     if use_version_lib:
-      libbuildversionLabel = "//build/soong/cc/libbuildversion:libbuildversion"
-      whole_archive_deps = whole_archive_deps + [libbuildversionLabel]
+        libbuildversionLabel = "//build/soong/cc/libbuildversion:libbuildversion"
+        whole_archive_deps = whole_archive_deps + [libbuildversionLabel]
 
     shared_root_name = name + "_root"
     unstripped_name = name + "_unstripped"
@@ -169,9 +170,16 @@ def cc_library_shared(
         **kwargs
     )
 
+    hashed_name = name + "_hashed"
+    _bssl_hash_injection(
+        name = hashed_name,
+        src = unstripped_name,
+        inject_bssl_hash = inject_bssl_hash,
+    )
+
     stripped_shared_library(
         name = stripped_name,
-        src = unstripped_name,
+        src = hashed_name,
         target_compatible_with = target_compatible_with,
         **strip
     )
@@ -304,17 +312,17 @@ def _swap_shared_linker_input(ctx, shared_info, new_output):
     )
 
     return CcSharedLibraryInfo(
-            dynamic_deps = shared_info.dynamic_deps,
-            exports = shared_info.exports,
-            link_once_static_libs = shared_info.link_once_static_libs,
-            linker_input = new_linker_input,
-            preloaded_deps = shared_info.preloaded_deps,
+        dynamic_deps = shared_info.dynamic_deps,
+        exports = shared_info.exports,
+        link_once_static_libs = shared_info.link_once_static_libs,
+        linker_input = new_linker_input,
+        preloaded_deps = shared_info.preloaded_deps,
     )
 
 CcStubLibrariesInfo = provider(
     fields = {
         "infos": "A list of dict, where each dict contains the CcStubInfo, CcSharedLibraryInfo and DefaultInfo of a version of a stub library.",
-    }
+    },
 )
 
 def _cc_library_shared_proxy_impl(ctx):
@@ -326,8 +334,10 @@ def _cc_library_shared_proxy_impl(ctx):
 
     shared_lib = shared_files[0]
 
-    ctx.actions.symlink(output = ctx.outputs.output_file,
-                        target_file = shared_lib)
+    ctx.actions.symlink(
+        output = ctx.outputs.output_file,
+        target_file = shared_lib,
+    )
 
     files = root_files + [ctx.outputs.output_file, ctx.files.table_of_contents[0]]
 
@@ -368,4 +378,53 @@ _cc_library_shared_proxy = rule(
     },
     fragments = ["cpp"],
     toolchains = ["@bazel_tools//tools/cpp:toolchain_type"],
+)
+
+def _bssl_hash_injection_impl(ctx):
+    if len(ctx.files.src) != 1:
+        fail("Expected only one shared library file")
+
+    hashed_file = ctx.files.src[0]
+    if ctx.attr.inject_bssl_hash:
+        hashed_file = ctx.actions.declare_file("lib" + ctx.attr.name + ".so")
+        args = ctx.actions.args()
+        args.add_all(["-sha256"])
+        args.add_all(["-in-object", ctx.files.src[0]])
+        args.add_all(["-o", hashed_file])
+
+        ctx.actions.run(
+            inputs = ctx.files.src,
+            outputs = [hashed_file],
+            executable = ctx.executable._bssl_inject_hash,
+            arguments = [args],
+            tools = [ctx.executable._bssl_inject_hash],
+            mnemonic = "BsslInjectHash",
+        )
+
+    return [
+        DefaultInfo(files = depset([hashed_file])),
+        ctx.attr.src[CcSharedLibraryInfo],
+    ]
+
+_bssl_hash_injection = rule(
+    implementation = _bssl_hash_injection_impl,
+    attrs = {
+        "src": attr.label(
+             mandatory = True,
+             # TODO(b/217908237): reenable allow_single_file
+             # allow_single_file = True,
+             providers = [CcSharedLibraryInfo]
+        ),
+        "inject_bssl_hash": attr.bool(
+            default = False,
+            doc = "Whether inject BSSL hash",
+        ),
+        "_bssl_inject_hash": attr.label(
+            cfg = "exec",
+            doc = "The BSSL hash injection tool.",
+            executable = True,
+            default = "//prebuilts/build-tools:linux-x86/bin/bssl_inject_hash",
+            allow_single_file = True,
+        ),
+    },
 )
