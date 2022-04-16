@@ -18,7 +18,9 @@
 
 import collections
 import difflib
+import pathlib
 import subprocess
+from typing import Callable
 from commands import CommandInfo
 from commands import flag_repr
 from commands import is_flag_starts_with
@@ -135,43 +137,51 @@ def _process_includes(includes):
   return result
 
 
-def file_differences(left_path, right_path):
+# given a file, give a list of "information" about it
+ExtractInfo = Callable[[pathlib.Path], list[str]]
+
+
+def _diff(left_path: pathlib.Path, right_path: pathlib.Path, tool_name: str,
+    tool: ExtractInfo) -> list[str]:
   """Returns a list of strings describing differences in `.o` files.
   Returns the empty list if these files are deemed "similar enough".
 
   The given files must exist and must be object (.o) files."""
   errors = []
 
-  # Compare symbols using nm
-  left_symbols = subprocess.run(["nm", str(left_path)],
-                                check=True, capture_output=True,
-                                encoding="utf-8")
-  right_symbols = subprocess.run(["nm", str(right_path)],
-                                 check=True, capture_output=True,
-                                 encoding="utf-8")
-  comparator = difflib.context_diff(left_symbols.stdout.splitlines(),
-                                    right_symbols.stdout.splitlines())
+  left = tool(left_path)
+  right = tool(right_path)
+  comparator = difflib.context_diff(left, right)
   difflines = list(comparator)
   if difflines:
-    err = "symbol tables differ. diff follows:\n"
-    err += "\n".join(difflines)
-    errors += [err]
-
-  # Compare file headers using readelf -h
-  left_readelf = subprocess.run(["readelf", "-h", str(left_path)],
-                                check=True, capture_output=True,
-                                encoding="utf-8")
-  right_readelf = subprocess.run(["readelf", "-h", str(right_path)],
-                                 check=True, capture_output=True,
-                                 encoding="utf-8")
-  left_header = left_readelf.stdout.splitlines()
-  right_header = right_readelf.stdout.splitlines()
-  comparator = difflib.context_diff(left_header, right_header)
-
-  difflines = list(comparator)
-  if difflines:
-    err = "elf headers differ. diff follows:\n"
-    err += "\n".join(difflines)
-    errors += [err]
-
+    err = "\n".join(difflines)
+    errors.append(
+      f"{left_path}\ndiffers from\n{right_path}\nper {tool_name}:\n{err}")
   return errors
+
+
+def _external_tool(*args) -> ExtractInfo:
+  return lambda file: subprocess.run([*args, str(file)],
+                                     check=True, capture_output=True,
+                                     encoding="utf-8").stdout.splitlines()
+
+
+# TODO(usta) use nm as a data dependency
+def nm_differences(left_path: pathlib.Path, right_path: pathlib.Path) -> list[
+  str]:
+  """Returns differences in symbol tables.
+  Returns the empty list if these files are deemed "similar enough".
+
+  The given files must exist and must be object (.o) files."""
+  return _diff(left_path, right_path, "symbol tables", _external_tool("nm"))
+
+
+# TODO(usta) use readelf as a data dependency
+def elf_differences(left_path: pathlib.Path, right_path: pathlib.Path) -> list[
+  str]:
+  """Returns differences in elf headers.
+  Returns the empty list if these files are deemed "similar enough".
+
+  The given files must exist and must be object (.o) files."""
+  return _diff(left_path, right_path, "elf headers",
+               _external_tool("readelf", "-h"))

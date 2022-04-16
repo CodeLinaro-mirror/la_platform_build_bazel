@@ -14,7 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-load(":cc_library_common.bzl", "create_ccinfo_for_includes", "is_external_directory", "system_dynamic_deps_defaults")
+load(
+    ":cc_library_common.bzl",
+    "create_ccinfo_for_includes",
+    "is_external_directory",
+    "system_dynamic_deps_defaults",
+    "parse_sdk_version")
 load(":stl.bzl", "static_stl_deps")
 load("@bazel_skylib//lib:collections.bzl", "collections")
 load("@rules_cc//cc:find_cc_toolchain.bzl", "find_cpp_toolchain")
@@ -60,6 +65,8 @@ def cc_library_static(
         target_compatible_with = [],
         # TODO(b/202299295): Handle data attribute.
         data = [],
+        sdk_version = "",
+        min_sdk_version = "",
         use_version_lib = False):
     "Bazel macro to correspond with the cc_library_static Soong module."
 
@@ -73,14 +80,14 @@ def cc_library_static(
     toolchain_features += features
 
     if is_external_directory(native.package_name()):
-      toolchain_features += [
-          "-non_external_compiler_flags",
-          "external_compiler_flags",
-      ]
+        toolchain_features += [
+            "-non_external_compiler_flags",
+            "external_compiler_flags",
+        ]
 
     if use_version_lib:
-      libbuildversionLabel = "//build/soong/cc/libbuildversion:libbuildversion"
-      whole_archive_deps = whole_archive_deps + [libbuildversionLabel]
+        libbuildversionLabel = "//build/soong/cc/libbuildversion:libbuildversion"
+        whole_archive_deps = whole_archive_deps + [libbuildversionLabel]
 
     if rtti:
         toolchain_features += ["rtti"]
@@ -90,6 +97,12 @@ def cc_library_static(
         toolchain_features += [cpp_std, "-cpp_std_default"]
     if c_std:
         toolchain_features += [c_std, "-c_std_default"]
+
+    if min_sdk_version:
+        toolchain_features += [
+            "sdk_version_" + parse_sdk_version(min_sdk_version),
+            "-sdk_version_default"
+        ]
 
     if system_dynamic_deps == None:
         system_dynamic_deps = system_dynamic_deps_defaults
@@ -126,7 +139,7 @@ def cc_library_static(
             ("features", toolchain_features),
             ("toolchains", ["//build/bazel/platforms:android_target_product_vars"]),
             ("alwayslink", alwayslink),
-            ("target_compatible_with", target_compatible_with)
+            ("target_compatible_with", target_compatible_with),
         ],
     )
 

@@ -15,7 +15,12 @@ limitations under the License.
 """
 
 load("@rules_cc//cc:find_cc_toolchain.bzl", "find_cpp_toolchain")
-load(":cc_library_common.bzl", "is_external_directory", "get_includes_paths","system_dynamic_deps_defaults")
+load(
+    ":cc_library_common.bzl",
+    "get_includes_paths",
+    "is_external_directory",
+    "system_dynamic_deps_defaults",
+    "parse_sdk_version")
 load(":cc_constants.bzl", "constants")
 load(":stl.bzl", "static_stl_deps")
 
@@ -54,20 +59,25 @@ def _cc_object_impl(ctx):
     cc_toolchain = ctx.toolchains["//prebuilts/clang/host/linux-x86:nocrt_toolchain"].cc
 
     extra_features = []
+
     extra_disabled_features = [
-            "disable_pack_relocations",
-            "dynamic_executable",
-            "dynamic_linker",
-            "linker_flags",
-            "no_undefined_symbols",
-            "pack_dynamic_relocations",
-            "strip_debug_symbols",
-            # TODO(cparsons): Look into disabling this feature for nocrt toolchain?
-            "use_libcrt",
-        ]
+        "disable_pack_relocations",
+        "dynamic_executable",
+        "dynamic_linker",
+        "linker_flags",
+        "no_undefined_symbols",
+        "pack_dynamic_relocations",
+        "strip_debug_symbols",
+        # TODO(cparsons): Look into disabling this feature for nocrt toolchain?
+        "use_libcrt",
+    ]
     if is_external_directory(ctx.label.package):
-      extra_disabled_features.append("non_external_compiler_flags")
-      extra_features.append("external_compiler_flags")
+        extra_disabled_features.append("non_external_compiler_flags")
+        extra_features.append("external_compiler_flags")
+
+    if ctx.attr.min_sdk_version:
+        extra_disabled_features.append("sdk_version_default")
+        extra_features.append("sdk_version_" + parse_sdk_version(ctx.attr.min_sdk_version))
 
     feature_configuration = cc_common.configure_features(
         ctx = ctx,
@@ -166,6 +176,8 @@ _cc_object = rule(
         "deps": attr.label_list(providers = [CcInfo, CcObjectInfo]),
         "includes_deps": attr.label_list(providers = [CcInfo]),
         "linker_script": attr.label(allow_single_file = True),
+        "sdk_version": attr.string(),
+        "min_sdk_version": attr.string(),
         "_android_product_variables": attr.label(
             default = Label("//build/bazel/platforms:android_target_product_vars"),
             providers = [platform_common.TemplateVariableInfo],
@@ -186,6 +198,8 @@ def cc_object(
         native_bridge_supported = False,  # TODO: not supported yet.
         stl = "",
         system_dynamic_deps = None,
+        sdk_version = "",
+        min_sdk_version = "",
         **kwargs):
     "Build macro to correspond with the cc_object Soong module."
 
@@ -200,5 +214,7 @@ def cc_object(
         srcs = srcs + srcs_as,
         deps = deps,
         includes_deps = static_stl_deps(stl) + system_dynamic_deps,
+        sdk_version = sdk_version,
+        min_sdk_version = min_sdk_version,
         **kwargs
     )

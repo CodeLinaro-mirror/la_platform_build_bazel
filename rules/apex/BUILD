@@ -23,17 +23,17 @@ toolchain_type(name = "apex_toolchain_type")
 
 apex_toolchain(
     name = "prebuilt_apex_toolchain",
-    aapt2 = "@make_injection//:host/linux-x86/bin/aapt2",
+    aapt2 = "//prebuilts/sdk/tools:linux/bin/aapt2",
     avbtool = "//external/avb:avbtool",
     apexer = "@make_injection//:host/linux-x86/bin/apexer",
-    mke2fs = "@make_injection//:host/linux-x86/bin/mke2fs",
-    resize2fs = "@make_injection//:host/linux-x86/bin/resize2fs",
-    e2fsdroid = "@make_injection//:host/linux-x86/bin/e2fsdroid",
+    mke2fs = "//external/e2fsprogs/misc:mke2fs",
+    resize2fs = "//external/e2fsprogs/resize:resize2fs",
+    e2fsdroid = "//external/e2fsprogs/contrib/android:e2fsdroid",
     sefcontext_compile = "@make_injection//:host/linux-x86/bin/sefcontext_compile",
     conv_apex_manifest = "@make_injection//:host/linux-x86/bin/conv_apex_manifest",
     android_jar = "//prebuilts/sdk/current:public/android.jar",
     apex_compression_tool = "@make_injection//:host/linux-x86/bin/apex_compression_tool",
-    soong_zip = "@make_injection//:host/linux-x86/bin/soong_zip",
+    soong_zip = "//prebuilts/build-tools:linux-x86/bin/soong_zip",
 )
 
 toolchain(
@@ -62,18 +62,18 @@ sh_test(
     data = [
         ":bazel_apexer_wrapper",
         "test.pem",
-        "@make_injection//:host/linux-x86/bin/aapt2",
         "//external/avb:avbtool",
+        "//external/e2fsprogs/contrib/android:e2fsdroid",
+        "//external/e2fsprogs/misc:mke2fs",
+        "//external/e2fsprogs/resize:resize2fs",
+        "//external/e2fsprogs/debugfs:debugfs",
+        "//prebuilts/build-tools:linux-x86/bin/soong_zip",
+        "//prebuilts/sdk/tools:linux/bin/aapt2",
         "@make_injection//:host/linux-x86/bin/apex_compression_tool",
         "@make_injection//:host/linux-x86/bin/apexer",
         "@make_injection//:host/linux-x86/bin/conv_apex_manifest",
         "@make_injection//:host/linux-x86/bin/deapexer",
-        "@make_injection//:host/linux-x86/bin/debugfs",
-        "@make_injection//:host/linux-x86/bin/e2fsdroid",
-        "@make_injection//:host/linux-x86/bin/mke2fs",
-        "@make_injection//:host/linux-x86/bin/resize2fs",
         "@make_injection//:host/linux-x86/bin/sefcontext_compile",
-        "@make_injection//:host/linux-x86/bin/soong_zip",
         "//prebuilts/sdk/current:public/android.jar",
     ]
 )

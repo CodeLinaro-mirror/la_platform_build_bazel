@@ -56,6 +56,7 @@ class DifftoolTest(unittest.TestCase):
                                       obj_file)
     self.assertEqual(["doesntexist.o does not exist"], diffs)
 
+  @unittest.skip("TODO(usta)")
   def test_file_differences_different_types(self):
     obj_file = create_file("foo.o", "object contents")
     obj_file_two = create_file("foo2.o", "object contents two")
@@ -74,6 +75,7 @@ class DifftoolTest(unittest.TestCase):
     diffs = difftool.file_differences(obj_file, obj_file_two)
     self.assertNotInErrors("file types differ", diffs)
 
+  @unittest.skip("TODO(usta)")
   def test_object_contents_differ(self):
     obj_file = create_file("foo.o", "object contents\none\n")
     obj_file_two = create_file("foo2.o", "object contents\ntwo\n")

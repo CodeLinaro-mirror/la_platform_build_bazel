@@ -29,6 +29,9 @@ import pathlib
 import shutil
 
 
+COLLECTION_INFO_FILENAME = "collection_info"
+
+
 def subninja_files(ninja_file_path):
   result = []
   with ninja_file_path.open() as f:
@@ -42,13 +45,14 @@ def main():
   parser = argparse.ArgumentParser(description="")
   parser.add_argument("ninja_file",
                       help="the path to the root ninja file of the build " +
-                      "to be analyzed. Ex: out/combined-aosp_flame.ninja")
+                           "to be analyzed. Ex: out/combined-aosp_flame.ninja")
   parser.add_argument("dest_directory",
                       help="directory to copy build-related information for " +
-                      "later difftool comparison. Ex: /tmp/buildArtifacts")
+                           "later difftool comparison. Ex: /tmp/buildArtifacts")
+  # TODO(usta): enable multiple files or even a glob to be specified
   parser.add_argument("--file", dest="output_file", default=None,
                       help="the path to the output artifact to be analyzed. " +
-                      "Ex: out/path/to/foo.so")
+                           "Ex: out/path/to/foo.so")
   args = parser.parse_args()
   dest = args.dest_directory
 
@@ -76,7 +80,8 @@ def main():
     shutil.copy2(subninja_file, os.path.join(dest, subninja_file))
 
   collection_info = main_ninja_basename + "\n" + collection_info_filepath
-  pathlib.Path(dest).joinpath("collection_info").write_text(collection_info)
+  pathlib.Path(dest).joinpath(COLLECTION_INFO_FILENAME).write_text(collection_info)
+
 
 if __name__ == "__main__":
   main()

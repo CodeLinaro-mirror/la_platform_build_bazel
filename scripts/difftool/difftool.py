@@ -39,17 +39,52 @@ its analysis.
 
 import argparse
 import enum
+import functools
 import os
 import pathlib
 import re
 import subprocess
 import sys
+from typing import Callable
 
 import clangcompile
 import commands
+from collect import COLLECTION_INFO_FILENAME
+
+DiffFunction = Callable[[pathlib.Path, pathlib.Path], list[str]]
+"""Given two files, produces a list of differences."""
 
 
-_COLLECTION_INFO_FILENAME = "collection_info"
+@functools.total_ordering
+class DiffLevel(enum.Enum):
+  """Defines the level of differences that should trigger a failure.
+
+  E.g. when set to WARNING, differences deemed WARNING or SEVERE are taken into
+  account while other differences (INFO, FINE etc.) will be ignored.
+  """
+  SEVERE = 1
+  WARNING = 2
+  INFO = 3
+  FINE = 4
+
+  def __lt__(self, other):
+    if self.__class__ is other.__class__:
+      return self.value < other.value
+    return NotImplemented
+
+
+class EnumAction(argparse.Action):
+  """Parses command line options into Enum types."""
+
+  def __init__(self, **kwargs):
+    enum_type = kwargs.pop("type", None)
+    kwargs.setdefault("choices", list(e.name for e in enum_type))
+    super(EnumAction, self).__init__(**kwargs)
+    self._enum = enum_type
+
+  def __call__(self, parser, namespace, values, option_string=None):
+    value = self._enum[values]
+    setattr(namespace, self.dest, value)
 
 
 class ArtifactType(enum.Enum):
@@ -68,7 +103,31 @@ def _artifact_type(file_path):
     return ArtifactType.OTHER
 
 
-def collect_commands(ninja_file_path, output_file_path):
+# TODO(usta) use libdiff
+def literal_diff(left_path: pathlib.Path, right_path: pathlib.Path) -> list[
+  str]:
+  return subprocess.run(["diff", str(left_path), str(right_path)],
+                        check=False, capture_output=True,
+                        encoding="utf-8").stdout.splitlines()
+
+
+@functools.cache
+def _diff_fns(artifact_type: ArtifactType, level: DiffLevel) -> list[
+  DiffFunction]:
+  fns = []
+
+  if artifact_type == ArtifactType.CC_OBJECT:
+    fns.append(clangcompile.nm_differences)
+    if level >= DiffLevel.WARNING:
+      fns.append(clangcompile.elf_differences)
+  else:
+    fns.append(literal_diff)
+
+  return fns
+
+
+def collect_commands(ninja_file_path: pathlib.Path,
+    output_file_path: pathlib.Path) -> list[str]:
   """Returns a list of all command lines required to build the file at given
   output_file_path_string, as described by the ninja file present at
   ninja_file_path_string."""
@@ -85,8 +144,9 @@ def collect_commands(ninja_file_path, output_file_path):
   return result.splitlines()
 
 
-def file_differences(left_path, right_path):
-  """Returns a list of strings describing differences between the two given files.
+def file_differences(left_path: pathlib.Path, right_path: pathlib.Path,
+    level=DiffLevel.SEVERE) -> list[str]:
+  """Returns differences between the two given files.
   Returns the empty list if these files are deemed "similar enough"."""
 
   errors = []
@@ -103,18 +163,13 @@ def file_differences(left_path, right_path):
     errors += ["file types differ: %s and %s" % (left_type, right_type)]
     return errors
 
-  if left_type == ArtifactType.CC_OBJECT:
-    errors += clangcompile.file_differences(left_path, right_path)
-  else:
-    result = subprocess.run(["diff", str(left_path), str(right_path)],
-                            check=False, capture_output=True, encoding="utf-8")
-    if result.returncode != 0:
-      errors += [result.stdout]
+  for fn in _diff_fns(left_type, level):
+    errors += fn(left_path, right_path)
 
   return errors
 
 
-def parse_collection_info(info_file_path):
+def parse_collection_info(info_file_path: pathlib.Path):
   """Parses the collection info file at the given path and returns details."""
   if not info_file_path.is_file():
     raise Exception("Expected file %s was not found. " % info_file_path +
@@ -127,7 +182,7 @@ def parse_collection_info(info_file_path):
   if len(info_contents) > 1 and info_contents[1]:
     target_file = info_contents[1]
 
-  return (ninja_path, target_file)
+  return ninja_path, target_file
 
 
 # Pattern to parse out env-setting command prefix, for example:
@@ -174,42 +229,49 @@ def rich_command_info(raw_command):
 
 def main():
   parser = argparse.ArgumentParser(description="")
-  parser.add_argument("--mode", choices=["verify", "rich"], default="verify",
-                      help="The difftool mode. This will control the " +
-                      "verbosity and depth of the analysis done.")
+  parser.add_argument("--level",
+                      action=EnumAction,
+                      default=DiffLevel.SEVERE,
+                      type=DiffLevel,
+                      help="the level of differences to be considered." +
+                           "Diffs below the specified level are ignored.")
+  parser.add_argument("--verbose", "-v",
+                      action=argparse.BooleanOptionalAction,
+                      default=False,
+                      help="log verbosely.")
   parser.add_argument("left_dir",
                       help="the 'left' directory to compare build outputs " +
-                      "from. This must be the target of an invocation of " +
-                      "collect.py.")
-  parser.add_argument("--left_file", dest="left_file", default=None,
+                           "from. This must be the target of an invocation " +
+                           "of collect.py.")
+  parser.add_argument("--left_file", "-l", dest="left_file", default=None,
                       help="the output file (relative to execution root) for " +
-                      "the 'left' build invocation.")
+                           "the 'left' build invocation.")
   parser.add_argument("right_dir",
                       help="the 'right' directory to compare build outputs " +
-                      "from. This must be the target of an invocation of " +
-                      "collect.py.")
-  parser.add_argument("--right_file", dest="right_file", default=None,
+                           "from. This must be the target of an invocation " +
+                           "of collect.py.")
+  parser.add_argument("--right_file", "-r", dest="right_file", default=None,
                       help="the output file (relative to execution root) " +
-                      "for the 'right' build invocation.")
+                           "for the 'right' build invocation.")
   parser.add_argument("--allow_missing_file",
                       action=argparse.BooleanOptionalAction,
                       default=False,
                       help="allow a missing output file; this is useful to " +
-                      "compare actions even in the absence of an output file.")
+                           "compare actions even in the absence of " +
+                           "an output file.")
   args = parser.parse_args()
 
-  mode = args.mode
-  left_diffinfo = pathlib.Path(args.left_dir).joinpath(
-      _COLLECTION_INFO_FILENAME)
+  level = args.level
+  left_diffinfo = pathlib.Path(args.left_dir).joinpath(COLLECTION_INFO_FILENAME)
   right_diffinfo = pathlib.Path(args.right_dir).joinpath(
-      _COLLECTION_INFO_FILENAME)
+    COLLECTION_INFO_FILENAME)
 
   left_ninja_name, left_file = parse_collection_info(left_diffinfo)
   right_ninja_name, right_file = parse_collection_info(right_diffinfo)
   if args.left_file:
-    left_file = args.left_file
+    left_file = pathlib.Path(args.left_file)
   if args.right_file:
-    right_file = args.right_file
+    right_file = pathlib.Path(args.right_file)
 
   if left_file is None:
     raise Exception("No left file specified. Either run collect.py with a " +
@@ -226,17 +288,17 @@ def main():
     if not right_path.is_file():
       raise RuntimeError("Expected file %s was not found. " % right_path)
 
-  file_diff_errors = file_differences(left_path, right_path)
+  file_diff_errors = file_differences(left_path, right_path, level)
 
   if file_diff_errors:
     for err in file_diff_errors:
       print(err)
-    if mode == "rich":
+    if args.verbose:
       left_ninja_path = pathlib.Path(args.left_dir).joinpath(left_ninja_name)
-      right_ninja_path = pathlib.Path(args.right_dir).joinpath(right_ninja_name)
       left_commands = collect_commands(left_ninja_path, left_file)
-      right_commands = collect_commands(right_ninja_path, right_file)
       left_command_info = rich_command_info(left_commands[-1])
+      right_ninja_path = pathlib.Path(args.right_dir).joinpath(right_ninja_name)
+      right_commands = collect_commands(right_ninja_path, right_file)
       right_command_info = rich_command_info(right_commands[-1])
       print("======== ACTION COMPARISON: ========")
       print("=== LEFT:\n")
@@ -246,6 +308,8 @@ def main():
       print(right_command_info)
       print()
     sys.exit(1)
+  else:
+    print(f"{left_file} matches\n{right_file}")
   sys.exit(0)
 
 
