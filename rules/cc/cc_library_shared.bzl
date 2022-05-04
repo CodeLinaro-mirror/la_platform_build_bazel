@@ -18,13 +18,15 @@ load(
     ":cc_library_common.bzl",
     "add_lists_defaulting_to_none",
     "disable_crt_link",
+    "parse_sdk_version",
     "system_dynamic_deps_defaults",
-    "parse_sdk_version")
+)
 load(":cc_library_static.bzl", "cc_library_static")
-load(":cc_stub_library.bzl", "cc_stub_gen", "CcStubInfo")
+load(":cc_stub_library.bzl", "CcStubInfo", "cc_stub_gen")
 load(":generate_toc.bzl", "shared_library_toc", _CcTocInfo = "CcTocInfo")
 load(":stl.bzl", "shared_stl_deps")
 load(":stripped_cc_common.bzl", "stripped_shared_library")
+load(":versioned_cc_common.bzl", "versioned_shared_library")
 load("@rules_cc//examples:experimental_cc_shared_library.bzl", "cc_shared_library", _CcSharedLibraryInfo = "CcSharedLibraryInfo")
 load("@rules_cc//cc:find_cc_toolchain.bzl", "find_cpp_toolchain")
 
@@ -80,10 +82,6 @@ def cc_library_shared(
         **kwargs):
     "Bazel macro to correspond with the cc_library_shared Soong module."
 
-    if use_version_lib:
-        libbuildversionLabel = "//build/soong/cc/libbuildversion:libbuildversion"
-        whole_archive_deps = whole_archive_deps + [libbuildversionLabel]
-
     shared_root_name = name + "_root"
     unstripped_name = name + "_unstripped"
     stripped_name = name + "_stripped"
@@ -100,7 +98,7 @@ def cc_library_shared(
     if min_sdk_version:
         features = features + [
             "sdk_version_" + parse_sdk_version(min_sdk_version),
-            "-sdk_version_default"
+            "-sdk_version_default",
         ]
 
     # The static library at the root of the shared library.
@@ -165,6 +163,7 @@ def cc_library_shared(
     if len(soname) == 0:
         soname = name + ".so"
     soname_flag = "-Wl,-soname," + soname
+
     cc_shared_library(
         name = unstripped_name,
         user_link_flags = linkopts + [soname_flag],
@@ -188,9 +187,16 @@ def cc_library_shared(
         inject_bssl_hash = inject_bssl_hash,
     )
 
+    versioned_name = name + "_versioned"
+    versioned_shared_library(
+        name = versioned_name,
+        src = hashed_name,
+        stamp_build_number = use_version_lib,
+    )
+
     stripped_shared_library(
         name = stripped_name,
-        src = hashed_name,
+        src = versioned_name,
         target_compatible_with = target_compatible_with,
         **strip
     )

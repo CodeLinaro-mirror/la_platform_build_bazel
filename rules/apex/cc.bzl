@@ -46,6 +46,7 @@ def has_cc_stubs(target, ctx):
     apex_name = ctx.attr._apex_name[BuildSettingInfo].value
 
     available_versions = []
+
     # Check that the shared library has stubs built for (at least) the
     # min_sdk_version of the APEX
     for stub_info in target[CcStubLibrariesInfo].infos:
@@ -54,8 +55,8 @@ def has_cc_stubs(target, ctx):
         if stub_version <= min_sdk_version:
             return True
 
-    fail("cannot find a stub lib version for min_sdk_level %s (%s apex)\navailable versions: %s (%s)"
-         % (min_sdk_version, apex_name, available_versions, target.label))
+    fail("cannot find a stub lib version for min_sdk_level %s (%s apex)\navailable versions: %s (%s)" %
+         (min_sdk_version, apex_name, available_versions, target.label))
 
 # Check if this target is specified as a direct dependency of the APEX,
 # as opposed to a transitive dependency, as the transitivity impacts
@@ -89,6 +90,7 @@ def _apex_cc_aspect_impl(target, ctx):
 
     # Transitive deps containing shared libraries to be propagated the apex.
     transitive_deps = []
+    rules_propagate_src = ["_bssl_hash_injection", "stripped_shared_library", "versioned_shared_library"]
 
     # Exclude the stripped and unstripped so files
     if ctx.rule.kind == "_cc_library_shared_proxy":
@@ -101,10 +103,7 @@ def _apex_cc_aspect_impl(target, ctx):
         # Propagate along the dynamic_deps edge
         for dep in ctx.rule.attr.dynamic_deps:
             transitive_deps.append(dep)
-    elif ctx.rule.kind == "_bssl_hash_injection" and hasattr(ctx.rule.attr, "src"):
-        # Propagate along the src edge
-        transitive_deps.append(ctx.rule.attr.src)
-    elif ctx.rule.kind == "stripped_shared_library" and hasattr(ctx.rule.attr, "src"):
+    elif ctx.rule.kind in rules_propagate_src and hasattr(ctx.rule.attr, "src"):
         # Propagate along the src edge
         transitive_deps.append(ctx.rule.attr.src)
 
@@ -114,7 +113,7 @@ def _apex_cc_aspect_impl(target, ctx):
             transitive_shared_libs = depset(
                 shared_object_files,
                 transitive = [dep[ApexCcInfo].transitive_shared_libs for dep in transitive_deps],
-            )
+            ),
         ),
     ]
 
