@@ -38,7 +38,6 @@ mypath=$(realpath "$0")
 declare -r mydir=${mypath%/*/*/*/*}
 declare -r myname=${mypath#${mydir}/}
 
-flags_mk=(RBC_NO_PRODUCT_GRAPH=true DISABLE_ARTIFACT_PATH_REQUIREMENTS=true)
 flags_rbc=()
 quiet=
 while getopts "bkpqr" o; do
@@ -69,7 +68,7 @@ for arg in $@; do
     build RBC $product $variant ${flags_rbc[@]} && \
       rm -rf $saved_ninja_dir && mkdir -p $saved_ninja_dir/soong && \
       (for f in ${ninja_files[@]}; do mv -f out/$f $saved_ninja_dir/$f || exit 1; done) && \
-      build baseline $product $variant ${flags_mk[@]}
+      build baseline $product $variant
     rc=$?
 
     # Compare Ninja files

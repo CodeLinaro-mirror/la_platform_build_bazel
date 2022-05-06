@@ -2,7 +2,8 @@ load("//build/bazel/rules:soong_injection.bzl", "soong_injection_repository")
 load("//build/bazel/rules:make_injection.bzl", "make_injection_repository")
 
 register_toolchains(
-    "//prebuilts/clang/host/linux-x86:all"
+    "//prebuilts/build-tools:py_toolchain",
+    "//prebuilts/clang/host/linux-x86:all",
 )
 
 # This repository provides files that Soong emits during bp2build (other than
