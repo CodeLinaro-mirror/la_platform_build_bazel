@@ -18,8 +18,9 @@ load(
     ":cc_library_common.bzl",
     "create_ccinfo_for_includes",
     "is_external_directory",
+    "parse_sdk_version",
     "system_dynamic_deps_defaults",
-    "parse_sdk_version")
+)
 load(":stl.bzl", "static_stl_deps")
 load("@bazel_skylib//lib:collections.bzl", "collections")
 load("@rules_cc//cc:find_cc_toolchain.bzl", "find_cpp_toolchain")
@@ -101,7 +102,7 @@ def cc_library_static(
     if min_sdk_version:
         toolchain_features += [
             "sdk_version_" + parse_sdk_version(min_sdk_version),
-            "-sdk_version_default"
+            "-sdk_version_default",
         ]
 
     if system_dynamic_deps == None:

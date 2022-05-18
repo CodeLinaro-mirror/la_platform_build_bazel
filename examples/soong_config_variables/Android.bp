@@ -97,4 +97,5 @@ cc_binary {
     srcs: [
         "main.cpp",
     ],
+    use_version_lib: false,
 }
