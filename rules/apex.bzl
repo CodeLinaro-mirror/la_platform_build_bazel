@@ -15,7 +15,7 @@ limitations under the License.
 """
 
 load(":apex_key.bzl", "ApexKeyInfo")
-load(":prebuilt_etc.bzl", "PrebuiltEtcInfo")
+load(":prebuilt_file.bzl", "PrebuiltFileInfo")
 load(":sh_binary.bzl", "ShBinaryInfo")
 load("//build/bazel/rules/cc:stripped_cc_common.bzl", "StrippedCcBinaryInfo")
 load("//build/bazel/rules/android:android_app_certificate.bzl", "AndroidAppCertificateInfo")
@@ -52,19 +52,12 @@ def _prepare_apexer_wrapper_inputs(ctx):
 
     # Handle prebuilts
     for dep in ctx.attr.prebuilts:
-        # TODO: Support more prebuilts than just PrebuiltEtc
-        prebuilt_etc_info = dep[PrebuiltEtcInfo]
-
-        directory = "etc"
-        if prebuilt_etc_info.sub_dir != None and prebuilt_etc_info.sub_dir != "":
-            directory = "/".join([directory, prebuilt_etc_info.sub_dir])
-
-        if prebuilt_etc_info.filename != None and prebuilt_etc_info.filename != "":
-            filename = prebuilt_etc_info.filename
+        prebuilt_file_info = dep[PrebuiltFileInfo]
+        if prebuilt_file_info.filename:
+            filename = prebuilt_file_info.filename
         else:
             filename = dep.label.name
-
-        apex_manifest[(directory, filename)] = prebuilt_etc_info.src
+        apex_manifest[(prebuilt_file_info.dir, filename)] = prebuilt_file_info.src
 
     # Handle binaries
     for dep in ctx.attr.binaries:
@@ -350,7 +343,7 @@ _apex = rule(
             ],
             cfg = apex_transition,
         ),
-        "prebuilts": attr.label_list(providers = [PrebuiltEtcInfo], cfg = apex_transition),
+        "prebuilts": attr.label_list(providers = [PrebuiltFileInfo], cfg = apex_transition),
         "apex_output": attr.output(doc = "signed .apex output"),
         "capex_output": attr.output(doc = "signed .capex output"),
 

@@ -81,6 +81,9 @@ fake_library_linking_strategy_cc_defaults {
         linux_glibc: {
             enabled: false,
         },
+        linux_musl: {
+            enabled: false,
+        },
         linux_bionic: {
             enabled: false,
         },
@@ -94,4 +97,5 @@ cc_binary {
     srcs: [
         "main.cpp",
     ],
+    use_version_lib: false,
 }

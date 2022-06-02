@@ -17,12 +17,14 @@ limitations under the License.
 load(
     ":cc_library_common.bzl",
     "add_lists_defaulting_to_none",
+    "parse_sdk_version",
     "system_dynamic_deps_defaults",
     "system_static_deps_defaults",
-    "parse_sdk_version")
+)
 load(":cc_library_static.bzl", "cc_library_static")
 load(":stl.bzl", "shared_stl_deps", "static_binary_stl_deps")
 load(":stripped_cc_common.bzl", "stripped_binary")
+load(":versioned_cc_common.bzl", "versioned_binary")
 
 def cc_binary(
         name,
@@ -53,6 +55,7 @@ def cc_binary(
         target_compatible_with = [],
         sdk_version = "",
         min_sdk_version = "",
+        use_version_lib = False,
         **kwargs):
     "Bazel macro to correspond with the cc_binary Soong module."
 
@@ -73,7 +76,7 @@ def cc_binary(
     if min_sdk_version:
         toolchain_features += [
             "sdk_version_" + parse_sdk_version(min_sdk_version),
-            "-sdk_version_default"
+            "-sdk_version_default",
         ]
 
     system_dynamic_deps = []
@@ -119,6 +122,7 @@ def cc_binary(
         stl = stl,
         system_dynamic_deps = system_dynamic_deps,
         target_compatible_with = target_compatible_with,
+        use_version_lib = use_version_lib,
     )
 
     binary_dynamic_deps = add_lists_defaulting_to_none(
@@ -138,8 +142,16 @@ def cc_binary(
         **kwargs
     )
 
+    versioned_name = name + "_versioned"
+    versioned_binary(
+        name = versioned_name,
+        src = unstripped_name,
+        stamp_build_number = use_version_lib,
+    )
+
     stripped_binary(
         name = name,
-        src = unstripped_name,
+        src = versioned_name,
         target_compatible_with = target_compatible_with,
     )
+
