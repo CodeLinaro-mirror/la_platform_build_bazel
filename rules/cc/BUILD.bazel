@@ -22,6 +22,8 @@ load(":cc_library_shared_test.bzl", "cc_library_shared_test_suite")
 load(":cc_library_static_test.bzl", "cc_library_static_test_suite")
 load(":cc_object_test.bzl", "cc_object_test_suite")
 load(":cc_prebuilt_binary_test.bzl", "cc_prebuilt_binary_test_suite")
+load(":cc_prebuilt_library_shared_test.bzl", "cc_prebuilt_library_shared_test_suite")
+load(":cc_prebuilt_library_static_test.bzl", "cc_prebuilt_library_static_test_suite")
 load(":cc_proto_test.bzl", "cc_proto_test_suite")
 load(":cc_sysprop_library_test.bzl", "cc_gen_sysprop_test_suite")
 load(":cc_test_test.bzl", "cc_test_test_suite")
@@ -62,7 +64,7 @@ cc_test_test_suite(name = "cc_test_tests")
 
 cc_hidl_library_test_suite(name = "cc_hidl_library_tests")
 
-cc_library_common_test_suites("cc_library_common_tests")
+cc_library_common_test_suites(name = "cc_library_common_tests")
 
 cc_library_shared_test_suite(name = "cc_library_shared_tests")
 
@@ -73,6 +75,10 @@ cc_gen_sysprop_test_suite(name = "cc_gen_sysprop_tests")
 cc_object_test_suite(name = "cc_object_tests")
 
 cc_prebuilt_binary_test_suite(name = "cc_prebuilt_binary_tests")
+
+cc_prebuilt_library_shared_test_suite(name = "cc_prebuilt_library_shared_tests")
+
+cc_prebuilt_library_static_test_suite(name = "cc_prebuilt_library_static_tests")
 
 cc_proto_test_suite(name = "cc_proto_tests")
 

@@ -14,43 +14,53 @@
 
 load("//build/bazel/rules/cc:cc_aidl_code_gen.bzl", "cc_aidl_code_gen")
 load("//build/bazel/rules/cc:cc_library_static.bzl", "cc_library_static")
+load("//build/bazel/rules/cc:cc_library_shared.bzl", "cc_library_shared")
 
 def cc_aidl_library(
         name,
         deps = [],
-        implementation_dynamic_deps = [],
+        lang = "cpp",
+        make_shared = False,
         **kwargs):
     """
     Generate AIDL stub code for C++ and wrap it in a cc_library_static target
 
     Args:
-        name:                        (String) name of the cc_library_static target
-        deps:                        (list[AidlGenInfo]) list of all aidl_libraries that this cc_aidl_library depends on
-        implementation_dynamic_deps: (list[CcInfo]) list of cc_library_shared needed to compile the created cc_library_static target
-        **kwargs:                    extra arguments that will be passesd to cc_aidl_code_gen and cc_library_static.
+        name (str):               name of the cc_library_static target
+        deps (list[AidlGenInfo]): list of all aidl_libraries that this cc_aidl_library depends on
+        make_shared (bool):       if true, `name` will refer to a cc_library_shared,
+                                  and an additional cc_library_static will be created
+                                  if false, `name` will refer to a cc_library_static
+        **kwargs:                 extra arguments that will be passesd to cc_library_{static,shared}.
     """
 
-    aidl_code_gen = name + "_aidl_code_gen"
+    if lang not in ["cpp", "ndk"]:
+        fail("lang {} is unsupported. Allowed lang: ndk, cpp.".format(lang))
 
+    aidl_code_gen = name + "_aidl_code_gen"
     cc_aidl_code_gen(
         name = aidl_code_gen,
         deps = deps,
-        lang = "cpp",
-        **kwargs
+        lang = lang,
+        min_sdk_version = kwargs.get("min_sdk_version", None),
+        tags = kwargs.get("tags", []) + ["manual"],
     )
 
-    cc_library_static(
-        name = name,
+    arguments_with_kwargs = dict(
+        kwargs,
         srcs = [":" + aidl_code_gen],
-        # The generated headers from aidl_code_gen include the headers in
-        # :libbinder_headers. All cc library/binary targets that depends on
-        # cc_aidl_library needs to to explicitly include
-        # //frameworks/native/libs/binder:libbinder which re-exports
-        # //frameworks/native/libs/binder:libbinder_headers
-        implementation_deps = [
-            "//frameworks/native/libs/binder:libbinder_headers",
-        ],
-        implementation_dynamic_deps = implementation_dynamic_deps,
         deps = [aidl_code_gen],
-        **kwargs
+    )
+
+    static_name = name
+    if make_shared:
+        cc_library_shared(
+            name = name,
+            **arguments_with_kwargs
+        )
+        static_name = name + "_bp2build_cc_library_static"
+
+    cc_library_static(
+        name = static_name,
+        **arguments_with_kwargs
     )

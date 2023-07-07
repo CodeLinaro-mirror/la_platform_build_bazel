@@ -12,11 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("@bazel_skylib//lib:dicts.bzl", "dicts")
 load("@bazel_skylib//lib:unittest.bzl", "analysistest", "asserts")
 load("//build/bazel/rules/cc:cc_library_shared.bzl", "cc_library_shared")
 load("//build/bazel/rules/cc:cc_library_static.bzl", "cc_library_static")
 load("//build/bazel/rules/cc:cc_stub_library.bzl", "cc_stub_suite")
+load(
+    "//build/bazel/rules/cc/testing:transitions.bzl",
+    "ActionArgsInfo",
+    "compile_action_argv_aspect_generator",
+)
 load("//build/bazel/rules/test_common:flags.bzl", "action_flags_present_only_for_mnemonic_test")
 load("//build/bazel/rules/test_common:paths.bzl", "get_package_dir_based_path")
 load(":cc_library_common_test.bzl", "target_provides_androidmk_info_test")
@@ -323,75 +327,6 @@ def _cc_library_shared_does_not_propagate_implementation_dynamic_deps():
 
     return test_name
 
-ActionArgsInfo = provider(
-    fields = {
-        "argv_map": "A dict with compile action arguments keyed by the target label",
-    },
-)
-
-def _compile_action_argv_aspect_impl(target, ctx):
-    argv_map = {}
-    if ctx.rule.kind == "cc_library":
-        cpp_compile_commands_args = []
-        for action in target.actions:
-            if action.mnemonic == "CppCompile":
-                cpp_compile_commands_args.extend(action.argv)
-
-        if len(cpp_compile_commands_args):
-            argv_map = dicts.add(
-                argv_map,
-                {
-                    target.label.name: cpp_compile_commands_args,
-                },
-            )
-    elif ctx.rule.kind == "_cc_library_combiner":
-        # propagate compile actions flags from [implementation_]whole_archive_deps upstream
-        for dep in ctx.rule.attr.deps:
-            argv_map = dicts.add(
-                argv_map,
-                dep[ActionArgsInfo].argv_map,
-            )
-
-        # propagate compile actions flags from roots (e.g. _cpp) upstream
-        for root in ctx.rule.attr.roots:
-            argv_map = dicts.add(
-                argv_map,
-                root[ActionArgsInfo].argv_map,
-            )
-
-        # propagate action flags from locals and exports
-        for include in ctx.rule.attr.includes:
-            argv_map = dicts.add(
-                argv_map,
-                include[ActionArgsInfo].argv_map,
-            )
-    elif ctx.rule.kind == "_cc_includes":
-        for dep in ctx.rule.attr.deps:
-            argv_map = dicts.add(
-                argv_map,
-                dep[ActionArgsInfo].argv_map,
-            )
-    elif ctx.rule.kind == "_cc_library_shared_proxy":
-        # propagate compile actions flags from root upstream
-        argv_map = dicts.add(
-            argv_map,
-            ctx.rule.attr.deps[0][ActionArgsInfo].argv_map,
-        )
-    return ActionArgsInfo(
-        argv_map = argv_map,
-    )
-
-# _compile_action_argv_aspect is used to examine compile action from static deps
-# as the result of the fdo transition attached to the cc_library_shared's deps
-# and __internal_root_cpp which have cc compile actions.
-# Checking the deps directly using their names give us the info before
-# transition takes effect.
-_compile_action_argv_aspect = aspect(
-    implementation = _compile_action_argv_aspect_impl,
-    attr_aspects = ["root", "roots", "deps", "includes"],
-    provides = [ActionArgsInfo],
-)
-
 def _cc_library_shared_propagating_fdo_profile_test_impl(ctx):
     env = analysistest.begin(ctx)
     target_under_test = analysistest.target_under_test(env)
@@ -428,6 +363,12 @@ def _cc_library_shared_propagating_fdo_profile_test_impl(ctx):
         )
 
     return analysistest.end(env)
+
+_compile_action_argv_aspect = compile_action_argv_aspect_generator({
+    "_cc_library_combiner": ["deps", "roots", "includes"],
+    "_cc_includes": ["deps"],
+    "_cc_library_shared_proxy": ["deps"],
+})
 
 cc_library_shared_propagating_fdo_profile_test = analysistest.make(
     _cc_library_shared_propagating_fdo_profile_test_impl,
@@ -707,7 +648,7 @@ def _cc_library_set_defines_for_stubs():
     cc_stub_suite(
         name = name + "_libfoo_stub_libs",
         soname = name + "_libfoo.so",
-        source_library = ":" + name + "_libfoo",
+        source_library_label = ":" + name + "_libfoo",
         symbol_file = name + "_libfoo.map.txt",
         versions = ["30", "40"],
     )
@@ -723,7 +664,7 @@ def _cc_library_set_defines_for_stubs():
     cc_stub_suite(
         name = name + "_libbar_stub_libs",
         soname = name + "_libbar.so",
-        source_library = ":" + name + "_libbar",
+        source_library_label = ":" + name + "_libbar",
         symbol_file = name + "_libbar.map.txt",
         versions = ["current"],
     )
@@ -739,7 +680,7 @@ def _cc_library_set_defines_for_stubs():
     cc_stub_suite(
         name = name + "_libbaz_stub_libs",
         soname = name + "_libbaz.so",
-        source_library = ":" + name + "_libbaz",
+        source_library_label = ":" + name + "_libbaz",
         symbol_file = name + "_libbaz.map.txt",
         versions = ["30"],
     )
@@ -760,9 +701,9 @@ def _cc_library_set_defines_for_stubs():
         target_under_test = name + "_lib_with_stub_deps__internal_root_cpp",
         mnemonics = ["CppCompile"],
         expected_flags = [
-            "-D__CC_LIBRARY_SET_DEFINES_FOR_STUBS_LIBFOO__API__=10000",
-            "-D__CC_LIBRARY_SET_DEFINES_FOR_STUBS_LIBBAR__API__=10000",
-            "-D__CC_LIBRARY_SET_DEFINES_FOR_STUBS_LIBBAZ__API__=30",
+            "-D__CC_LIBRARY_SET_DEFINES_FOR_STUBS_LIBFOO_API__=10000",
+            "-D__CC_LIBRARY_SET_DEFINES_FOR_STUBS_LIBBAR_API__=10000",
+            "-D__CC_LIBRARY_SET_DEFINES_FOR_STUBS_LIBBAZ_API__=30",
         ],
     )
     return test_name

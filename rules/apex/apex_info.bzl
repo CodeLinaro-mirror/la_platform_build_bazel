@@ -36,5 +36,6 @@ ApexMkInfo = provider(
     "ApexMkInfo exports metadata about this apex for Android.mk integration / bundled builds.",
     fields = {
         "make_modules_to_install": "Make module names that should be installed to the system along with this APEX.",
+        "files_info": "Metadata about the files included in the APEX payload. Used for generating Make code for final packaging step (e.g. coverage zip files).",
     },
 )

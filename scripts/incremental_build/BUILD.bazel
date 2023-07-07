@@ -17,13 +17,12 @@ py_binary(
     srcs = [
         "cuj_catalog.py",
         "incremental_build.py",
-        "perf_metrics.py",
         "pretty.py",
         "ui.py",
     ],
     main = "incremental_build.py",
     python_version = "PY3",
-    deps = [":util"],
+    deps = [":perf_metrics"],
 )
 
 py_library(
@@ -37,11 +36,13 @@ py_test(
     deps = [":util"],
 )
 
-py_binary(
+py_library(
     name = "perf_metrics",
     srcs = ["perf_metrics.py"],
-    python_version = "PY3",
-    deps = [":util"],
+    deps = [
+        ":util",
+        "//build/soong/ui/metrics:metrics-py-proto",
+    ],
 )
 
 py_test(

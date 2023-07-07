@@ -13,8 +13,7 @@
 # limitations under the License.
 
 load("@bazel_skylib//lib:paths.bzl", "paths")
-load("@soong_injection//product_config:product_variables.bzl", "product_vars")
-load("//build/bazel/rules/android:android_app_certificate.bzl", "default_cert_directory")
+load("//build/bazel/product_config:product_variables_providing_rule.bzl", "ProductVariablesDepsInfo", "ProductVariablesInfo")
 
 ApexKeyInfo = provider(
     "Info needed to sign APEX bundles",
@@ -28,6 +27,18 @@ def _apex_key_rule_impl(ctx):
     public_key = ctx.file.public_key
     private_key = ctx.file.private_key
 
+    # If the DefaultAppCertificate directory is specified, then look for this
+    # key in that directory instead, with the exact same basenames for both the
+    # avbpubkey and pem files.
+    product_var_cert = ctx.attr._product_variables[ProductVariablesInfo].DefaultAppCertificate
+    cert_files_to_search = ctx.attr._product_variables[ProductVariablesDepsInfo].DefaultAppCertificateFiles
+    if product_var_cert and cert_files_to_search:
+        for f in cert_files_to_search:
+            if f.basename == ctx.file.public_key.basename:
+                public_key = f
+            elif f.basename == ctx.file.private_key.basename:
+                private_key = f
+
     public_keyname = paths.split_extension(public_key.basename)[0]
     private_keyname = paths.split_extension(private_key.basename)[0]
     if public_keyname != private_keyname:
@@ -39,7 +50,10 @@ def _apex_key_rule_impl(ctx):
         ))
 
     return [
-        ApexKeyInfo(public_key = ctx.file.public_key, private_key = ctx.file.private_key),
+        ApexKeyInfo(
+            public_key = public_key,
+            private_key = private_key,
+        ),
     ]
 
 _apex_key = rule(
@@ -47,12 +61,13 @@ _apex_key = rule(
     attrs = {
         "private_key": attr.label(mandatory = True, allow_single_file = True),
         "public_key": attr.label(mandatory = True, allow_single_file = True),
+        "_product_variables": attr.label(
+            default = "//build/bazel/product_config:product_vars",
+        ),
     },
 )
 
-# Keep consistent with the ApexKeyDir product config lookup:
-# https://cs.android.com/android/platform/superproject/+/master:build/soong/android/config.go;l=831-841;drc=652335ea7c2f8f281a1b93a1e1558960b6ad1b6f
-def _get_key_label(label, name, default_cert):
+def _get_key_label(label, name):
     if label and name:
         fail("Cannot use both {public,private}_key_name and {public,private}_key attributes together. " +
              "Use only one of them.")
@@ -60,11 +75,8 @@ def _get_key_label(label, name, default_cert):
     if label:
         return label
 
-    if not default_cert or paths.dirname(default_cert) == default_cert_directory:
-        # Use the package_name of the macro callsite of this function.
-        return "//" + native.package_name() + ":" + name
-
-    return "//" + paths.dirname(default_cert) + ":" + name
+    # Ensure that the name references the calling package's local BUILD target
+    return ":" + name
 
 def apex_key(
         name,
@@ -72,22 +84,12 @@ def apex_key(
         private_key = None,
         public_key_name = None,
         private_key_name = None,
-
-        # Product var dependency injection, for testing only.
-        # DefaultAppCertificate is lifted into a parameter to make it testable in
-        # analysis tests.
-        _DefaultAppCertificate = product_vars.get("DefaultAppCertificate"),  # path/to/some/cert
         **kwargs):
-    # Ensure that only tests can set _DefaultAppCertificate.
-    if native.package_name() != "build/bazel/rules/apex" and \
-       _DefaultAppCertificate != product_vars.get("DefaultAppCertificate"):
-        fail("Only Bazel's own tests can set apex_key._DefaultAppCertificate.")
-
     # The keys are labels that point to either a file, or a target that provides
     # a single file (e.g. a filegroup or rule that provides the key itself only).
     _apex_key(
         name = name,
-        public_key = _get_key_label(public_key, public_key_name, _DefaultAppCertificate),
-        private_key = _get_key_label(private_key, private_key_name, _DefaultAppCertificate),
+        public_key = _get_key_label(public_key, public_key_name),
+        private_key = _get_key_label(private_key, private_key_name),
         **kwargs
     )

@@ -83,7 +83,9 @@ class InputModule:
   def __str__(self):
     total = self.num_deps
     converted = self.num_deps - self.num_unconverted_deps
-    percent = converted / self.num_deps * 100
+    percent = 1
+    if self.num_deps > 0:
+      percent = converted / self.num_deps * 100
     return f"{self.module.name}: {percent:.1f}% ({converted}/{total}) converted"
 
 
@@ -288,10 +290,10 @@ def generate_report(report_data):
 def adjacency_list_from_json(
     module_graph: ...,
     ignore_by_name: List[str],
+    ignore_java_auto_deps: bool,
     top_level_modules: List[str],
-    collect_transitive_dependencies: bool = True
+    collect_transitive_dependencies: bool = True,
 ) -> Dict[ModuleInfo, Set[ModuleInfo]]:
-
   def filter_by_name(json):
     return json["Name"] in top_level_modules
 
@@ -327,7 +329,7 @@ def adjacency_list_from_json(
             module_adjacency_list.get(dep_module_info, set()))
 
   dependency_analysis.visit_json_module_graph_post_order(
-      module_graph, ignore_by_name, filter_by_name, collect_dependencies)
+      module_graph, ignore_by_name, ignore_java_auto_deps, filter_by_name, collect_dependencies)
 
   return module_adjacency_list
 
@@ -378,6 +380,7 @@ def get_module_adjacency_list(
     top_level_modules: List[str],
     use_queryview: bool,
     ignore_by_name: List[str],
+    ignore_java_auto_deps: bool = False,
     collect_transitive_dependencies: bool = True,
     banchan_mode: bool = False) -> Dict[ModuleInfo, Set[ModuleInfo]]:
   # The main module graph containing _all_ modules in the Soong build,
@@ -392,8 +395,12 @@ def get_module_adjacency_list(
     else:
       module_graph = dependency_analysis.get_json_module_info(banchan_mode)
       module_adjacency_list = adjacency_list_from_json(
-          module_graph, ignore_by_name, top_level_modules,
-          collect_transitive_dependencies)
+          module_graph,
+          ignore_by_name,
+          ignore_java_auto_deps,
+          top_level_modules,
+          collect_transitive_dependencies,
+      )
   except subprocess.CalledProcessError as err:
     sys.exit(f"""Error running: '{' '.join(err.cmd)}':"
 Stdout:
@@ -446,7 +453,16 @@ def main():
   parser.add_argument(
       "--ignore-by-name",
       default="",
-      help="Comma-separated list. When building the tree of transitive dependencies, will not follow dependency edges pointing to module names listed by this flag."
+      help=(
+          "Comma-separated list. When building the tree of transitive"
+          " dependencies, will not follow dependency edges pointing to module"
+          " names listed by this flag."
+      ),
+  )
+  parser.add_argument(
+      "--ignore-java-auto-deps",
+      action="store_true",
+      help="whether to ignore automatically added java deps",
   )
   parser.add_argument(
       "--banchan",

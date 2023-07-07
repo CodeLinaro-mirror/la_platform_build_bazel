@@ -92,7 +92,7 @@ cc_stub_gen = rule(
 
 CcStubLibrarySharedInfo = provider(
     fields = {
-        "source_library": "The source library label of the cc_stub_library_shared",
+        "source_library_label": "The source library label of the cc_stub_library_shared",
     },
 )
 
@@ -100,7 +100,7 @@ CcStubLibrarySharedInfo = provider(
 # from a library's .map.txt files and ndkstubgen. The top level target returns the same
 # providers as a cc_library_shared, with the addition of a CcStubInfo
 # containing metadata files and versions of the stub library.
-def cc_stub_library_shared(name, stubs_symbol_file, version, export_includes, soname, source_library, deps, target_compatible_with, features, tags):
+def cc_stub_library_shared(name, stubs_symbol_file, version, export_includes, soname, source_library_label, deps, target_compatible_with, features, tags):
     # Call ndkstubgen to generate the stub.c source file from a .map.txt file. These
     # are accessible in the CcStubInfo provider of this target.
     cc_stub_gen(
@@ -172,27 +172,21 @@ def cc_stub_library_shared(name, stubs_symbol_file, version, export_includes, so
         name = name,
         stub_target = name + "_files",
         library_target = name + "_so",
-        deps = [name + "_root"],
-        source_library = source_library,
+        root = name + "_root",
+        source_library_label = source_library_label,
         version = version,
         tags = tags,
     )
 
 def _cc_stub_library_shared_impl(ctx):
-    # Using a "deps" label_list instead of a single mandatory label attribute
-    # is a hack to support aspect propagation of graph_aspect of the native
-    # cc_shared_library. The aspect will only be applied and propagated along
-    # a label_list attribute named "deps".
-    if len(ctx.attr.deps) != 1:
-        fail("Exactly one 'deps' must be specified for cc_stub_library_shared")
-
+    source_library_label = Label(ctx.attr.source_library_label)
     api_level = str(api.parse_api_level_from_version(ctx.attr.version))
-    version_macro_name = "__" + ctx.attr.source_library.label.name.upper() + "__API__=" + api_level
+    version_macro_name = "__" + source_library_label.name.upper() + "_API__=" + api_level
     compilation_context = cc_common.create_compilation_context(
         defines = depset([version_macro_name]),
     )
 
-    cc_infos = [ctx.attr.deps[0][CcInfo]]
+    cc_infos = [ctx.attr.root[CcInfo]]
     cc_infos.append(CcInfo(compilation_context = compilation_context))
     cc_info = cc_common.merge_cc_infos(cc_infos = cc_infos)
 
@@ -203,7 +197,7 @@ def _cc_stub_library_shared_impl(ctx):
         cc_info,
         CcStubLibrariesInfo(has_stubs = True),
         OutputGroupInfo(rule_impl_debug_files = depset()),
-        CcStubLibrarySharedInfo(source_library = ctx.attr.source_library),
+        CcStubLibrarySharedInfo(source_library_label = source_library_label),
     ]
 
 _cc_stub_library_shared = rule(
@@ -215,10 +209,8 @@ _cc_stub_library_shared = rule(
     attrs = {
         "stub_target": attr.label(mandatory = True),
         "library_target": attr.label(mandatory = True),
-        # "deps" should be a single element: the root target of the stub library.
-        # See _cc_stub_library_shared_impl comment for explanation.
-        "deps": attr.label_list(mandatory = True),
-        "source_library": attr.label(mandatory = True),
+        "root": attr.label(mandatory = True),
+        "source_library_label": attr.string(mandatory = True),
         "version": attr.string(mandatory = True),
         "_allowlist_function_transition": attr.label(
             default = "@bazel_tools//tools/allowlists/function_transition_allowlist",
@@ -226,7 +218,18 @@ _cc_stub_library_shared = rule(
     },
 )
 
-def cc_stub_suite(name, source_library, versions, symbol_file, export_includes = [], soname = "", deps = [], data = [], target_compatible_with = [], features = [], tags = ["manual"]):
+def cc_stub_suite(
+        name,
+        source_library_label,
+        versions,
+        symbol_file,
+        export_includes = [],
+        soname = "",
+        deps = [],
+        data = [],  # @unused
+        target_compatible_with = [],
+        features = [],
+        tags = ["manual"]):
     # Implicitly add "current" to versions. This copies the behavior from Soong (aosp/1641782)
     if "current" not in versions:
         versions.append("current")
@@ -239,7 +242,7 @@ def cc_stub_suite(name, source_library, versions, symbol_file, export_includes =
             stubs_symbol_file = symbol_file,
             export_includes = export_includes,
             soname = soname,
-            source_library = source_library,
+            source_library_label = str(native.package_relative_label(source_library_label)),
             deps = deps,
             target_compatible_with = target_compatible_with,
             features = features,

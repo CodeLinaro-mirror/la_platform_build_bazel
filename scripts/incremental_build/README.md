@@ -1,39 +1,16 @@
 # How to Use
 
-For automated use (e.g. in CI), use `main.py`. See its help
-with `main.py --help`. Note that metrics collection relies on `printproto`
-and `jq` tools being on $PATH.
-
-The most basic invocation, e.g. `./incremental_build.py libc`, is logically
+The most basic invocation, e.g. `incremental_build.sh -- libc`, is logically
 equivalent to
 
 1. running `m --skip-soong-tests libc` and then
 2. parsing `$OUTDIR/soong_metrics` and `$OUTDIR/bp2build_metrics.pb` files
 3. Adding timing-related metrics from those files
    into `out/timing_logs/metrics.csv`
+4. repeat 1-3 for each CUJ
 
-There are a number of CUJs set up in `cuj_catalog.py` and they are run
-sequentially, such that each row in `metrics.csv` are the timings of various "
-events" during an incremental build.
+CUJs are defined in `cuj_catalog.py`
+Each row in `metrics.csv` has the timings of various "phases" of a build.
 
-You may also add rows to `metrics.csv` after a manual run,
-using `perf_metrics.py`
-script. This is particularly useful when you don't want to
-modify `cuj_catalog.py`
-for one-off tests.
-
-Currently:
-
-1. run a build (conceptually, m droid)
-2. printproto to parse metrics related pb files
-3. use jq to filter data
-4. collate data into a csv file
-5. goto 1 until various CUJs are exhausted
-
-For CI, we should:
-
-1. run a build with some identifiable tag (not sure what mechanisms are
-   available)
-2. goto 1 until various CUJs are exhausted
-3. rely on plx to collate data from all builds and provide a filtering mechanism
-   based on that tag from step 1
+Try `incremental_build.sh --help` and `canoncial_perf.sh --help` for help on
+usage.

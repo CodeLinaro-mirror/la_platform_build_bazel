@@ -19,6 +19,7 @@ from util import _next_path_helper
 from util import any_match
 from util import get_top_dir
 from util import hhmmss
+from util import period_to_seconds
 
 
 class UtilTest(unittest.TestCase):
@@ -78,10 +79,29 @@ class UtilTest(unittest.TestCase):
 
   def test_hhmmss(self):
     examples = [
-        (datetime.timedelta(seconds=(2 * 60 + 5)), '00:02:05.000'),
+        (datetime.timedelta(seconds=(2 * 60 + 5)), '02:05.000'),
         (datetime.timedelta(seconds=(3600 + 23 * 60 + 45.897898)),
-         '01:23:45.898'),
+         '1:23:45.898'),
     ]
     for (ts, expected) in examples:
       self.subTest(ts=ts, expected=expected)
       self.assertEqual(hhmmss(ts), expected)
+
+  def test_period_to_seconds(self):
+    examples = [
+        ('02:05.000', 2 * 60 + 5),
+        ('1:23:45.898', 3600 + 23 * 60 + 45.898),
+        ('1.898', 1.898),
+        ('0.3', 0.3),
+        ('0', 0),
+        ('0:00', 0),
+        ('0:00:00', 0),
+        ('', 0)
+    ]
+    for (ts, expected) in examples:
+      self.subTest(ts=ts, expected=expected)
+      self.assertEqual(period_to_seconds(ts), expected)
+
+
+if __name__ == '__main__':
+  unittest.main()

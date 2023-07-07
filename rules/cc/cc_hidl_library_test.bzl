@@ -47,7 +47,6 @@ INTERFACE_VERSION_1_1 = "1.1"
 
 def _cc_code_gen_test_impl(ctx):
     env = analysistest.begin(ctx)
-    target_under_test = analysistest.target_under_test(env)
     actions = analysistest.target_actions(env)
     package_root = paths.dirname(ctx.build_file_path)
     header_gen_actions = [a for a in actions if a.mnemonic == "HidlGenCcHeader"]

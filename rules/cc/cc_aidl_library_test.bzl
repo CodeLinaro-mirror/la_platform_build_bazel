@@ -15,8 +15,9 @@
 load("@bazel_skylib//lib:new_sets.bzl", "sets")
 load("@bazel_skylib//lib:paths.bzl", "paths")
 load("@bazel_skylib//lib:unittest.bzl", "analysistest", "asserts")
-load("//build/bazel/rules/aidl:library.bzl", "aidl_library")
+load("//build/bazel/rules/aidl:aidl_library.bzl", "aidl_library")
 load("//build/bazel/rules/cc:cc_aidl_library.bzl", "cc_aidl_library")
+load("//build/bazel/rules/test_common:flags.bzl", "action_flags_present_only_for_mnemonic_test")
 
 aidl_library_label_name = "foo_aidl_library"
 aidl_files = [
@@ -96,7 +97,7 @@ cc_aidl_code_gen_test = analysistest.make(
 def _cc_aidl_code_gen_test():
     name = "foo"
     aidl_code_gen_name = name + "_aidl_code_gen"
-    test_name = aidl_code_gen_name + "_test"
+    code_gen_test_name = aidl_code_gen_name + "_test"
 
     aidl_library(
         name = aidl_library_label_name,
@@ -109,8 +110,74 @@ def _cc_aidl_code_gen_test():
         tags = ["manual"],
     )
     cc_aidl_code_gen_test(
+        name = code_gen_test_name,
+        target_under_test = aidl_code_gen_name,
+    )
+
+    action_flags_present_test_name = name + "_test_action_flags_present"
+    action_flags_present_only_for_mnemonic_test(
+        name = action_flags_present_test_name,
+        target_under_test = name + "_cpp",
+        mnemonics = ["CppCompile"],
+        expected_flags = [
+            "-DDO_NOT_CHECK_MANUAL_BINDER_INTERFACES",
+        ],
+    )
+
+    return [
+        code_gen_test_name,
+        action_flags_present_test_name,
+    ]
+
+def _cc_aidl_hash_notfrozen():
+    aidl_library_name = "cc_aidl_hash_notfrozen"
+    cc_aidl_library_name = aidl_library_name + "cc_aidl_library"
+    aidl_code_gen_name = cc_aidl_library_name + "_aidl_code_gen"
+    test_name = aidl_code_gen_name + "_test"
+
+    aidl_library(
+        name = aidl_library_name,
+        srcs = aidl_files,
+        tags = ["manual"],
+    )
+    cc_aidl_library(
+        name = cc_aidl_library_name,
+        deps = [aidl_library_name],
+        tags = ["manual"],
+    )
+    action_flags_present_only_for_mnemonic_test(
         name = test_name,
         target_under_test = aidl_code_gen_name,
+        mnemonics = ["CcAidlCodeGen"],
+        expected_flags = ["--hash=notfrozen"],
+    )
+
+    return test_name
+
+def _cc_aidl_hash_flag_with_hash_file():
+    aidl_library_name = "cc_aidl_hash_flag_with_hash_file"
+    cc_aidl_library_name = aidl_library_name + "cc_aidl_library"
+    aidl_code_gen_name = cc_aidl_library_name + "_aidl_code_gen"
+    test_name = aidl_code_gen_name + "_test"
+
+    aidl_library(
+        name = aidl_library_name,
+        srcs = aidl_files,
+        hash_file = "cc_aidl_hash_flag_with_hash_file/.hash",
+        tags = ["manual"],
+    )
+    cc_aidl_library(
+        name = cc_aidl_library_name,
+        deps = [aidl_library_name],
+        tags = ["manual"],
+    )
+    action_flags_present_only_for_mnemonic_test(
+        name = test_name,
+        target_under_test = aidl_code_gen_name,
+        mnemonics = ["CcAidlCodeGen"],
+        expected_flags = [
+            "--hash=$(tail -1 <source file build/bazel/rules/cc/cc_aidl_hash_flag_with_hash_file/.hash>)",
+        ],
     )
 
     return test_name
@@ -119,6 +186,7 @@ def cc_aidl_library_test_suite(name):
     native.test_suite(
         name = name,
         tests = [
-            _cc_aidl_code_gen_test(),
-        ],
+            _cc_aidl_hash_notfrozen(),
+            _cc_aidl_hash_flag_with_hash_file(),
+        ] + _cc_aidl_code_gen_test(),
     )

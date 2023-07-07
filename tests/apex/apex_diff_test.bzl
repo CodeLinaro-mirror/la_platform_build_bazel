@@ -32,7 +32,7 @@ def apex_diff_test(
 
     if expected_diff == None:
         diff_test(
-            name = name + "_content_diff_test",
+            name = name,
             file1 = name + ".apex1.txt",
             file2 = name + ".apex2.txt",
             target_compatible_with = target_compatible_with,
@@ -50,7 +50,7 @@ def apex_diff_test(
             cmd_bash = "diff $(SRCS) > $@ || true",
         )
         diff_test(
-            name = name + "_content_diff_test",
+            name = name,
             file1 = name + ".apex1.apex2.diff.txt",
             file2 = expected_diff,
             target_compatible_with = target_compatible_with,

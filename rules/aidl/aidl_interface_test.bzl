@@ -16,8 +16,10 @@ limitations under the License.
 load("@bazel_skylib//lib:new_sets.bzl", "sets")
 load("@bazel_skylib//lib:paths.bzl", "paths")
 load("@bazel_skylib//lib:unittest.bzl", "analysistest", "asserts")
-load("//build/bazel/rules/aidl:interface.bzl", "aidl_interface")
+load("//build/bazel/rules/aidl:aidl_interface.bzl", "aidl_interface")
+load("//build/bazel/rules/aidl:aidl_library.bzl", "AidlGenInfo")
 load("//build/bazel/rules/test_common:rules.bzl", "target_under_test_exist_test")
+load("//build/bazel/rules/test_common:flags.bzl", "action_flags_present_only_for_mnemonic_test_with_config_settings")
 
 def _ndk_backend_test_impl(ctx):
     env = analysistest.begin(ctx)
@@ -136,6 +138,81 @@ def _ndk_config_test():
 
     return test_name
 
+def _aidl_library_has_flags_test_impl(ctx):
+    env = analysistest.begin(ctx)
+    target_under_test = analysistest.target_under_test(env)
+
+    asserts.true(
+        env,
+        AidlGenInfo in target_under_test,
+        "",
+    )
+    asserts.equals(
+        env,
+        ctx.attr.expected_flags,
+        target_under_test[AidlGenInfo].flags,
+        "",
+    )
+
+    return analysistest.end(env)
+
+aidl_library_has_flags_test = analysistest.make(
+    _aidl_library_has_flags_test_impl,
+    attrs = {
+        "expected_flags": attr.string_list(),
+    },
+)
+
+def _test_aidl_interface_passes_flags_to_aidl_libraries():
+    name = "aidl_interface_passes_version_flags_to_aidl_libraries"
+    aidl_interface(
+        name = name,
+        srcs = ["Foo.aidl"],
+        tags = ["manual"],
+        versions_with_info = [
+            {
+                "version": "1",
+            },
+            {
+                "version": "2",
+            },
+        ],
+    )
+
+    target_v1_test_name = name + "_test-V1"
+    aidl_library_has_flags_test(
+        name = target_v1_test_name,
+        target_under_test = name + "-V1",
+        expected_flags = [
+            "--structured",
+            "--version=1",
+        ],
+    )
+    target_v2_test_name = name + "_test-V2"
+    aidl_library_has_flags_test(
+        name = target_v2_test_name,
+        target_under_test = name + "-V2",
+        expected_flags = [
+            "--structured",
+            "--version=2",
+        ],
+    )
+    target_v_next_test_name = name + "_test-V_next"
+    aidl_library_has_flags_test(
+        name = target_v_next_test_name,
+        target_under_test = name + "-V3",
+        expected_flags = [
+            "--structured",
+            "--version=3",
+        ],
+    )
+
+    return [
+        target_v1_test_name,
+        target_v2_test_name,
+        target_v_next_test_name,
+    ]
+
 def _next_version_for_unversioned_stable_interface_test():
     name = "unversioned_stable_interface_next_version"
     test_name = name + "_test"
@@ -161,7 +238,14 @@ def _next_version_for_versioned_stable_interface_test():
 
     aidl_interface(
         name = name,
-        versions = ["1", "2"],
+        versions_with_info = [
+            {
+                "version": "1",
+            },
+            {
+                "version": "2",
+            },
+        ],
         srcs = ["Foo.aidl"],
         tags = ["manual"],
     )
@@ -258,6 +342,115 @@ def _test_aidl_interface_generated_header_filter():
         static_test_name,
     ]
 
+_action_flags_present_with_tidy_test = action_flags_present_only_for_mnemonic_test_with_config_settings({
+    "@//build/bazel/flags/cc/tidy:allow_local_tidy_true": True,
+})
+
+def _test_aidl_interface_generated_cc_library_has_correct_tidy_checks_as_errors():
+    name = "aidl_interface_generated_cc_library_has_correct_tidy_checks_as_errors"
+    test_name = name + "_test"
+    aidl_library_target = name + "-cpp"
+    shared_target_under_test = aidl_library_target + "__internal_root"
+    shared_test_name = test_name + "_shared"
+    static_target_under_test = aidl_library_target + "_bp2build_cc_library_static"
+    static_test_name = test_name + "_static"
+
+    aidl_interface(
+        name = name,
+        cpp_config = {
+            "enabled": True,
+        },
+        unstable = True,
+        srcs = ["a/b/Foo.aidl"],
+        tags = ["manual"],
+    )
+
+    _action_flags_present_with_tidy_test(
+        name = shared_test_name,
+        target_under_test = shared_target_under_test,
+        mnemonics = ["ClangTidy"],
+        expected_flags = [
+            "-warnings-as-errors=*,-clang-analyzer-deadcode.DeadStores,-clang-analyzer-cplusplus.NewDeleteLeaks,-clang-analyzer-optin.performance.Padding,-bugprone-assignment-in-if-condition,-bugprone-branch-clone,-bugprone-signed-char-misuse,-misc-const-correctness",
+        ],
+    )
+    _action_flags_present_with_tidy_test(
+        name = static_test_name,
+        target_under_test = static_target_under_test,
+        mnemonics = ["ClangTidy"],
+        expected_flags = [
+            "-warnings-as-errors=*,-clang-analyzer-deadcode.DeadStores,-clang-analyzer-cplusplus.NewDeleteLeaks,-clang-analyzer-optin.performance.Padding,-bugprone-assignment-in-if-condition,-bugprone-branch-clone,-bugprone-signed-char-misuse,-misc-const-correctness",
+        ],
+    )
+    return [
+        shared_test_name,
+        static_test_name,
+    ]
+
+def _cc_library_has_flags_test_impl(ctx):
+    env = analysistest.begin(ctx)
+    target = analysistest.target_under_test(env)
+    actions = [a for a in target.actions if a.mnemonic == "CppCompile"]
+
+    asserts.true(
+        env,
+        len(actions) == 1,
+        "There should be one cc compile action: %s" % actions,
+    )
+
+    action = actions[0]
+    for flag in ctx.attr.expected_flags:
+        if flag not in action.argv:
+            fail("{} is not in list of flags for linking {}".format(flag, action.argv))
+
+    return analysistest.end(env)
+
+cc_library_has_flags_test = analysistest.make(
+    _cc_library_has_flags_test_impl,
+    attrs = {
+        "expected_flags": attr.string_list(),
+    },
+)
+
+def _test_aidl_interface_sets_flags_to_cc_libraries():
+    name = "aidl_interface_sets_flags_to_cc_libraries"
+    test_name = name + "_test"
+    aidl_library_target = name + "-ndk"
+    shared_target_under_test = aidl_library_target + "__internal_root_cpp"
+    shared_test_name = test_name + "_shared"
+    static_target_under_test = aidl_library_target + "_bp2build_cc_library_static_cpp"
+    static_test_name = test_name + "_static"
+
+    aidl_interface(
+        name = name,
+        ndk_config = {
+            "enabled": True,
+        },
+        srcs = ["Foo.aidl"],
+        unstable = True,
+        tags = ["manual"],
+    )
+
+    cc_library_has_flags_test(
+        name = shared_test_name,
+        target_under_test = shared_target_under_test,
+        expected_flags = [
+            "-DBINDER_STABILITY_SUPPORT",
+        ],
+    )
+
+    cc_library_has_flags_test(
+        name = static_test_name,
+        target_under_test = static_target_under_test,
+        expected_flags = [
+            "-DBINDER_STABILITY_SUPPORT",
+        ],
+    )
+
+    return [
+        shared_test_name,
+        static_test_name,
+    ]
+
 def aidl_interface_test_suite(name):
     native.test_suite(
         name = name,
@@ -270,6 +463,9 @@ def aidl_interface_test_suite(name):
                 _next_version_for_unversioned_stable_interface_test(),
                 _next_version_for_versioned_stable_interface_test(),
             ] +
-            _test_aidl_interface_generated_header_filter()
+            _test_aidl_interface_generated_header_filter() +
+            _test_aidl_interface_passes_flags_to_aidl_libraries() +
+            _test_aidl_interface_sets_flags_to_cc_libraries() +
+            _test_aidl_interface_generated_cc_library_has_correct_tidy_checks_as_errors()
         ),
     )

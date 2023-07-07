@@ -13,21 +13,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import argparse
 import csv
-import functools
+import datetime
+import logging
 import re
 import statistics
-import sys
-from decimal import Decimal
+import subprocess
+import textwrap
 from pathlib import Path
 from typing import Callable
 
 from typing.io import TextIO
 
 import util
-
-NA = "   --:--"
 
 
 def normalize_rebuild(line: dict) -> dict:
@@ -45,55 +43,12 @@ def groupby(xs: list[dict], keyfn: Callable[[dict], str]) -> dict[
   return grouped
 
 
-def pretty_time(t_secs: Decimal) -> str:
-  s = int(t_secs.to_integral_exact())
-  h = int(s / 3600)
-  s = s % 3600
-  m = int(s / 60)
-  s = s % 60
-  if h > 0:
-    as_str = f'{h}:{m:02d}:{s:02d}'
-  elif m > 0:
-    as_str = f'{m}:{s:02d}'
-  else:
-    as_str = str(s)
-  return f'{as_str:>8s}'
-
-
 def write_table(out: TextIO, rows: list[list[str]]):
-  def cell_width(prev, row):
-    for i in range(len(row)):
-      if len(prev) <= i:
-        prev.append(0)
-      prev[i] = max(prev[i], len(str(row[i])))
-    return prev
-
-  widths = functools.reduce(cell_width, rows, [])
-  fmt = "  ".join([f"%-{width}s" for width in widths]) + "\n"
-
-  def draw_separator():
-    table_width: int = functools.reduce(lambda a, b: a + b + 2, widths)
-    out.write("—" * table_width + "\n")
-
-  draw_separator()
-  out.write(fmt % tuple(str(header) for header in rows[0]))
-  draw_separator()
-  for r in rows[1:]:
-    out.write(fmt % tuple([str(cell) for cell in r]))
-  draw_separator()
-
-
-def seconds(s, acc=Decimal(0.0)) -> Decimal:
-  colonpos = s.find(':')
-  if colonpos > 0:
-    left_part = s[0:colonpos]
-  else:
-    left_part = s
-  acc = acc * 60 + Decimal(left_part)
-  if colonpos > 0:
-    return seconds(s[colonpos + 1:], acc)
-  else:
-    return acc
+  for r in rows:
+    for c in r:
+      out.write(str(c) + ',')
+    out.write('\n')
+  return
 
 
 def _get_build_types(xs: list[dict]) -> list[str]:
@@ -105,19 +60,16 @@ def _get_build_types(xs: list[dict]) -> list[str]:
   return build_types
 
 
-def pretty(log_dir: Path, include_rebuilds: bool):
-  filename = log_dir if log_dir.is_file() else log_dir.joinpath(util.METRICS_TABLE)
+def summarize_metrics(log_dir: Path):
+  filename = log_dir if log_dir.is_file() else log_dir.joinpath(
+      util.METRICS_TABLE)
   with open(filename) as f:
-    csv_lines = [normalize_rebuild(line) for line in
-                 csv.DictReader(f) if
-                 include_rebuilds or not line['description'].startswith(
-                     'rebuild-')]
+    csv_lines = [normalize_rebuild(line) for line in csv.DictReader(f)]
 
   lines: list[dict] = []
   for line in csv_lines:
-    if line["build_result"] != "SUCCESS":
-      print(f"{line['build_result']}: "
-            f"{line['description']} / {line['build_type']}")
+    if line["build_result"] == "FAILED":
+      logging.warning(f"{line['description']} / {line['build_type']}")
     else:
       lines.append(line)
 
@@ -134,22 +86,27 @@ def pretty(log_dir: Path, include_rebuilds: bool):
       for build_type in build_types:
         selected_lines = by_build_type.get(build_type)
         if not selected_lines:
-          row.append(NA)
+          row.append('')
         else:
-          times = [seconds(l['time']) for l in selected_lines]
-          cell = pretty_time(statistics.median(times))
+          times = [util.period_to_seconds(sl['time']) for sl in selected_lines]
+          cell = util.hhmmss(
+              datetime.timedelta(seconds=statistics.median(times)))
           if len(selected_lines) > 1:
             cell = f'{cell}[N={len(selected_lines)}]'
           row.append(cell)
       rows.append(row)
 
-  write_table(sys.stdout, rows)
+  with open(log_dir.joinpath(util.SUMMARY_TABLE), mode='wt') as f:
+    write_table(f, rows)
 
 
-if __name__ == "__main__":
-  p = argparse.ArgumentParser()
-  p.add_argument('--include-rebuilds', default=False, action='store_true')
-  p.add_argument('log_dir', nargs='?', type=Path,
-                 default=util.get_default_log_dir())
-  options = p.parse_args()
-  pretty(options.log_dir, options.include_rebuilds)
+def display_summarized_metrics(log_dir: Path):
+  f = log_dir.joinpath(util.SUMMARY_TABLE)
+  cmd = f'grep -v rebuild {f} | grep -v WARMUP | column -t -s,'
+  output = subprocess.check_output(cmd, shell=True, text=True)
+  logging.info(textwrap.dedent(f'''
+  %s
+  TIPS:
+  To view condensed summary:
+  %s
+  '''), output, cmd)

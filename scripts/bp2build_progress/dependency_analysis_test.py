@@ -52,7 +52,7 @@ class DependencyAnalysisTest(unittest.TestCase):
       visited_modules.append(module['Name'])
 
     dependency_analysis.visit_json_module_graph_post_order(
-        graph, set(), only_a, visit)
+        graph, set(), False, only_a, visit)
 
     expected_visited = ['d', 'b', 'e', 'c', 'a']
     self.assertListEqual(visited_modules, expected_visited)
@@ -83,7 +83,7 @@ class DependencyAnalysisTest(unittest.TestCase):
       visited_modules.append(module['Name'])
 
     dependency_analysis.visit_json_module_graph_post_order(
-        graph, set('b'), only_a, visit)
+        graph, set('b'), False, only_a, visit)
 
     expected_visited = ['e', 'c', 'a']
     self.assertListEqual(visited_modules, expected_visited)
@@ -114,7 +114,7 @@ class DependencyAnalysisTest(unittest.TestCase):
       visited_modules.append(module['Name'])
 
     dependency_analysis.visit_json_module_graph_post_order(
-        graph, set(), only_a, visit)
+        graph, set(), False, only_a, visit)
 
     expected_visited = ['e', 'c', 'a']
     self.assertListEqual(visited_modules, expected_visited)
@@ -151,7 +151,7 @@ class DependencyAnalysisTest(unittest.TestCase):
       visited_modules.append(module['Name'])
 
     dependency_analysis.visit_json_module_graph_post_order(
-        graph, set(), only_a, visit)
+        graph, set(), False, only_a, visit)
 
     expected_visited = ['e', 'c', 'a']
     self.assertListEqual(visited_modules, expected_visited)
@@ -182,7 +182,7 @@ class DependencyAnalysisTest(unittest.TestCase):
       visited_modules.append(module['Name'])
 
     dependency_analysis.visit_json_module_graph_post_order(
-        graph, set(), only_a, visit)
+        graph, set(), False, only_a, visit)
 
     expected_visited = ['e', 'c', 'a']
     self.assertListEqual(visited_modules, expected_visited)
@@ -203,7 +203,7 @@ class DependencyAnalysisTest(unittest.TestCase):
       visited_modules.append(module['Name'])
 
     dependency_analysis.visit_json_module_graph_post_order(
-        graph, set(), only_a, visit)
+        graph, set(), False, only_a, visit)
 
     expected_visited = ['a']
     self.assertListEqual(visited_modules, expected_visited)
@@ -245,7 +245,7 @@ class DependencyAnalysisTest(unittest.TestCase):
       visited_modules.append(module['Name'])
 
     dependency_analysis.visit_json_module_graph_post_order(
-        graph, set(), only_a, visit)
+        graph, set(), False, only_a, visit)
 
     expected_visited = ['d', 'b', 'a', 'e', 'c', 'a']
     self.assertListEqual(visited_modules, expected_visited)
@@ -286,7 +286,7 @@ class DependencyAnalysisTest(unittest.TestCase):
       visited_modules.append(module['Name'])
 
     dependency_analysis.visit_json_module_graph_post_order(
-        graph, set(), only_a, visit)
+        graph, set(), False, only_a, visit)
 
     expected_visited = ['a']
     self.assertListEqual(visited_modules, expected_visited)
@@ -314,7 +314,7 @@ class DependencyAnalysisTest(unittest.TestCase):
       visited_modules.append(module['Name'])
 
     dependency_analysis.visit_json_module_graph_post_order(
-        graph, set(), only_a, visit)
+        graph, set(), False, only_a, visit)
 
     expected_visited = ['d', 'b', 'e', 'c', 'a']
     self.assertListEqual(visited_modules, expected_visited)

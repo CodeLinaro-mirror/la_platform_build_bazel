@@ -43,7 +43,7 @@ def _cc_gen_sysprop_impl(ctx):
         output_src_file = ctx.actions.declare_file(
             "sysprop/%s.cpp" % output_subpath,
         )
-        action_outputs += [output_src_file]
+        action_outputs.append(output_src_file)
 
         output_header_file = ctx.actions.declare_file(
             "sysprop/include/%s.h" % output_subpath,

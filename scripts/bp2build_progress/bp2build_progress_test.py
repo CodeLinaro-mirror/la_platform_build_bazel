@@ -82,9 +82,9 @@ class Bp2BuildProgressTest(unittest.TestCase):
       autospec=True,
       return_value=_queryview_graph)
   def test_get_module_adjacency_list_queryview_transitive_deps(self, _):
-    adjacency_dict = bp2build_progress.get_module_adjacency_list(['a', 'f'],
-                                                                 True, set(),
-                                                                 True, False)
+    adjacency_dict = bp2build_progress.get_module_adjacency_list(
+        ['a', 'f'], True, set(), False, True, False
+    )
 
     a = bp2build_progress.ModuleInfo(
         name='a', kind='type1', dirname='pkg', num_deps=2, created_by=None)
@@ -112,9 +112,9 @@ class Bp2BuildProgressTest(unittest.TestCase):
       autospec=True,
       return_value=_queryview_graph)
   def test_get_module_adjacency_list_queryview_direct_deps(self, _):
-    adjacency_dict = bp2build_progress.get_module_adjacency_list(['a', 'f'],
-                                                                 True, set(),
-                                                                 False, False)
+    adjacency_dict = bp2build_progress.get_module_adjacency_list(
+        ['a', 'f'], True, set(), False, False
+    )
 
     a = bp2build_progress.ModuleInfo(
         name='a', kind='type1', dirname='pkg', num_deps=2, created_by=None)
@@ -143,9 +143,9 @@ class Bp2BuildProgressTest(unittest.TestCase):
       autospec=True,
       return_value=_soong_module_graph)
   def test_get_module_adjacency_list_soong_module_transitive_deps(self, _):
-    adjacency_dict = bp2build_progress.get_module_adjacency_list(['a', 'f'],
-                                                                 False, set(),
-                                                                 True, False)
+    adjacency_dict = bp2build_progress.get_module_adjacency_list(
+        ['a', 'f'], False, set(), False, True, False
+    )
 
     a = bp2build_progress.ModuleInfo(
         name='a', kind='type1', dirname='pkg', num_deps=2, created_by='')

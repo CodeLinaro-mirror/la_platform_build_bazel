@@ -38,11 +38,24 @@ apex_key_test = analysistest.make(
     },
 )
 
+apex_key_with_default_app_cert_test = analysistest.make(
+    _apex_key_test,
+    attrs = {
+        "expected_private_key_short_path": attr.string(mandatory = True),
+        "expected_public_key_short_path": attr.string(mandatory = True),
+    },
+    config_settings = {
+        # This product sets DefaultAppCertificate to build/bazel/rules/apex/testdata/devkey,
+        # so we expect the apex_key to look for key_name in build/bazel/rules/apex/testdata.
+        "//command_line_option:platforms": "@//build/bazel/tests/products:aosp_arm64_for_testing_with_overrides_and_app_cert",
+    },
+)
+
 def _test_apex_key_file_targets_with_key_name_attribute():
     name = "apex_key_file_targets_with_key_name_attribute"
     test_name = name + "_test"
-    private_key = name + ".priv"
-    public_key = name + ".pub"
+    private_key = name + ".pem"
+    public_key = name + ".avbpubkey"
 
     apex_key(
         name = name,
@@ -62,22 +75,16 @@ def _test_apex_key_file_targets_with_key_name_attribute():
 def _test_apex_key_file_targets_with_key_name_attribute_with_default_app_cert():
     name = "apex_key_file_targets_with_key_attribute_with_default_app_cert"
     test_name = name + "_test"
-    private_key = "devkey.priv"
-    public_key = "devkey.pub"
+    private_key = "devkey.pem"
+    public_key = "devkey.avbpubkey"
 
     apex_key(
         name = name,
         private_key_name = private_key,
         public_key_name = public_key,
-
-        # Corresponds to the DefaultAppCertificate soong variable.
-        # This is icky, but there's no simpler/better way to
-        # inject a different value for a product var loaded from
-        # @soong_injection and accessed within a macro.
-        _DefaultAppCertificate = "build/bazel/rules/apex/testdata/some_cert",
     )
 
-    apex_key_test(
+    apex_key_with_default_app_cert_test(
         name = test_name,
         target_under_test = name,
         expected_private_key_short_path = "build/bazel/rules/apex/testdata/" + private_key,
@@ -89,8 +96,8 @@ def _test_apex_key_file_targets_with_key_name_attribute_with_default_app_cert():
 def _test_apex_key_file_targets_with_key_attribute():
     name = "apex_key_file_targets_with_key_attribute"
     test_name = name + "_test"
-    private_key = name + ".priv"
-    public_key = name + ".pub"
+    private_key = name + ".pem"
+    public_key = name + ".avbpubkey"
 
     apex_key(
         name = name,
@@ -112,8 +119,8 @@ def _test_apex_key_file_targets_with_key_attribute():
 def _test_apex_key_generated_keys():
     name = "apex_key_generated_keys"
     test_name = name + "_test"
-    private_key = name + ".priv"
-    public_key = name + ".pub"
+    private_key = name + ".pem"
+    public_key = name + ".avbpubkey"
 
     native.genrule(
         name = private_key,

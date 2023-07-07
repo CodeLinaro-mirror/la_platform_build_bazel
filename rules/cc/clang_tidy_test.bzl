@@ -138,6 +138,9 @@ _clang_tidy = rule(
         "_tidy_timeout": attr.label(
             default = "//build/bazel/flags/cc/tidy:tidy_timeout",
         ),
+        "_product_variables": attr.label(
+            default = "//build/bazel/product_config:product_vars",
+        ),
     },
     toolchains = ["@bazel_tools//tools/cpp:toolchain_type"],
     fragments = ["cpp"],
@@ -525,7 +528,7 @@ def _create_cc_library_static_generates_clang_tidy_actions_for_srcs(
         name = name,
         srcs = srcs,
         tidy_disabled_srcs = disabled_srcs,
-        tidy = True,
+        tidy = "local",
         tags = ["manual"],
     )
 
@@ -594,7 +597,7 @@ def _test_no_clang_analyzer_on_generated_files():
     cc_library_static(
         name = name,
         srcs = [":" + gen_name],
-        tidy = True,
+        tidy = "local",
         tags = ["manual"],
     )
 
@@ -605,6 +608,148 @@ def _test_no_clang_analyzer_on_generated_files():
 
     return [
         test_name,
+    ]
+
+def _clang_tidy_actions_count_no_tidy_env_test_impl(ctx):
+    env = analysistest.begin(ctx)
+    actions = analysistest.target_actions(env)
+
+    clang_tidy_actions = [a for a in actions if a.mnemonic == "ClangTidy"]
+    asserts.equals(
+        env,
+        ctx.attr.expected_num_tidy_actions,
+        len(clang_tidy_actions),
+        "expected to find %d tidy actions, but found %d" % (
+            ctx.attr.expected_num_tidy_actions,
+            len(clang_tidy_actions),
+        ),
+    )
+
+    return analysistest.end(env)
+
+_clang_tidy_actions_count_no_tidy_env_test = analysistest.make(
+    impl = _clang_tidy_actions_count_no_tidy_env_test_impl,
+    attrs = {
+        "expected_num_tidy_actions": attr.int(),
+    },
+)
+
+_clang_tidy_actions_count_with_tidy_true_test = analysistest.make(
+    impl = _clang_tidy_actions_count_no_tidy_env_test_impl,
+    attrs = {
+        "expected_num_tidy_actions": attr.int(),
+    },
+    config_settings = {
+        "@//build/bazel/flags/cc/tidy:with_tidy": True,
+    },
+)
+
+_clang_tidy_actions_count_with_allow_local_tidy_true_test = analysistest.make(
+    impl = _clang_tidy_actions_count_no_tidy_env_test_impl,
+    attrs = {
+        "expected_num_tidy_actions": attr.int(),
+    },
+    config_settings = {
+        "@//build/bazel/flags/cc/tidy:allow_local_tidy_true": True,
+    },
+)
+
+def _test_clang_tidy_runs_if_tidy_true():
+    name = "clang_tidy_runs_if_tidy_true"
+    test_name = name + "_test"
+    with_tidy_test_name = test_name + "_with_tidy_true"
+    allow_local_tidy_true_test_name = test_name + "_allow_local_tidy_true"
+
+    cc_library_static(
+        name = name,
+        srcs = ["a.cpp"],
+        tidy = "local",
+        tags = ["manual"],
+    )
+    _clang_tidy_actions_count_no_tidy_env_test(
+        name = test_name,
+        target_under_test = name,
+        expected_num_tidy_actions = 0,
+    )
+    _clang_tidy_actions_count_with_tidy_true_test(
+        name = with_tidy_test_name,
+        target_under_test = name,
+        expected_num_tidy_actions = 1,
+    )
+    _clang_tidy_actions_count_with_allow_local_tidy_true_test(
+        name = allow_local_tidy_true_test_name,
+        target_under_test = name,
+        expected_num_tidy_actions = 1,
+    )
+    return [
+        test_name,
+        with_tidy_test_name,
+        allow_local_tidy_true_test_name,
+    ]
+
+def _test_clang_tidy_runs_if_attribute_unset():
+    name = "clang_tidy_runs_if_attribute_unset"
+    test_name = name + "_test"
+    with_tidy_test_name = test_name + "_with_tidy_true"
+    allow_local_tidy_true_test_name = test_name + "_allow_local_tidy_true"
+
+    cc_library_static(
+        name = name,
+        srcs = ["a.cpp"],
+        tags = ["manual"],
+    )
+    _clang_tidy_actions_count_no_tidy_env_test(
+        name = test_name,
+        target_under_test = name,
+        expected_num_tidy_actions = 0,
+    )
+    _clang_tidy_actions_count_with_tidy_true_test(
+        name = with_tidy_test_name,
+        target_under_test = name,
+        expected_num_tidy_actions = 1,
+    )
+    _clang_tidy_actions_count_with_allow_local_tidy_true_test(
+        name = allow_local_tidy_true_test_name,
+        target_under_test = name,
+        expected_num_tidy_actions = 0,
+    )
+    return [
+        test_name,
+        with_tidy_test_name,
+        allow_local_tidy_true_test_name,
+    ]
+
+def _test_no_clang_tidy_if_tidy_false():
+    name = "no_clang_tidy_if_tidy_false"
+    test_name = name + "_test"
+    with_tidy_test_name = test_name + "_with_tidy_true"
+    allow_local_tidy_true_test_name = test_name + "_allow_local_tidy_true"
+
+    cc_library_static(
+        name = name,
+        srcs = ["a.cpp"],
+        tidy = "never",
+        tags = ["manual"],
+    )
+    _clang_tidy_actions_count_no_tidy_env_test(
+        name = test_name,
+        target_under_test = name,
+        expected_num_tidy_actions = 0,
+    )
+    _clang_tidy_actions_count_with_tidy_true_test(
+        name = with_tidy_test_name,
+        target_under_test = name,
+        expected_num_tidy_actions = 0,
+    )
+    _clang_tidy_actions_count_with_allow_local_tidy_true_test(
+        name = allow_local_tidy_true_test_name,
+        target_under_test = name,
+        expected_num_tidy_actions = 0,
+    )
+    return [
+        test_name,
+        with_tidy_test_name,
+        allow_local_tidy_true_test_name,
     ]
 
 def clang_tidy_test_suite(name):
@@ -618,5 +763,8 @@ def clang_tidy_test_suite(name):
             _test_bad_tidy_flags_fail() +
             _test_disable_global_checks() +
             _test_cc_library_static_generates_clang_tidy_actions_for_srcs() +
-            _test_no_clang_analyzer_on_generated_files(),
+            _test_no_clang_analyzer_on_generated_files() +
+            _test_no_clang_tidy_if_tidy_false() +
+            _test_clang_tidy_runs_if_tidy_true() +
+            _test_clang_tidy_runs_if_attribute_unset(),
     )

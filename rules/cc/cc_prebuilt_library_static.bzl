@@ -12,27 +12,41 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-def cc_prebuilt_library_static(
-        name,
-        static_library,
-        alwayslink = None,
-        export_includes = [],
-        export_system_includes = [],
-        **kwargs):
-    "Bazel macro to correspond with the *_cc_prebuilt_library_static Soong module types"
+load("@bazel_tools//tools/cpp:toolchain_utils.bzl", "find_cpp_toolchain")
+load(":cc_library_common.bzl", "create_cc_prebuilt_library_info")
 
-    # TODO: Handle includes similarly to cc_library_static
-    # e.g. includes = ["clang-r416183b/prebuilt_include/llvm/lib/Fuzzer"],
-    native.cc_import(
-        name = name,
-        static_library = static_library,
-        alwayslink = alwayslink,
-        **kwargs
+def _cc_prebuilt_library_static_impl(ctx):
+    lib = ctx.file.static_library
+    files = ctx.attr.static_library.files if lib != None else None
+    cc_toolchain = find_cpp_toolchain(ctx)
+    feature_configuration = cc_common.configure_features(
+        ctx = ctx,
+        cc_toolchain = cc_toolchain,
     )
+    cc_info = create_cc_prebuilt_library_info(
+        ctx,
+        cc_common.create_library_to_link(
+            actions = ctx.actions,
+            static_library = lib,
+            alwayslink = ctx.attr.alwayslink,
+            feature_configuration = feature_configuration,
+            cc_toolchain = cc_toolchain,
+        ) if lib != None else None,
+    )
+    return [DefaultInfo(files = files), cc_info]
 
-    native.cc_import(
-        name = name + "_alwayslink",
-        static_library = static_library,
-        alwayslink = True,
-        **kwargs
-    )
+cc_prebuilt_library_static = rule(
+    implementation = _cc_prebuilt_library_static_impl,
+    attrs = dict(
+        static_library = attr.label(
+            providers = [CcInfo],
+            allow_single_file = True,
+        ),
+        alwayslink = attr.bool(default = False),
+        export_includes = attr.string_list(),
+        export_system_includes = attr.string_list(),
+    ),
+    toolchains = ["@bazel_tools//tools/cpp:toolchain_type"],
+    fragments = ["cpp"],
+    provides = [CcInfo],
+)

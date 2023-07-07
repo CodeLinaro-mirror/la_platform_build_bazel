@@ -1,7 +1,7 @@
 """Constants for product variables based on information in variable.go"""
 
 load(
-    "@soong_injection//product_config:product_variables.bzl",
+    "@soong_injection//product_config:product_variable_constants.bzl",
     _arch_variant_product_var_constraints = "arch_variant_product_var_constraints",
     _product_var_constraints = "product_var_constraints",
 )

@@ -12,23 +12,39 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-def cc_prebuilt_library_shared(
-        name,
-        shared_library,
-        alwayslink = None,
-        **kwargs):
-    "Bazel macro to correspond with the *_cc_prebuilt_library_shared Soong module types"
+load("@bazel_tools//tools/cpp:toolchain_utils.bzl", "find_cpp_toolchain")
+load(":cc_library_common.bzl", "create_cc_prebuilt_library_info")
 
-    native.cc_import(
-        name = name,
-        shared_library = shared_library,
-        alwayslink = alwayslink,
-        **kwargs
+def _cc_prebuilt_library_shared_impl(ctx):
+    lib = ctx.file.shared_library
+    files = ctx.attr.shared_library.files if lib != None else None
+    cc_toolchain = find_cpp_toolchain(ctx)
+    feature_configuration = cc_common.configure_features(
+        ctx = ctx,
+        cc_toolchain = cc_toolchain,
     )
+    cc_info = create_cc_prebuilt_library_info(
+        ctx,
+        cc_common.create_library_to_link(
+            actions = ctx.actions,
+            dynamic_library = lib,
+            feature_configuration = feature_configuration,
+            cc_toolchain = cc_toolchain,
+        ) if lib != None else None,
+    )
+    return [DefaultInfo(files = files), cc_info]
 
-    native.cc_import(
-        name = name + "_alwayslink",
-        shared_library = shared_library,
-        alwayslink = True,
-        **kwargs
-    )
+cc_prebuilt_library_shared = rule(
+    implementation = _cc_prebuilt_library_shared_impl,
+    attrs = dict(
+        shared_library = attr.label(
+            providers = [CcInfo],
+            allow_single_file = True,
+        ),
+        export_includes = attr.string_list(),
+        export_system_includes = attr.string_list(),
+    ),
+    toolchains = ["@bazel_tools//tools/cpp:toolchain_type"],
+    fragments = ["cpp"],
+    provides = [CcInfo],
+)

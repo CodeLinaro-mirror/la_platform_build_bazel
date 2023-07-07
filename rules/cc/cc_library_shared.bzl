@@ -32,13 +32,11 @@ load(
     ":fdo_profile_transitions.bzl",
     "FDO_PROFILE_ATTR_KEY",
 )
-load(":generate_toc.bzl", "shared_library_toc", _CcTocInfo = "CcTocInfo")
+load(":generate_toc.bzl", "CcTocInfo", "generate_toc")
 load(":lto_transitions.bzl", "lto_deps_transition")
 load(":stl.bzl", "stl_info_from_attr")
 load(":stripped_cc_common.bzl", "CcUnstrippedInfo", "stripped_shared_library")
 load(":versioned_cc_common.bzl", "versioned_shared_library")
-
-CcTocInfo = _CcTocInfo
 
 def cc_library_shared(
         name,
@@ -79,11 +77,11 @@ def cc_library_shared(
         strip = {},
 
         # TODO(b/202299295): Handle data attribute.
-        data = [],
+        data = [],  # @unused
         use_version_lib = False,
         stubs_symbol_file = None,
         inject_bssl_hash = False,
-        sdk_version = "",
+        sdk_version = "",  # @unused
         min_sdk_version = "",
         abi_checker_enabled = None,
         abi_checker_symbol_file = None,
@@ -110,7 +108,6 @@ def cc_library_shared(
     shared_root_name = name + "__internal_root"
     unstripped_name = name + "_unstripped"
     stripped_name = name + "_stripped"
-    toc_name = name + "_toc"
 
     if system_dynamic_deps == None:
         system_dynamic_deps = system_dynamic_deps_defaults
@@ -278,13 +275,6 @@ def cc_library_shared(
         **strip
     )
 
-    shared_library_toc(
-        name = toc_name,
-        src = stripped_name,
-        target_compatible_with = target_compatible_with,
-        tags = ["manual"],
-    )
-
     # The logic here is based on the shouldCreateSourceAbiDumpForLibrary() in sabi.go
     # abi_root is used to control if abi_dump aspects should be run on the static
     # deps because there is no way to control the aspects directly from the rule.
@@ -326,7 +316,6 @@ def cc_library_shared(
         shared_debuginfo = unstripped_name,
         deps = [shared_root_name],
         features = features,
-        table_of_contents = toc_name,
         output_file = soname,
         target_compatible_with = target_compatible_with,
         has_stubs = stubs_symbol_file != None,
@@ -435,7 +424,9 @@ def _cc_library_shared_proxy_impl(ctx):
         use_default_shell_env = True,
     )
 
-    files = root_files + [ctx.outputs.output_file, ctx.files.table_of_contents[0]] + abi_diff_files
+    toc_info = generate_toc(ctx, ctx.attr.name, ctx.outputs.output_file)
+
+    files = root_files + [ctx.outputs.output_file, toc_info.toc] + abi_diff_files
 
     return [
         DefaultInfo(
@@ -443,7 +434,7 @@ def _cc_library_shared_proxy_impl(ctx):
             runfiles = ctx.runfiles(files = [ctx.outputs.output_file]),
         ),
         _correct_cc_shared_library_linking(ctx, ctx.attr.shared[0][CcSharedLibraryInfo], ctx.outputs.output_file, ctx.attr.deps[0]),
-        ctx.attr.table_of_contents[0][CcTocInfo],
+        toc_info,
         # The _only_ linker_input is the statically linked root itself. We need to propagate this
         # as cc_shared_library identifies which libraries can be linked dynamically based on the
         # linker_inputs of the roots
@@ -480,13 +471,6 @@ _cc_library_shared_proxy = rule(
             cfg = lto_deps_transition,
         ),
         "output_file": attr.output(mandatory = True),
-        "table_of_contents": attr.label(
-            mandatory = True,
-            # TODO(b/217908237): reenable allow_single_file
-            # allow_single_file = True,
-            providers = [CcTocInfo],
-            cfg = lto_deps_transition,
-        ),
         "has_stubs": attr.bool(default = False),
         "runtime_deps": attr.label_list(
             providers = [CcInfo],
@@ -510,6 +494,18 @@ _cc_library_shared_proxy = rule(
             providers = [CcInfo],
             doc = "All the dynamic deps of the lib. This is used to propagate" +
                   " information to AndroidMk about LOCAL_SHARED_LIBRARIES.",
+        ),
+        "_toc_script": attr.label(
+            cfg = "exec",
+            executable = True,
+            allow_single_file = True,
+            default = "//build/soong/scripts:toc.sh",
+        ),
+        "_readelf": attr.label(
+            cfg = "exec",
+            executable = True,
+            allow_single_file = True,
+            default = "//prebuilts/clang/host/linux-x86:llvm-readelf",
         ),
     },
     provides = [CcAndroidMkInfo, CcInfo],

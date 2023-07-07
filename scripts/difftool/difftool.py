@@ -39,6 +39,7 @@ its analysis.
 import argparse
 import enum
 import functools
+import json
 import os
 import pathlib
 import re
@@ -104,7 +105,7 @@ FILE_TYPE_CHOICES = {
 
 def _artifact_type(file_path):
   ext = file_path.suffix
-  if ext == ".o":
+  if ext in [".o", ".a"]:
     return ArtifactType.CC_OBJECT
   elif ext == ".so":
     return ArtifactType.CC_SHARED_LIBRARY
@@ -143,24 +144,59 @@ def _diff_fns(artifact_type: ArtifactType,
   return fns
 
 
-def collect_commands(ninja_file_path: pathlib.Path,
-                     output_file_path: pathlib.Path) -> list[str]:
+def collect_commands_bazel(expr: str, config: str, mnemonic: str, *args):
+  bazel_tool_path = pathlib.Path("build/bazel/bin/bazel").resolve().absolute()
+  bazel_proc = subprocess.run(
+      [
+          bazel_tool_path,
+          "aquery",
+          "--curses=no",
+          "--config=bp2build",
+          "--output=jsonproto",
+          f"--config={config}",
+          *args,
+          f"{expr}",
+      ],
+      capture_output=True,
+      encoding="utf-8",
+  )
+  print(bazel_proc.stderr)
+  actions_json = json.loads(bazel_proc.stdout)
+  return [a for a in actions_json["actions"] if a["mnemonic"] == mnemonic]
+
+
+def collect_commands_ninja(ninja_file_path: pathlib.Path,
+                           output_file_path: pathlib.Path,
+                           ninja_tool_path: pathlib.Path) -> list[str]:
   """Returns a list of all command lines required to build the file at given
 
   output_file_path_string, as described by the ninja file present at
   ninja_file_path_string.
   """
 
+  result = subprocess.check_output([
+      str(ninja_tool_path), "-f", ninja_file_path, "-t", "commands",
+      str(output_file_path)
+  ]).decode("utf-8")
+  return result.splitlines()
+
+
+def collect_commands(ninja_file_path: pathlib.Path,
+                     output_file_path: pathlib.Path) -> list[str]:
   ninja_tool_path = pathlib.Path(
       "prebuilts/build-tools/linux-x86/bin/ninja").resolve()
   wd = os.getcwd()
-  os.chdir(ninja_file_path.parent.absolute())
-  result = subprocess.check_output([
-      str(ninja_tool_path), "-f", ninja_file_path.name, "-t", "commands",
-      str(output_file_path)
-  ]).decode("utf-8")
-  os.chdir(wd)
-  return result.splitlines()
+  try:
+    os.chdir(ninja_file_path.parent.absolute())
+    return collect_commands_ninja(
+        ninja_file_path.name,
+        output_file_path,
+        ninja_tool_path,
+    )
+  except Exception as e:
+    raise e
+  finally:
+    os.chdir(wd)
 
 
 def file_differences(
@@ -227,6 +263,14 @@ cd_rm_prefix_pattern = re.compile("^cd [^&]* &&( )+rm [^&]* && (.*)$")
 comment_suffix_pattern = re.compile("(.*) # .*")
 
 
+def _remove_rbe_tokens(tokens, tool_endings):
+  for i in range(len(tokens)):
+    for ending in tool_endings:
+      if tokens[i].endswith(ending):
+        return tokens[i:]
+  return None
+
+
 def rich_command_info(raw_command):
   """Returns a command info object describing the raw command string."""
   cmd = raw_command.strip()
@@ -241,6 +285,9 @@ def rich_command_info(raw_command):
   if m is not None:
     cmd = m.group(1)
   tokens = cmd.split()
+  tokens_without_rbe = _remove_rbe_tokens(tokens, ["clang", "clang++"])
+  if tokens_without_rbe:
+    tokens = tokens_without_rbe
   tool = tokens[0]
   args = tokens[1:]
 
@@ -270,7 +317,7 @@ def main():
   parser.add_argument(
       "left_dir",
       help="the 'left' directory to compare build outputs " +
-      "from. This must be the target of an invocation " + "of collect.py.")
+      "from. This must be the target of an invocation of collect.py.")
   parser.add_argument(
       "--left_file",
       "-l",
@@ -281,7 +328,7 @@ def main():
   parser.add_argument(
       "right_dir",
       help="the 'right' directory to compare build outputs " +
-      "from. This must be the target of an invocation " + "of collect.py.")
+      "from. This must be the target of an invocation of collect.py.")
   parser.add_argument(
       "--right_file",
       "-r",
@@ -301,7 +348,7 @@ def main():
       action=argparse.BooleanOptionalAction,
       default=False,
       help="allow a missing output file; this is useful to " +
-      "compare actions even in the absence of " + "an output file.")
+      "compare actions even in the absence of an output file.")
   args = parser.parse_args()
 
   level = args.level
@@ -345,11 +392,11 @@ def main():
       right_commands = collect_commands(right_ninja_path, right_file)
       right_command_info = rich_command_info(right_commands[-1])
       print("======== ACTION COMPARISON: ========")
-      print("=== LEFT:\n")
-      print(left_command_info)
+      print("=== LEFT ONLY:\n")
+      print(left_command_info.compare(right_command_info))
       print()
-      print("=== RIGHT:\n")
-      print(right_command_info)
+      print("=== RIGHT ONLY:\n")
+      print(right_command_info.compare(left_command_info))
       print()
     sys.exit(1)
   else:

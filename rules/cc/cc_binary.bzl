@@ -40,8 +40,8 @@ def cc_binary(
         whole_archive_deps = [],
         system_deps = None,
         runtime_deps = [],
-        export_includes = [],
-        export_system_includes = [],
+        export_includes = [],  # @unused
+        export_system_includes = [],  # @unused
         local_includes = [],
         absolute_includes = [],
         linkshared = True,
@@ -54,7 +54,7 @@ def cc_binary(
         strip = {},
         features = [],
         target_compatible_with = [],
-        sdk_version = "",
+        sdk_version = "",  # @unused
         min_sdk_version = "",
         use_version_lib = False,
         tags = [],
@@ -80,7 +80,7 @@ def cc_binary(
         toolchain_features.extend(["-dynamic_executable", "-dynamic_linker", "static_executable", "static_flag"])
 
     if not use_libcrt:
-        toolchain_features += ["-use_libcrt"]
+        toolchain_features.append("-use_libcrt")
 
     if min_sdk_version:
         toolchain_features += parse_sdk_version(min_sdk_version) + ["-sdk_version_default"]
@@ -100,7 +100,7 @@ def cc_binary(
         system_static_deps = system_deps
 
     if not native_coverage:
-        toolchain_features += ["-coverage"]
+        toolchain_features.append("-coverage")
     else:
         toolchain_features += select({
             "//build/bazel/rules/cc:android_coverage_lib_flag": ["android_coverage_lib"],

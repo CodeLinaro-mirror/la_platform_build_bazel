@@ -14,8 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+load("@rules_kotlin//kotlin:compiler_opt.bzl", "kt_compiler_opt")
 load("@rules_kotlin//kotlin:jvm_library.bzl", _kt_jvm_library = "kt_jvm_library")
 load("//build/bazel/rules/java:rules.bzl", "java_import")
+load("//build/bazel/rules/java:sdk_transition.bzl", "sdk_transition", "sdk_transition_attrs")
 
 def _kotlin_resources_impl(ctx):
     output_file = ctx.actions.declare_file("kt_resources.jar")
@@ -57,14 +59,20 @@ kotlin_resources = rule(
     },
 )
 
+# TODO(b/277801336): document these attributes.
 def kt_jvm_library(
         name,
         deps = None,
         resources = None,
         resource_strip_prefix = None,
+        kotlincflags = None,
+        java_version = None,
+        sdk_version = None,
+        tags = [],
+        target_compatible_with = [],
+        visibility = None,
         **kwargs):
     "Bazel macro wrapping for kt_jvm_library"
-
     if resource_strip_prefix != None:
         java_import_name = name + "resources"
         kt_res_jar_name = name + "resources_jar"
@@ -81,8 +89,52 @@ def kt_jvm_library(
 
         deps = deps + [":" + java_import_name]
 
+    custom_kotlincopts = None
+    if kotlincflags != None:
+        ktcopts_name = name + "_kotlincopts"
+        kt_compiler_opt(
+            name = ktcopts_name,
+            opts = kotlincflags,
+        )
+        custom_kotlincopts = [":" + ktcopts_name]
+
+    lib_name = name + "_private"
     _kt_jvm_library(
-        name = name,
+        name = lib_name,
         deps = deps,
+        custom_kotlincopts = custom_kotlincopts,
+        tags = tags + ["manual"],
+        target_compatible_with = target_compatible_with,
+        visibility = ["//visibility:private"],
         **kwargs
     )
+
+    kt_jvm_library_sdk_transition(
+        name = name,
+        sdk_version = sdk_version,
+        java_version = java_version,
+        exports = lib_name,
+        tags = tags,
+        target_compatible_with = target_compatible_with,
+        visibility = visibility,
+    )
+
+# The list of providers to forward was determined using cquery on one
+# of the example targets listed under EXAMPLE_WRAPPER_TARGETS at
+# //build/bazel/ci/target_lists.sh. It may not be exhaustive. A unit
+# test ensures that the wrapper's providers and the wrapped rule's do
+# match.
+def _kt_jvm_library_sdk_transition_impl(ctx):
+    return [
+        ctx.attr.exports[0][JavaInfo],
+        ctx.attr.exports[0][InstrumentedFilesInfo],
+        ctx.attr.exports[0][ProguardSpecProvider],
+        ctx.attr.exports[0][OutputGroupInfo],
+        ctx.attr.exports[0][DefaultInfo],
+    ]
+
+kt_jvm_library_sdk_transition = rule(
+    implementation = _kt_jvm_library_sdk_transition_impl,
+    attrs = sdk_transition_attrs,
+    provides = [JavaInfo],
+)

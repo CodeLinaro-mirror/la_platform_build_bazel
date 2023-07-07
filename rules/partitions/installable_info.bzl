@@ -21,7 +21,7 @@ InstallableInfo = provider(
     },
 )
 
-def _installable_aspect_impl(target, ctx):
+def _installable_aspect_impl(target, _ctx):
     installed_files = {}
     if ApexInfo in target:
         apex = target[ApexInfo].signed_output

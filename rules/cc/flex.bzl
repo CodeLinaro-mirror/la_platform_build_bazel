@@ -72,7 +72,7 @@ def _genlex_impl(ctx):
         elif src_ext == "ll":
             output_filename = paths.replace_extension(filename_without_ext, ".cc")
         output_file = ctx.actions.declare_file(output_filename)
-        outputs += [output_file]
+        outputs.append(output_file)
         args.add("-o", output_file.path)
 
         args.add_all(ctx.attr.lexopts)

@@ -48,11 +48,11 @@ def split_srcs_hdrs(files):
     non_headers_c = []
     for f in files:
         if f.extension in constants.hdr_exts:
-            headers += [f]
+            headers.append(f)
         elif f.extension in constants.as_src_exts:
-            non_headers_as += [f]
+            non_headers_as.append(f)
         else:
-            non_headers_c += [f]
+            non_headers_c.append(f)
     return non_headers_c, non_headers_as, headers
 
 def _cc_object_impl(ctx):
@@ -223,7 +223,7 @@ def cc_object(
         srcs_as = [],
         objs = [],
         deps = [],
-        native_bridge_supported = False,  # TODO: not supported yet.
+        native_bridge_supported = False,  # TODO: not supported yet. @unused
         stl = "",
         system_dynamic_deps = None,
         sdk_version = "",

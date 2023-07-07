@@ -110,14 +110,6 @@ def _impl_shared_lib_transition_32(settings, attr):
 
     old_platform = str(settings["//command_line_option:platforms"][0])
 
-    # TODO(b/249685973) This can be removed when the aab transition no
-    # longer transitions to these platforms
-    old_platform = (old_platform
-        .removesuffix("__internal_arm")
-        .removesuffix("__internal_arm64")
-        .removesuffix("__internal_x86")
-        .removesuffix("__internal_x86_64"))
-
     return _create_apex_configuration(settings, attr, {
         "//build/bazel/rules/apex:apex_direct_deps": direct_deps,
         "//command_line_option:platforms": old_platform + "_secondary",

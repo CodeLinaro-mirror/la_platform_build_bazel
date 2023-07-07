@@ -30,17 +30,6 @@ ApexAvailableInfo = provider(
     },
 )
 
-# Denylist of APEX names that are validated with apex_available.
-#
-# Certain apexes are not checked because their dependencies aren't converting
-# apex_available to tags properly in the bp2build converters yet. See associated
-# bugs for more information.
-_unchecked_apexes = [
-    # TODO(b/260694842): support aidl and hidl apex_available props.
-    "com.android.neuralnetworks",
-    "com.android.media.swcodec",
-]
-
 # Validates if a target is made available as a transitive dependency of an APEX. The return
 # value is tri-state: True, False, string. Strings are used when a target is _not checked_
 # and the string itself contains the reason.
@@ -63,10 +52,6 @@ def _validate_apex_available(target, ctx, *, apex_available_tags, apex_name, bas
 
     if "//apex_available:anyapex" in apex_available_tags:
         return "//apex_available:anyapex"
-
-    if apex_name in _unchecked_apexes:
-        # Skipped unchecked APEXes.
-        return "unchecked_apex"
 
     # https://cs.android.com/android/platform/superproject/+/master:build/soong/apex/apex.go;l=2910;drc=862c0d68fff500d7fe59bc2fcfc9c7d75596e5b5
     # Bp2build-generated cc_library_static target from stubs-providing lib

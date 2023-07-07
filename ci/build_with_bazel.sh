@@ -51,7 +51,9 @@ function build_for_device() {
     # out/soong/bp2build. This is done early so it's available even if
     # builds/tests fail. Currently the generated BUILD files can be different
     # between products due to Soong plugins and non-deterministic codegeneration.
-    tar --mtime='1970-01-01' -czf "${DIST_DIR}/bp2build_generated_workspace_${product}.tar.gz" -C out/soong/bp2build .
+    # We tar and gzip in separate steps because when using tar -z, you can't tell it to not include
+    # a timestamp in the gzip header.
+    tar c --mtime='1970-01-01' -C out/soong/bp2build . | gzip -n > "${DIST_DIR}/bp2build_generated_workspace_${product}.tar.gz"
 
     local device_startup_flags=(
       # Unique output bases per product to help with incremental builds across

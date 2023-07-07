@@ -5,11 +5,6 @@ TEST_PATH="${TEST_SRCDIR}"
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 PATH_ADDITIONS="{PATH_ADDITIONS}"
 
-# Add tradefed dependencies to PATH
-for dep in ${PATH_ADDITIONS//:/ }; do
-    export PATH="${TEST_SRCDIR}/${TEST_WORKSPACE}/$dep:${PATH}"
-done
-
 export PATH="$SCRIPT_DIR:${PATH}"
 # Prepend the REMOTE_JAVA_HOME environment variable to the path to ensure
 # that all Java invocations throughout the test execution flow use the same

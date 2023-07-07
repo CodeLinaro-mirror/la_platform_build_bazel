@@ -81,25 +81,6 @@ def _cc_binary_strip_default():
 
     return test_name
 
-def _cc_binary_strip_none():
-    name = "cc_binary_strip_none"
-    test_name = name + "_test"
-
-    cc_binary(
-        name = name,
-        srcs = ["main.cc"],
-        tags = ["manual"],
-        strip = {"none": True},
-    )
-
-    cc_binary_strip_test(
-        name = test_name,
-        target_under_test = name,
-        strip_flags = [],
-    )
-
-    return test_name
-
 def _cc_binary_strip_keep_symbols():
     name = "cc_binary_strip_keep_symbols"
     test_name = name + "_test"

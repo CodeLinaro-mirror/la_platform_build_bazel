@@ -18,13 +18,12 @@ import functools
 import logging
 import os
 import re
+import sys
 import textwrap
 from datetime import date
 from enum import Enum
 from pathlib import Path
 from typing import Optional
-
-from future.moves import sys
 
 import cuj_catalog
 import util
@@ -131,13 +130,14 @@ def get_user_input() -> UserInput:
                     {util.get_cmd_to_display_tabulated_metrics(default_log_dir)}
                   3 To view column headers:
                     {util.get_csv_columns_cmd(default_log_dir)}''').strip())
+  def_build_types = [BuildType.SOONG_ONLY,
+                        BuildType.MIXED_PROD,
+                        BuildType.MIXED_STAGING]
   p.add_argument('-b', '--build-types', nargs='+',
                  type=BuildType.from_flag,
-                 default=[[BuildType.SOONG_ONLY,
-                           BuildType.MIXED_PROD,
-                           BuildType.MIXED_STAGING]],
-                 help='Defaults to "%(default)s". Choose from '
-                      f'{[e.name.lower() for e in BuildType]}')
+                 default=[def_build_types],
+                 help=f'Defaults to {[b.to_flag() for b in def_build_types]}. '
+                      f'Choose from {[e.name.lower() for e in BuildType]}')
   p.add_argument('--ignore-repo-diff', default=False, action='store_true',
                  help='Skip "repo status" check')
   p.add_argument('--append-csv', default=False, action='store_true',

@@ -12,16 +12,55 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("@rules_android//rules:rules.bzl", _android_binary = "android_binary")
+load("@rules_android//rules:common.bzl", "common")
+load("@rules_android//rules:migration_tag_DONOTUSE.bzl", "add_migration_tag")
+load(
+    "//build/bazel/rules/android/android_binary_aosp_internal:rule.bzl",
+    "android_binary_aosp_internal_macro",
+)
 load("android_app_certificate.bzl", "android_app_certificate_with_default_cert")
 load("android_app_keystore.bzl", "android_app_keystore")
+load("//build/bazel/rules/java:sdk_transition.bzl", "sdk_transition", "sdk_transition_attrs")
+
+# TODO(b/277801336): document these attributes.
+def _android_binary_helper(**attrs):
+    """ Duplicates the logic in top-level android_binary macro in
+        rules_android/rules/android_binary.bzl but uses
+        android_binary_aosp_internal_macro instead of android_binary_internal_macro.
+
+        https://docs.bazel.build/versions/master/be/android.html#android_binary
+
+        Args:
+          **attrs: Rule attributes
+    """
+    android_binary_aosp_internal_name = ":" + attrs["name"] + common.PACKAGED_RESOURCES_SUFFIX
+    android_binary_aosp_internal_macro(
+        **dict(
+            attrs,
+            name = android_binary_aosp_internal_name[1:],
+            visibility = ["//visibility:private"],
+        )
+    )
+
+    attrs.pop("$enable_manifest_merging", None)
+
+    native.android_binary(
+        application_resources = android_binary_aosp_internal_name,
+        **add_migration_tag(attrs)
+    )
 
 def android_binary(
         name,
         certificate = None,
         certificate_name = None,
+        sdk_version = None,
+        java_version = None,
+        tags = [],
+        target_compatible_with = [],
+        visibility = None,
         **kwargs):
-    """Bazel macro to find and create a keystore to use for debug_signing_keys
+    """ android_binary macro wrapper that handles custom attrs needed in AOSP
+       Bazel macro to find and create a keystore to use for debug_signing_keys
        with @rules_android android_binary.
 
     This module emulates the Soong behavior which allows a developer to specify
@@ -45,7 +84,10 @@ def android_binary(
     if certificate or certificate_name:
         if certificate_name:
             app_cert_name = name + "_app_certificate"
-            android_app_certificate_with_default_cert(app_cert_name, certificate_name)
+            android_app_certificate_with_default_cert(
+                name = app_cert_name,
+                cert_name = certificate_name,
+            )
             certificate = ":" + app_cert_name
 
         app_keystore_name = name + "_keystore"
@@ -56,8 +98,50 @@ def android_binary(
 
         debug_signing_keys.append(app_keystore_name)
 
-    _android_binary(
-        name = name,
+    bin_name = name + "_private"
+    _android_binary_helper(
+        name = bin_name,
         debug_signing_keys = debug_signing_keys,
+        target_compatible_with = target_compatible_with,
+        tags = tags + ["manual"],
+        visibility = ["//visibility:private"],
         **kwargs
     )
+
+    android_binary_sdk_transition(
+        name = name,
+        sdk_version = sdk_version,
+        java_version = java_version,
+        exports = bin_name,
+        tags = tags,
+        target_compatible_with = target_compatible_with,
+        visibility = visibility,
+    )
+
+# The list of providers to forward was determined using cquery on one
+# of the example targets listed under EXAMPLE_WRAPPER_TARGETS at
+# //build/bazel/ci/target_lists.sh. It may not be exhaustive. A unit
+# test ensures that the wrapper's providers and the wrapped rule's do
+# match.
+def _android_binary_sdk_transition_impl(ctx):
+    return struct(
+        android = ctx.attr.exports[0].android,
+        JavaGenJarsProvider = ctx.attr.exports[0][JavaInfo].annotation_processing,
+        providers = [
+            ctx.attr.exports[0][AndroidIdlInfo],
+            ctx.attr.exports[0][InstrumentedFilesInfo],
+            ctx.attr.exports[0][DataBindingV2Info],
+            ctx.attr.exports[0][JavaInfo],
+            ctx.attr.exports[0][AndroidIdeInfo],
+            ctx.attr.exports[0][ApkInfo],
+            ctx.attr.exports[0][AndroidPreDexJarInfo],
+            ctx.attr.exports[0][AndroidFeatureFlagSet],
+            ctx.attr.exports[0][OutputGroupInfo],
+            ctx.attr.exports[0][DefaultInfo],
+        ],
+    )
+
+android_binary_sdk_transition = rule(
+    implementation = _android_binary_sdk_transition_impl,
+    attrs = sdk_transition_attrs,
+)

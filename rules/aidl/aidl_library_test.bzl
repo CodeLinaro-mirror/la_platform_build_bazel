@@ -15,7 +15,7 @@ limitations under the License.
 
 load("@bazel_skylib//lib:paths.bzl", "paths")
 load("@bazel_skylib//lib:unittest.bzl", "analysistest", "asserts")
-load(":library.bzl", "AidlGenInfo", "aidl_library")
+load(":aidl_library.bzl", "AidlGenInfo", "aidl_library")
 
 PACKAGE_ROOT = "build/bazel/rules/aidl"
 

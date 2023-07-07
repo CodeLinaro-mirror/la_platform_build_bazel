@@ -13,13 +13,13 @@
 # limitations under the License.
 
 load(
-    ":kt_jvm_library.bzl",
-    _kt_jvm_library = "kt_jvm_library",
-)
-load(
     "@rules_kotlin//kotlin:compiler_opt.bzl",
     _kt_compiler_opt = "kt_compiler_opt",
 )
+load(
+    ":kt_jvm_library.bzl",
+    _kt_jvm_library = "kt_jvm_library",
+)
 
 kt_jvm_library = _kt_jvm_library
-kt_compiler_opt = _kt_jvm_library
+kt_compiler_opt = _kt_compiler_opt

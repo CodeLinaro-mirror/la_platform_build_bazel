@@ -26,11 +26,11 @@ def group_files_by_ext(files):
     # configurable selects.
     for f in files:
         if extension(f) in constants.c_src_exts:
-            c += [f]
+            c.append(f)
         elif extension(f) in constants.cpp_src_exts:
-            cpp += [f]
+            cpp.append(f)
         elif extension(f) in constants.as_src_exts:
-            asm += [f]
+            asm.append(f)
         else:
             # not C based
             continue

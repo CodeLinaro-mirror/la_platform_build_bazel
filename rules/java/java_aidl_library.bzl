@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("//build/bazel/rules/aidl:library.bzl", "AidlGenInfo", "aidl_file_utils")
+load("//build/bazel/rules/aidl:aidl_library.bzl", "AidlGenInfo", "aidl_file_utils")
+load("//build/bazel/rules/java:sdk_transition.bzl", "sdk_transition")
 
 JavaAidlAspectInfo = provider("JavaAidlAspectInfo", fields = ["jars"])
 
@@ -20,7 +21,7 @@ def _java_aidl_gen_aspect_impl(target, ctx):
     aidl_gen_java_files = aidl_file_utils.generate_aidl_bindings(ctx, "java", target[AidlGenInfo])
     java_deps = [
         d[JavaInfo]
-        for d in ctx.rule.attr.deps + ctx.attr._sdk_dependency
+        for d in ctx.rule.attr.deps
     ]
     out_jar = ctx.actions.declare_file(target.label.name + "-aidl-gen.jar")
     java_info = java_common.compile(
@@ -48,15 +49,6 @@ _java_aidl_gen_aspect = aspect(
             cfg = "exec",
             default = Label("//prebuilts/build-tools:linux-x86/bin/aidl"),
         ),
-        "_sdk_dependency": attr.label_list(
-            default = [
-                # TODO(b/215230098) remove forced dependency on current public android.jar
-                "//prebuilts/sdk:system_current_android_sdk_java_import",
-                # TODO(b/229251008) remove hard-coded dependency on framework-connectivity
-                "//prebuilts/sdk:current_module_lib_framework_connectivity",
-            ],
-            providers = [JavaInfo],
-        ),
     },
     toolchains = ["@bazel_tools//tools/jdk:toolchain_type"],
     fragments = ["java"],
@@ -80,9 +72,19 @@ def _java_aidl_library_rule_impl(ctx):
 java_aidl_library = rule(
     implementation = _java_aidl_library_rule_impl,
     attrs = {
+        # This attribute's name lets the DexArchiveAspect propagate
+        # through it. It should be changed carefully.
         "deps": attr.label_list(
             providers = [AidlGenInfo],
             aspects = [_java_aidl_gen_aspect],
+            cfg = sdk_transition,
+        ),
+        "java_version": attr.string(),
+        "sdk_version": attr.string(
+            default = "system_current",
+        ),
+        "_allowlist_function_transition": attr.label(
+            default = "@bazel_tools//tools/allowlists/function_transition_allowlist",
         ),
     },
     provides = [JavaInfo],

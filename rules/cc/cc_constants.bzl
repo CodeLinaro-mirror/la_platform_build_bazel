@@ -27,10 +27,6 @@ _HDR_EXTS_WITH_DOT = ["." + ext for ext in _HDR_EXTS]
 _SRC_EXTS_WITH_DOT = ["." + ext for ext in _SRC_EXTS]
 _ALL_EXTS_WITH_DOT = ["." + ext for ext in _ALL_EXTS]
 
-# These are root-relative.
-_GLOBAL_INCLUDE_DIRS_COPTS_ONLY_USED_FOR_SOONG_COMPATIBILITY_DO_NOT_ADD_MORE = [
-    "/",
-]
 constants = struct(
     hdr_exts = _HDR_EXTS,
     c_src_exts = _C_SRC_EXTS,

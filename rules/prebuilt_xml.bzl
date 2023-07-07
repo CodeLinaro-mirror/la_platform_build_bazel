@@ -14,8 +14,6 @@
 
 load(":prebuilt_file.bzl", "PrebuiltFileInfo")
 
-_handled_dir = ["etc"]
-
 def _prebuilt_xml_impl(ctx):
     schema = ctx.file.schema
 

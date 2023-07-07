@@ -123,7 +123,7 @@ def _header_target_name(name, include_dir):
 
 def cc_api_library_headers(
         name,
-        hdrs = [],
+        hdrs = [],  # @unused
         export_includes = [],
         export_system_includes = [],
         arch = None,

@@ -18,16 +18,17 @@
 
 load("@bazel_skylib//lib:dicts.bzl", "dicts")
 load("@soong_injection//api_levels:api_levels.bzl", "api_levels_released_versions")
-load("@soong_injection//product_config:product_variables.bzl", "product_vars")
+load("@soong_injection//api_levels:platform_versions.bzl", "platform_versions")
 
+_NONE_API_LEVEL_INT = -1
 _PREVIEW_API_LEVEL_BASE = 9000  # Base constant for preview API levels.
 _FUTURE_API_LEVEL_INT = 10000  # API Level associated with an arbitrary future release
 
 # TODO(b/271280342): access these variables in a transition friendly way.
-_PLATFORM_SDK_FINAL = product_vars.get("Platform_sdk_final")
-_PLATFORM_SDK_VERSION = product_vars.get("Platform_sdk_version")
-_PLATFORM_SDK_CODENAME = product_vars.get("Platform_sdk_codename")
-_PLATFORM_VERSION_ACTIVE_CODENAMES = product_vars.get("Platform_version_active_codenames", [])
+_PLATFORM_SDK_FINAL = platform_versions.platform_sdk_final
+_PLATFORM_SDK_VERSION = platform_versions.platform_sdk_version
+_PLATFORM_SDK_CODENAME = platform_versions.platform_sdk_codename
+_PLATFORM_VERSION_ACTIVE_CODENAMES = platform_versions.platform_version_active_codenames
 
 # Dict of unfinalized codenames to a placeholder preview API int.
 _preview_codenames_to_ints = {
@@ -60,7 +61,7 @@ _final_codename = {
 } if _PLATFORM_SDK_FINAL and _PLATFORM_SDK_VERSION else {}
 
 _api_levels_with_previews = dicts.add(api_levels_released_versions, _preview_codenames_to_ints)
-_api_levels_with_final_codenames = dicts.add(api_levels_released_versions, _final_codename)
+_api_levels_with_final_codenames = dicts.add(api_levels_released_versions, _final_codename)  # @unused
 
 # parse_api_level_from_version is a Starlark implementation of ApiLevelFromUser
 # at https://cs.android.com/android/platform/superproject/+/master:build/soong/android/api_levels.go;l=221-250;drc=5095a6c4b484f34d5c4f55a855d6174e00fb7f5e
@@ -118,6 +119,8 @@ def _default_app_target_sdk():
     return _parse_api_level_from_version(codename)
 
 api = struct(
+    NONE_API_LEVEL = _NONE_API_LEVEL_INT,
+    FUTURE_API_LEVEL = _FUTURE_API_LEVEL_INT,
     is_preview = _is_preview,
     final_or_future = _final_or_future,
     default_app_target_sdk = _default_app_target_sdk,

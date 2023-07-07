@@ -13,7 +13,8 @@
 # limitations under the License.
 
 load("@bazel_skylib//lib:paths.bzl", "paths")
-load("@soong_injection//product_config:product_variables.bzl", "product_vars")
+load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
+load("//build/bazel/product_config:product_variables_providing_rule.bzl", "ProductVariablesDepsInfo", "ProductVariablesInfo")
 
 AndroidAppCertificateInfo = provider(
     "Info needed for Android app certificates",
@@ -24,9 +25,59 @@ AndroidAppCertificateInfo = provider(
     },
 )
 
+def _search_cert_files(cert_name, cert_files_to_search):
+    pk8 = None
+    pem = None
+    for file in cert_files_to_search:
+        if file.basename == cert_name + ".pk8":
+            pk8 = file
+        elif file.basename == cert_name + ".x509.pem":
+            pem = file
+    if not pk8 or not pem:
+        fail("Could not find .x509.pem and/or .pk8 file with name '%s' in the following files: %s" % (cert_name, cert_files_to_search))
+    return pk8, pem
+
+def _maybe_override(ctx, cert_name):
+    if not cert_name:
+        fail("cert_name cannot be None")
+
+    cert_overrides = ctx.attr._product_variables[ProductVariablesInfo].CertificateOverrides
+    if not cert_overrides:
+        return cert_name, False
+
+    apex_name = ctx.attr._apex_name[BuildSettingInfo].value
+    if not apex_name:
+        # Only override in the apex configuration, because the apex module name is used as the key for overriding
+        return cert_name, False
+
+    matches = [o for o in cert_overrides if o.split(":")[0] == apex_name]
+
+    if not matches:
+        # no matches, no override.
+        return cert_name, False
+
+    if len(matches) > 1:
+        fail("unexpected multiple certificate overrides for %s in: %s" % (apex_name, matches))
+
+    # e.g. test1_com.android.tzdata:com.google.android.tzdata5.certificate
+    new_cert_name = matches[0].split(":")[1]
+    return new_cert_name.removesuffix(".certificate"), True
+
 def _android_app_certificate_rule_impl(ctx):
+    cert_name = ctx.attr.certificate
+    pk8 = ctx.file.pk8
+    pem = ctx.file.pem
+
+    # Only override if the override mapping exists, otherwise we wouldn't be
+    # able to find the new certs.
+    overridden_cert_name, overridden = _maybe_override(ctx, cert_name)
+    if overridden:
+        cert_name = overridden_cert_name
+        cert_files_to_search = ctx.attr._product_variables[ProductVariablesDepsInfo].OverridingCertificateFiles
+        pk8, pem = _search_cert_files(cert_name, cert_files_to_search)
+
     return [
-        AndroidAppCertificateInfo(pem = ctx.file.pem, pk8 = ctx.file.pk8, key_name = ctx.attr.certificate),
+        AndroidAppCertificateInfo(pem = pem, pk8 = pk8, key_name = cert_name),
     ]
 
 _android_app_certificate = rule(
@@ -35,6 +86,13 @@ _android_app_certificate = rule(
         "pem": attr.label(mandatory = True, allow_single_file = [".pem"]),
         "pk8": attr.label(mandatory = True, allow_single_file = [".pk8"]),
         "certificate": attr.string(mandatory = True),
+        "_apex_name": attr.label(default = "//build/bazel/rules/apex:apex_name"),
+        "_product_variables": attr.label(
+            default = "//build/bazel/product_config:product_vars",
+        ),
+        "_hardcoded_certs": attr.label(
+            default = "//build/make/target/product/security:android_certificate_directory",
+        ),
     },
 )
 
@@ -53,46 +111,71 @@ def android_app_certificate(
     )
 
 default_cert_directory = "build/make/target/product/security"
-_default_cert_package = "//" + default_cert_directory
 
-# Set up the android_app_certificate dependency pointing to the .pk8 and
-# .x509.pem files in the source tree.
-#
-# Every caller who use this function will have their own android_app_certificate
-# target, even if the underlying certs are shared by many.
-#
-# If cert_name is used, then it will be looked up from the app certificate
-# package as determined by the DefaultAppCertificate variable, or the hardcoded
-# directory.
-#
-# Otherwise, if the DefaultAppCertificate variable is used, then an
-# android_app_certificate target will be created to point to the path value, and
-# the .pk8 and .x509.pem suffixes are added automatically.
-#
-# Finally (cert_name not used AND DefaultAppCertificate not specified), use the
-# testkey.
-def android_app_certificate_with_default_cert(name, cert_name = None):
-    default_cert = product_vars.get("DefaultAppCertificate")
+def _android_app_certificate_with_default_cert_impl(ctx):
+    product_var_cert = ctx.attr._product_variables[ProductVariablesInfo].DefaultAppCertificate
 
-    if cert_name and default_cert:
-        certificate = "".join(["//", paths.dirname(default_cert), ":", cert_name])
+    cert_name = ctx.attr.cert_name
+
+    if cert_name and product_var_cert:
+        cert_dir = paths.dirname(product_var_cert)
     elif cert_name:
-        # if a specific certificate name is given, check the default directory
-        # for that certificate.
-        certificate = _default_cert_package + ":" + cert_name
-    elif default_cert:
-        # This assumes that there is a BUILD file marking the directory of
-        # the default cert as a package.
-        certificate = "".join([
-            "//",
-            paths.dirname(default_cert),
-            ":",
-            paths.basename(default_cert),
-        ])
+        cert_dir = default_cert_directory
+    elif product_var_cert:
+        cert_name = paths.basename(product_var_cert)
+        cert_dir = paths.dirname(product_var_cert)
     else:
-        certificate = _default_cert_package + ":testkey"
+        cert_name = "testkey"
+        cert_dir = default_cert_directory
 
-    android_app_certificate(
-        name = name,
-        certificate = certificate,
-    )
+    if cert_dir != default_cert_directory:
+        cert_files_to_search = ctx.attr._product_variables[ProductVariablesDepsInfo].DefaultAppCertificateFiles
+    else:
+        cert_files_to_search = ctx.files._hardcoded_certs
+
+    cert_name, overridden = _maybe_override(ctx, cert_name)
+    if overridden:
+        cert_files_to_search = ctx.attr._product_variables[ProductVariablesDepsInfo].OverridingCertificateFiles
+    pk8, pem = _search_cert_files(cert_name, cert_files_to_search)
+
+    return [
+        AndroidAppCertificateInfo(
+            pk8 = pk8,
+            pem = pem,
+            key_name = "//" + cert_dir + ":" + cert_name,
+        ),
+    ]
+
+android_app_certificate_with_default_cert = rule(
+    doc = """
+    This rule is the equivalent of an android_app_certificate, but uses the
+    certificate with the given name from a certain folder, or the default
+    certificate.
+
+    Modules can give a simple name of a certificate instead of a full label to
+    an android_app_certificate. This certificate will be looked for either in
+    the package determined by the DefaultAppCertificate product config variable,
+    or the hardcoded default directory. (build/make/target/product/security)
+
+    If a name is not given, it will fall back to using the certificate termined
+    by DefaultAppCertificate. (DefaultAppCertificate can function as both the
+    default certificate to use if none is specified, and the folder to look for
+    certificates in)
+
+    If neither the name nor DefaultAppCertificate is given,
+    build/make/target/product/security/testkey.{pem,pk8} will be used.
+
+    Since this rule is intended to be used from other macros, it's common to have
+    multiple android_app_certificate targets pointing to the same pem/pk8 files.
+    """,
+    implementation = _android_app_certificate_with_default_cert_impl,
+    attrs = {
+        "cert_name": attr.string(),
+        "_product_variables": attr.label(
+            default = "//build/bazel/product_config:product_vars",
+        ),
+        "_hardcoded_certs": attr.label(
+            default = "//build/make/target/product/security:android_certificate_directory",
+        ),
+    },
+)

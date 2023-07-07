@@ -13,7 +13,7 @@
 # limitations under the License.
 
 load("@bazel_skylib//lib:paths.bzl", "paths")
-load("//build/bazel/rules/aidl:library.bzl", "AidlGenInfo")
+load("//build/bazel/rules/aidl:aidl_library.bzl", "AidlGenInfo")
 load(":cc_library_common.bzl", "create_ccinfo_for_includes")
 
 _SOURCES = "sources"
@@ -162,6 +162,11 @@ def _compile_aidl_srcs(ctx, aidl_info, lang):
     if ctx.attr.min_sdk_version != "":
         args.add("--min_sdk_version={}".format(ctx.attr.min_sdk_version))
 
+    if aidl_info.hash_file == None:
+        args.add("--hash=notfrozen")
+    else:
+        args.add("--hash=$(tail -1 {})".format(aidl_info.hash_file))
+
     args.add_all([
         "--ninja",
         "--lang={}".format(lang),
@@ -177,6 +182,7 @@ def _compile_aidl_srcs(ctx, aidl_info, lang):
         executable = ctx.executable._aidl,
         arguments = [args],
         progress_message = "Compiling AIDL binding",
+        mnemonic = "CcAidlCodeGen",
     )
 
     return ret

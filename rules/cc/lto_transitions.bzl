@@ -51,3 +51,12 @@ def apply_drop_lto(old_cli_features):
     return {
         CLI_FEATURES_KEY: new_cli_features,
     }
+
+def drop_lto_transition_impl(settings, _):
+    return apply_drop_lto(settings[CLI_FEATURES_KEY])
+
+drop_lto_transition = transition(
+    implementation = drop_lto_transition_impl,
+    inputs = [CLI_FEATURES_KEY],
+    outputs = [CLI_FEATURES_KEY],
+)

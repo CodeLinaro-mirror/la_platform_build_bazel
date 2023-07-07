@@ -56,7 +56,9 @@ def _get_java_source_extensions(module):
   return out
 
 
-def module_type_info_from_json(module_graph, module_type, ignored_dep_names):
+def module_type_info_from_json(
+    module_graph, module_type, ignored_dep_names, ignore_java_auto_deps
+):
   """Builds a map of module name to _ModuleTypeInfo for each module of module_type.
 
      Dependency edges pointing to modules in ignored_dep_names are not followed.
@@ -102,7 +104,7 @@ def module_type_info_from_json(module_graph, module_type, ignored_dep_names):
     type_infos[module_name] = info
 
   dependency_analysis.visit_json_module_graph_post_order(
-      module_graph, ignored_dep_names, filter_by_type, update_infos)
+      module_graph, ignored_dep_names, ignore_java_auto_deps, filter_by_type, update_infos)
 
   return {
       name: info for name, info in type_infos.items() if name in modules_of_type
@@ -134,7 +136,16 @@ def main():
   parser.add_argument(
       "--ignore-by-name",
       default="",
-      help="Comma-separated list. When building the tree of transitive dependencies, will not follow dependency edges pointing to module names listed by this flag."
+      help=(
+          "Comma-separated list. When building the tree of transitive"
+          " dependencies, will not follow dependency edges pointing to module"
+          " names listed by this flag."
+      ),
+  )
+  parser.add_argument(
+      "--ignore-java-auto-deps",
+      action="store_true",
+      help="whether to ignore automatically added java deps",
   )
   args = parser.parse_args()
 
@@ -142,10 +153,15 @@ def main():
   ignore_by_name = args.ignore_by_name
 
   module_graph = dependency_analysis.get_json_module_type_info(module_type)
-  type_infos = module_type_info_from_json(module_graph, module_type,
-                                          ignore_by_name.split(","))
+  type_infos = module_type_info_from_json(
+      module_graph,
+      module_type,
+      ignore_by_name.split(","),
+      args.ignore_java_auto_deps,
+  )
 
   _write_output(sys.stdout, type_infos)
+
 
 if __name__ == "__main__":
   main()

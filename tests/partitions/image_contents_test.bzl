@@ -6,7 +6,6 @@ def image_contents_test(
         path,
         expected,
         target_compatible_with = None,
-        expected_diff = None,
         tags = []):
     """A test that extracts a file from a disk image file, and then asserts that it's identical to some other file."""
 

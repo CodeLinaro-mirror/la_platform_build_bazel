@@ -84,7 +84,7 @@ def prebuilt_file(
         # TODO(b/207489266): Fully support;
         # data is currently dropped to prevent breakages from e.g. prebuilt_etc
         filename_from_src = False,
-        data = [],
+        data = [],  # @unused
         **kwargs):
     "Bazel macro to correspond with the e.g. prebuilt_etc and prebuilt_usr_share Soong modules."
 

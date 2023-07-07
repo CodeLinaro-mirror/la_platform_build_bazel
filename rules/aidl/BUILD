@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-load(":interface_test.bzl", "aidl_interface_test_suite")
-load(":library_test.bzl", "aidl_library_test_suite")
+load(":aidl_interface_test.bzl", "aidl_interface_test_suite")
+load(":aidl_library_test.bzl", "aidl_library_test_suite")
 
 aidl_library_test_suite(name = "aidl_library_tests")
 

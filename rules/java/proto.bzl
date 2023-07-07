@@ -13,7 +13,7 @@
 # limitations under the License.
 
 load("//build/bazel/rules:proto_file_utils.bzl", "proto_file_utils")
-load(":library.bzl", "java_library")
+load(":rules.bzl", "java_library")
 
 def _java_proto_sources_gen_rule_impl(ctx):
     out_flags = []
@@ -98,6 +98,7 @@ def _java_proto_library(
         plugin = None,
         out_format = None,
         proto_dep = None,
+        sdk_version = "core_current",
         **kwargs):
     proto_sources_name = name + "_proto_gen"
 
@@ -118,6 +119,7 @@ def _java_proto_library(
         name = name,
         srcs = [proto_sources_name],
         deps = deps,
+        sdk_version = sdk_version,
         **kwargs
     )
 

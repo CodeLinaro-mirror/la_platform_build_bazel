@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""A macro to generate table of contents files of symbols from a shared library."""
+"""A function to generate table of contents files of symbols from a shared library."""
 
 CcTocInfo = provider(
     "Information about the table of contents of a shared library",
@@ -21,8 +21,8 @@ CcTocInfo = provider(
     },
 )
 
-def _shared_library_toc_impl(ctx):
-    so_name = "lib" + ctx.attr.name + ".so"
+def generate_toc(ctx, name, input_file):
+    so_name = "lib" + name + ".so"
     toc_name = so_name + ".toc"
     out_file = ctx.actions.declare_file(toc_name)
     d_file = ctx.actions.declare_file(toc_name + ".d")
@@ -30,7 +30,7 @@ def _shared_library_toc_impl(ctx):
         env = {
             "CLANG_BIN": ctx.executable._readelf.dirname,
         },
-        inputs = ctx.files.src,
+        inputs = [input_file],
         tools = [
             ctx.executable._readelf,
         ],
@@ -40,39 +40,11 @@ def _shared_library_toc_impl(ctx):
             # Only Linux shared libraries for now.
             "--elf",
             "-i",
-            ctx.files.src[0].path,
+            input_file.path,
             "-o",
             out_file.path,
             "-d",
             d_file.path,
         ],
     )
-
-    return [
-        CcTocInfo(toc = out_file),
-        DefaultInfo(files = depset([out_file])),
-    ]
-
-shared_library_toc = rule(
-    implementation = _shared_library_toc_impl,
-    attrs = {
-        "src": attr.label(
-            # TODO(b/217908237): reenable allow_single_file
-            # allow_single_file = True,
-            mandatory = True,
-        ),
-        "_toc_script": attr.label(
-            cfg = "exec",
-            executable = True,
-            allow_single_file = True,
-            default = "//build/soong/scripts:toc.sh",
-        ),
-        "_readelf": attr.label(
-            cfg = "exec",
-            executable = True,
-            allow_single_file = True,
-            default = "//prebuilts/clang/host/linux-x86:llvm-readelf",
-        ),
-    },
-    toolchains = ["@bazel_tools//tools/cpp:toolchain_type"],
-)
+    return CcTocInfo(toc = out_file)

@@ -22,7 +22,7 @@ from commands import CommandInfo
 from commands import flag_repr
 from commands import is_flag_starts_with
 from commands import parse_flag_groups
-from diffs.diff import Diff, ExtractInfo
+from diffs.diff import ExtractInfo
 from diffs.context import ContextDiff
 from diffs.nm import NmSymbolDiff
 from diffs.bloaty import BloatyDiff
@@ -83,6 +83,22 @@ class ClangCompileInfo(CommandInfo):
     s += self._str_for_field("Files", self.file_flags)
     s += self._str_for_field("Misc", self.misc_flags)
     return s
+
+  def compare(self, other):
+    """computes difference in arguments from another ClangCompileInfo"""
+    diffs = ClangCompileInfo(self.tool, [])
+    diffs.i_includes = [i for i in self.i_includes if i not in other.i_includes]
+    diffs.iquote_includes = [
+        i for i in self.iquote_includes if i not in other.iquote_includes
+    ]
+    diffs.isystem_includes = [
+        i for i in self.isystem_includes if i not in other.isystem_includes
+    ]
+    diffs.defines = [i for i in self.defines if i not in other.defines]
+    diffs.warnings = [i for i in self.warnings if i not in other.warnings]
+    diffs.file_flags = [i for i in self.file_flags if i not in other.file_flags]
+    diffs.misc_flags = [i for i in self.misc_flags if i not in other.misc_flags]
+    return diffs
 
 
 def _is_src_group(x):

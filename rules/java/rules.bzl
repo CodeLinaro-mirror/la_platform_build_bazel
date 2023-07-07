@@ -17,7 +17,7 @@ load(
     _java_binary = "java_binary",
 )
 load(
-    "@rules_java//java:defs.bzl",
+    "//build/bazel/rules/java:import.bzl",
     _java_import = "java_import",
 )
 load(

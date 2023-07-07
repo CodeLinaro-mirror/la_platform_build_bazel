@@ -52,7 +52,7 @@ def power_set(items, *, include_empty = True):
 
     def _exp(x, y):
         result = 1
-        for i in range(y):
+        for _ in range(y):
             result *= x
         return result
 

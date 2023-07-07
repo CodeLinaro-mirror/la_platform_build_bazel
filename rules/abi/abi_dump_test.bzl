@@ -230,8 +230,6 @@ def _test_abi_linker_action():
 
 def _abi_linker_action_run_test_impl(ctx):
     env = analysistest.begin(ctx)
-    bin_home = analysistest.target_bin_dir_path(env)
-    bazel_out_base = paths.join(bin_home, ctx.label.package)
 
     actions = analysistest.target_actions(env)
     link_actions = [a for a in actions if a.mnemonic == "AbiLink"]
@@ -276,8 +274,6 @@ def _test_abi_linker_action_run_for_enabled():
 
 def _abi_linker_action_not_run_test_impl(ctx):
     env = analysistest.begin(ctx)
-    bin_home = analysistest.target_bin_dir_path(env)
-    bazel_out_base = paths.join(bin_home, ctx.label.package)
 
     actions = analysistest.target_actions(env)
     link_actions = [a for a in actions if a.mnemonic == "AbiLink"]

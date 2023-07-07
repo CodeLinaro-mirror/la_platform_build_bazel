@@ -20,6 +20,13 @@ load(
 )
 load(":tradefed.bzl", "tradefed_device_test", "tradefed_host_driven_test")
 
+tradefed_dependencies = [
+    "atest_tradefed.sh",
+    "libatest-tradefed.jar",
+    "libbazel-result-reporter.jar",
+    "tradefed.jar",
+]
+
 def _test_tradefed_config_generation_impl(ctx):
     env = analysistest.begin(ctx)
     actions = analysistest.target_actions(env)
@@ -72,7 +79,7 @@ def tradefed_cc_outputs():
             "tradefed_test_" + name + ".sh",
             "result-reporters.xml",
             target + ".config",
-        ],
+        ] + tradefed_dependencies,
         target_compatible_with = ["//build/bazel/platforms/os:linux"],
     )
     return name + "_test"
@@ -102,7 +109,7 @@ def tradefed_cc_host_outputs():
             "tradefed_test_" + name + ".sh",
             "result-reporters.xml",
             target + ".config",
-        ],
+        ] + tradefed_dependencies,
         target_compatible_with = ["//build/bazel/platforms/os:linux"],
     )
     return name + "_test"
@@ -136,7 +143,7 @@ def tradefed_cc_host_outputs_generate_test_config():
             "tradefed_test_" + name + ".sh",
             "result-reporters.xml",
             target + ".config",
-        ],
+        ] + tradefed_dependencies,
         target_compatible_with = ["//build/bazel/platforms/os:linux"],
     )
     return name + "_test"

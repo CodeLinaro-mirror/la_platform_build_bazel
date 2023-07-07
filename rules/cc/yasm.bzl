@@ -19,20 +19,17 @@ load("//build/bazel/platforms:platform_utils.bzl", "platforms")
 """Build rule for converting `.asm` files to `.o` files with yasm."""
 
 def globalFlags(ctx):
-    x86 = platforms.is_target_x86(ctx.attr._platform_utils)
-    x86_64 = platforms.is_target_x86_64(ctx.attr._platform_utils)
-    arm = platforms.is_target_arm(ctx.attr._platform_utils)
-    arm64 = platforms.is_target_arm64(ctx.attr._platform_utils)
+    arch = platforms.get_target_arch(ctx.attr._platform_utils)
     linux = platforms.is_target_linux_or_android(ctx.attr._platform_utils)
     darwin = platforms.is_target_darwin(ctx.attr._platform_utils)
 
-    if linux and x86_64:
+    if linux and arch == "x86_64":
         return ["-f", "elf64", "-m", "amd64"]
-    if linux and x86:
+    if linux and arch == "x86":
         return ["-f", "elf32", "-m", "x86"]
-    if linux and arm64:
+    if linux and arch == "arm64":
         return ["-f", "elf64", "-m", "aarch64"]
-    if linux and arm:
+    if linux and arch == "arm":
         return ["-f", "elf32", "-m", "arm"]
     if darwin:
         return ["-f", "macho", "-m", "amd64"]

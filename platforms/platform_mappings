@@ -1,3 +1,0 @@
-flags:
-  --cpu=k8
-    @soong_injection//product_config_platforms:current_android_platform

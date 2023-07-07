@@ -14,7 +14,7 @@
 
 load("@bazel_tools//tools/cpp:toolchain_utils.bzl", "find_cpp_toolchain")
 load("@soong_injection//android:constants.bzl", android_constants = "constants")
-load("@soong_injection//product_config:product_variables.bzl", "product_vars")
+load("@soong_injection//api_levels:platform_versions.bzl", "platform_versions")
 load("//build/bazel/rules:common.bzl", "strip_bp2build_label_suffix")
 load("//build/bazel/rules/common:api.bzl", "api")
 
@@ -195,7 +195,7 @@ def create_ccinfo_for_includes(
     # Combine this target's compilation context with those of the deps; use only
     # the compilation context of the combined CcInfo.
     cc_infos = [dep[CcInfo] for dep in deps]
-    cc_infos += [CcInfo(compilation_context = compilation_context)]
+    cc_infos.append(CcInfo(compilation_context = compilation_context))
     combined_info = cc_common.merge_cc_infos(cc_infos = cc_infos)
 
     return CcInfo(compilation_context = combined_info.compilation_context)
@@ -237,10 +237,10 @@ def parse_apex_sdk_version(version):
         version = int(version)
         if version in api.api_levels.values():
             return version
-        elif version == product_vars["Platform_sdk_version"]:
+        elif version == platform_versions.platform_sdk_version:
             # For internal branch states, support parsing a finalized version number
             # that's also still in
-            # product_vars["Platform_version_active_codenames"], but not api.api_levels.
+            # platform_versions.platform_version_active_codenames, but not api.api_levels.
             #
             # This happens a few months each year on internal branches where the
             # internal master branch has a finalized API, but is not released yet,
@@ -401,4 +401,23 @@ def create_cc_androidmk_provider(*, static_deps, whole_archive_deps, dynamic_dep
         local_static_libs = local_static_libs,
         local_whole_static_libs = local_whole_static_libs,
         local_shared_libs = local_shared_libs,
+    )
+
+def create_cc_prebuilt_library_info(ctx, lib_to_link):
+    "Create the CcInfo for a prebuilt_library_{shared,static}"
+
+    compilation_context = cc_common.create_compilation_context(
+        includes = depset(get_includes_paths(ctx, ctx.attr.export_includes)),
+        system_includes = depset(get_includes_paths(ctx, ctx.attr.export_system_includes)),
+    )
+    linker_input = cc_common.create_linker_input(
+        owner = ctx.label,
+        libraries = depset(direct = [lib_to_link] if lib_to_link != None else []),
+    )
+    linking_context = cc_common.create_linking_context(
+        linker_inputs = depset(direct = [linker_input]),
+    )
+    return CcInfo(
+        compilation_context = compilation_context,
+        linking_context = linking_context,
     )

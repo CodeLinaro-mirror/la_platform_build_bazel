@@ -32,11 +32,11 @@ from typing import Mapping
 
 import cuj_catalog
 import perf_metrics
+import pretty
 import ui
 import util
-import pretty
 
-MAX_RUN_COUNT: Final[int] = 5
+MAX_RUN_COUNT: int = 5
 
 
 @functools.cache
@@ -47,6 +47,8 @@ def _prepare_env() -> (Mapping[str, str], str):
       ninja_args += ' '
     ninja_args += '-d explain --quiet'
     if util.is_ninja_dry_run(ninja_args):
+      global MAX_RUN_COUNT
+      MAX_RUN_COUNT = 1
       logging.warning(f'Running dry ninja runs NINJA_ARGS={ninja_args}')
     return ninja_args
 
@@ -65,10 +67,24 @@ def _prepare_env() -> (Mapping[str, str], str):
     'SOONG_UI_NINJA_ARGS': get_soong_ui_ninja_args()
   }
   env = {**os.environ, **overrides}
-  if not os.environ.get('TARGET_BUILD_PRODUCT'):
-    env['TARGET_BUILD_PRODUCT'] = 'aosp_arm64'
-    env['TARGET_BUILD_VARIANT'] = 'userdebug'
+  # TODO: Switch to oriole when it works
+  default_product: Final[str] = 'cf_x86_64_phone' \
+    if util.get_top_dir().joinpath('vendor/google/build').exists() \
+    else 'aosp_cf_x86_64_phone'
+  target_product = os.environ.get('TARGET_PRODUCT') or default_product
+  variant = os.environ.get('TARGET_BUILD_VARIANT') or 'eng'
 
+  if target_product != default_product or variant != 'eng':
+    if util.is_interactive_shell():
+      response = input(f'Are you sure you want {target_product}-{variant} '
+                       f'and not {default_product}-eng? [Y/n]')
+      if response.upper() != 'Y':
+        sys.exit(1)
+    else:
+      logging.warning(
+        f'Using {target_product}-{variant} instead of {default_product}-eng')
+  env['TARGET_PRODUCT'] = target_product
+  env['TARGET_BUILD_VARIANT'] = variant
   pretty_env_str = [f'{k}={v}' for (k, v) in env.items()]
   pretty_env_str.sort()
   return env, '\n'.join(pretty_env_str)
@@ -196,35 +212,34 @@ def main():
   '''))
 
   run_dir_gen = util.next_path(user_input.log_dir.joinpath(util.RUN_DIR_PREFIX))
+
+  def run_cuj_group(cuj_group: cuj_catalog.CujGroup):
+    for cujstep in cuj_group.steps:
+      desc = cujstep.verb
+      desc = f'{desc} {cuj_group.description}'.strip()
+      desc = f'{desc} {user_input.description}'.strip()
+      logging.info('START %s %s [%s]', build_type.name,
+                   ' '.join(user_input.targets), desc)
+      cujstep.apply_change()
+      for run in range(0, MAX_RUN_COUNT):
+        run_dir = next(run_dir_gen)
+        build_info = _run_cuj(run_dir, build_type, cujstep, desc, run)
+        perf_metrics.archive_run(run_dir, build_info)
+        if build_info['ninja_explains'] == 0:
+          break
+      logging.info(' DONE %s %s [%s]', build_type.name,
+                   ' '.join(user_input.targets), desc)
+
   for build_type in user_input.build_types:
-    warmed_up = False
-    for cuj_index in [cuj_catalog.warmup_index(), *user_input.chosen_cujgroups]:
-      cujgroup = cuj_catalog.get_cujgroups()[cuj_index]
-      for cujstep in cujgroup.steps:
-        desc = cujstep.verb
-        desc = f'{desc} {cujgroup.description}'.strip()
-        desc = f'{desc} {user_input.description}'.strip()
-        logging.info('START %s %s [%s]', build_type.name,
-                     ' '.join(user_input.targets), desc)
-        cujstep.apply_change()
-        for run in range(0, MAX_RUN_COUNT):
-          run_dir = next(run_dir_gen)
-          adorned_desc = desc
-          if not warmed_up:
-            adorned_desc = f'WARMUP {adorned_desc}'
-            warmed_up = True
-          if not util.get_out_dir().joinpath('soong/bootstrap.ninja').exists():
-            adorned_desc = f'CLEAN {adorned_desc}'
-          build_info = _run_cuj(run_dir, build_type, cujstep, adorned_desc, run)
-          perf_metrics.archive_run(run_dir, build_info)
-          if build_info['ninja_explains'] == 0:
-            break
-        logging.info(' DONE %s %s [%s]', build_type.name,
-                     ' '.join(user_input.targets), desc)
+    # warm-up run reduces variations attributable to OS caches
+    run_cuj_group(cuj_catalog.Warmup)
+    for i in user_input.chosen_cujgroups:
+      run_cuj_group(cuj_catalog.get_cujgroups()[i])
 
   perf_metrics.tabulate_metrics_csv(user_input.log_dir)
   perf_metrics.display_tabulated_metrics(user_input.log_dir)
-  pretty.pretty(user_input.log_dir, False)
+  pretty.summarize_metrics(user_input.log_dir)
+  pretty.display_summarized_metrics(user_input.log_dir)
 
 
 if __name__ == '__main__':

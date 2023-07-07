@@ -175,8 +175,9 @@ def _ignore_json_module(json_module, ignore_by_name):
   return False
 
 
-def visit_json_module_graph_post_order(module_graph, ignore_by_name,
-                                       filter_predicate, visit):
+def visit_json_module_graph_post_order(
+    module_graph, ignore_by_name, ignore_java_auto_deps, filter_predicate, visit
+):
   # The set of ignored modules. These modules (and their dependencies) are not shown
   # in the graph or report.
   ignored = set()
@@ -221,7 +222,9 @@ def visit_json_module_graph_post_order(module_graph, ignore_by_name,
         json_module_graph_post_traversal(key)
 
     for dep in module["Deps"]:
-      if ignore_json_dep(dep, module["Name"], ignored):
+      if ignore_json_dep(
+          dep, module["Name"], ignored, ignore_java_auto_deps
+      ):
         continue
 
       dep_name = dep["Name"]
@@ -414,7 +417,38 @@ def is_prebuilt_to_source_dep(dep):
   return dep["Tag"] == "android.prebuiltDependencyTag {BaseDependencyTag:{}}"
 
 
-def ignore_json_dep(dep, module_name, ignored_keys):
+def _is_java_auto_dep(dep):
+  # Soong adds a number of dependencies automatically for Java deps, making it
+  # difficult to understand the actual dependencies, remove the
+  # non-user-specified deps
+  tag = dep["Tag"]
+  if not tag:
+    return False
+  return (
+      (
+          tag.startswith("java.dependencyTag")
+          and (
+              "name:proguard-raise" in tag
+              or "name:bootclasspath" in tag
+              or "name:system modules" in tag
+              or "name:framework-res" in tag
+              or "name:sdklib" in tag
+              or "name:java9lib" in tag
+          )
+          or (
+              tag.startswith("java.usesLibraryDependencyTag")
+              or tag.startswith("java.hiddenAPIStubsDependencyTag")
+          )
+      )
+      or (
+          tag.startswith("android.sdkMemberDependencyTag")
+          or tag.startswith("java.scopeDependencyTag")
+      )
+      or tag.startswith("dexpreopt.dex2oatDependencyTag")
+  )
+
+
+def ignore_json_dep(dep, module_name, ignored_keys, ignore_java_auto_deps):
   """Whether to ignore a json dependency based on heuristics.
 
   Args:
@@ -424,6 +458,9 @@ def ignore_json_dep(dep, module_name, ignored_keys):
   """
   if is_prebuilt_to_source_dep(dep):
     return True
+  if ignore_java_auto_deps and _is_java_auto_dep(dep):
+    return True
   name = dep["Name"]
-  return _ModuleKey(name,
-                    dep["Variations"]) in ignored_keys or name == module_name
+  return (
+      _ModuleKey(name, dep["Variations"]) in ignored_keys or name == module_name
+  )

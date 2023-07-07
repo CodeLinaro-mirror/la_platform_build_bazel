@@ -43,6 +43,13 @@ host_targets+=( "${HOST_ONLY_TEST_TARGETS[@]}" )
 
 build_for_host ${host_targets[@]}
 
+#########################################################################
+# Check that rule wrappers have the same providers as the rules they wrap
+#########################################################################
+
+source "$(dirname $0)/../rules/java/wrapper_test.sh"
+test_wrapper_providers
+
 ###################
 # bp2build progress
 ###################
@@ -58,9 +65,25 @@ function get_soong_names_from_queryview() {
 # dir so that they can be downloaded from the CI artifact list.
 BP2BUILD_PROGRESS_MODULES=(
   NetworkStackNext  # not updatable but will be
+  android_module_lib_stubs_current
+  android_stubs_current
+  android_system_server_stubs_current
+  android_system_stubs_current
+  android_test_stubs_current
   build-tools  # host sdk
   com.android.runtime  # not updatable but will be
+  core-lambda-stubs  # DefaultLambdaStubsPath, StableCorePlatformBootclasspathLibraries
+  core-public-stubs-system-modules
+  ext  # FrameworkLibraries
+  framework  # FrameworkLibraries
+  framework-minus-apex
+  framework-res # sdk dep Framework Res Module
+  legacy-core-platform-api-stubs-system-modules
+  legacy.core.platform.api.stubs
   platform-tools  # host sdk
+  sdk
+  stable-core-platform-api-stubs-system-modules  # StableCorePlatformSystemModules
+  stable.core.platform.api.stubs # StableCorePlatformBootclasspathLibraries
 )
 
 # Query for some module types of interest so that we don't have to hardcode the

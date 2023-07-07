@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-def apex_compression_test(name, apex, compressed, **kwargs):
+def apex_compression_test(name, apex, compressed):
     """This verifies APEX or compressed APEX file:
         1) has the correct file extension name
         2) contains the required files specified by the APEX file format

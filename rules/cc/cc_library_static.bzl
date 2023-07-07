@@ -35,6 +35,13 @@ load(":clang_tidy.bzl", "ClangTidyInfo", "clang_tidy_for_dir", "generate_clang_t
 load(":lto_transitions.bzl", "lto_deps_transition")
 load(":stl.bzl", "stl_info_from_attr")
 
+_ALLOWED_MANUAL_INTERFACE_PATHS = [
+    "vendor/",
+    "hardware/",
+    # for testing
+    "build/bazel/rules/cc",
+]
+
 CcStaticLibraryInfo = provider(fields = ["root_static_archive", "objects"])
 
 def cc_library_static(
@@ -53,7 +60,7 @@ def cc_library_static(
         local_includes = [],
         absolute_includes = [],
         hdrs = [],
-        native_bridge_supported = False,  # TODO: not supported yet.
+        native_bridge_supported = False,  # TODO: not supported yet. @unused
         rtti = False,
         stl = "",
         cpp_std = "",
@@ -74,8 +81,8 @@ def cc_library_static(
         alwayslink = None,
         target_compatible_with = [],
         # TODO(b/202299295): Handle data attribute.
-        data = [],
-        sdk_version = "",
+        data = [],  # @unused
+        sdk_version = "",  # @unused
         min_sdk_version = "",
         tags = [],
         tidy = None,
@@ -110,18 +117,23 @@ def cc_library_static(
         ]
 
     if rtti:
-        toolchain_features += ["rtti"]
+        toolchain_features.append("rtti")
     if cpp_std:
         toolchain_features += [cpp_std, "-cpp_std_default"]
     if c_std:
         toolchain_features += [c_std, "-c_std_default"]
+
+    for path in _ALLOWED_MANUAL_INTERFACE_PATHS:
+        if native.package_name().startswith(path):
+            toolchain_features += ["do_not_check_manual_binder_interfaces"]
+            break
 
     if min_sdk_version:
         toolchain_features += parse_sdk_version(min_sdk_version) + ["-sdk_version_default"]
     toolchain_features += features
 
     if not native_coverage:
-        toolchain_features += ["-coverage"]
+        toolchain_features += ["-coverage"]  # buildifier: disable=list-append This could be a select, not a list
 
     if system_dynamic_deps == None:
         system_dynamic_deps = system_dynamic_deps_defaults
@@ -304,7 +316,7 @@ def _generate_tidy_actions(ctx):
     with_tidy = ctx.attr._with_tidy[BuildSettingInfo].value
     allow_local_tidy_true = ctx.attr._allow_local_tidy_true[BuildSettingInfo].value
     tidy_external_vendor = ctx.attr._tidy_external_vendor[BuildSettingInfo].value
-    tidy_enabled = with_tidy or (allow_local_tidy_true and ctx.attr.tidy)
+    tidy_enabled = (with_tidy and ctx.attr.tidy != "never") or (allow_local_tidy_true and ctx.attr.tidy == "local")
     should_run_for_current_package = clang_tidy_for_dir(tidy_external_vendor, ctx.label.package)
     if tidy_enabled and should_run_for_current_package:
         direct_tidy_files = _generate_tidy_files(ctx)
@@ -545,7 +557,7 @@ _cc_library_combiner = rule(
         ),
 
         # Clang-tidy attributes
-        "tidy": attr.bool(),
+        "tidy": attr.string(values = ["", "local", "never"]),
         "srcs_cpp": attr.label_list(allow_files = True),
         "srcs_c": attr.label_list(allow_files = True),
         "copts_cpp": attr.string_list(),
@@ -598,6 +610,9 @@ _cc_library_combiner = rule(
         ),
         "_allowlist_function_transition": attr.label(
             default = "@bazel_tools//tools/allowlists/function_transition_allowlist",
+        ),
+        "_product_variables": attr.label(
+            default = "//build/bazel/product_config:product_vars",
         ),
     },
     toolchains = ["@bazel_tools//tools/cpp:toolchain_type"],

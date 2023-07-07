@@ -1,4 +1,5 @@
 load("@rules_license//rules:providers.bzl", "LicenseInfo")
+load("//build/bazel/rules:metadata.bzl", "MetadataFileInfo")
 
 RuleLicensedDependenciesInfo = provider(
     doc = """Rule's licensed dependencies.""",
@@ -14,9 +15,18 @@ def _maybe_expand(rule, transitive_licenses):
     if hasattr(dep_info, "license_closure"):
         transitive_licenses.append(dep_info.license_closure)
 
-def _rule_licenses_aspect_impl(rule, ctx):
+def create_metadata_file_info(ctx):
+    if hasattr(ctx.rule.attr, "applicable_licenses"):
+        for lic in ctx.rule.attr.applicable_licenses:
+            files = lic.files.to_list()
+            if len(files) == 1 and files[0].basename == "METADATA":
+                return MetadataFileInfo(metadata_file = files[0])
+
+    return MetadataFileInfo(metadata_file = None)
+
+def _rule_licenses_aspect_impl(_rule, ctx):
     if ctx.rule.kind == "_license":
-        return RuleLicensedDependenciesInfo()
+        return [RuleLicensedDependenciesInfo(), MetadataFileInfo()]
 
     licenses = []
     transitive_licenses = []
@@ -32,14 +42,18 @@ def _rule_licenses_aspect_impl(rule, ctx):
         for item in vlist:
             if type(item) == "Target" and RuleLicensedDependenciesInfo in item:
                 _maybe_expand(item, transitive_licenses)
-    return RuleLicensedDependenciesInfo(license_closure = depset(licenses, transitive = transitive_licenses))
+
+    return [
+        RuleLicensedDependenciesInfo(license_closure = depset(licenses, transitive = transitive_licenses)),
+        create_metadata_file_info(ctx),
+    ]
 
 license_aspect = aspect(
     doc = """Collect transitive license closure.""",
     implementation = _rule_licenses_aspect_impl,
     attr_aspects = ["*"],
     apply_to_generating_rules = True,
-    provides = [RuleLicensedDependenciesInfo],
+    provides = [RuleLicensedDependenciesInfo, MetadataFileInfo],
 )
 
 _license_kind_template = """
@@ -63,16 +77,15 @@ def _license_file(license_rule):
 
 def _divine_package_name(license):
     if license.package_name:
-        return license.package_name
+        return license.package_name.removeprefix("external").removesuffix("BUILD.bazel").replace("/", " ").strip()
     return license.rule.name.removeprefix("external_").removesuffix("_license").replace("_", " ")
 
-def license_map(ctx, deps):
+def license_map(deps):
     """Collects license to licensees map for the given set of rule targets.
 
     TODO(asmundak): at the moment licensees lists are all empty because collecting
     the licensees turned out to be too slow. Restore this later.
     Args:
-        ctx:context
         deps: list of rule targets
     Returns:
         dictionary mapping a license to its licensees
@@ -88,7 +101,9 @@ def license_map(ctx, deps):
     license_by_label = dict()
     licensees = dict()
     for lic in depset(transitive = transitive_licenses).to_list():
-        label = lic[LicenseInfo].rule
+        if not LicenseInfo in lic:
+            continue
+        label = lic[LicenseInfo].label.name
         if not label in license_by_label:
             license_by_label[label] = lic
             licensees[lic] = []
@@ -111,7 +126,7 @@ _license_template = """  {{
 def _used_license_to_json(license_rule, licensed_rules):
     license = license_rule[LicenseInfo]
     return _license_template.format(
-        rule = license.rule,
+        rule = license.label.name,
         copyright_notice = license.copyright_notice,
         package_name = _divine_package_name(license),
         package_url = _quotes_or_null(license.package_url),
