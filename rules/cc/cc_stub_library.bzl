@@ -19,6 +19,7 @@ load(":cc_library_headers.bzl", "cc_library_headers")
 load(":cc_library_shared.bzl", "CcStubLibrariesInfo")
 load(":cc_library_static.bzl", "cc_library_static")
 load(":fdo_profile_transitions.bzl", "drop_fdo_profile_transition")
+load(":generate_toc.bzl", "CcTocInfo", "generate_toc")
 
 # This file contains the implementation for the cc_stub_library rule.
 #
@@ -186,14 +187,17 @@ def _cc_stub_library_shared_impl(ctx):
         defines = depset([version_macro_name]),
     )
 
-    cc_infos = [ctx.attr.root[CcInfo]]
-    cc_infos.append(CcInfo(compilation_context = compilation_context))
-    cc_info = cc_common.merge_cc_infos(cc_infos = cc_infos)
+    cc_info = cc_common.merge_cc_infos(cc_infos = [
+        ctx.attr.root[CcInfo],
+        CcInfo(compilation_context = compilation_context),
+    ])
+    toc_info = generate_toc(ctx, ctx.attr.name, ctx.attr.library_target.files.to_list()[0])
 
     return [
         ctx.attr.library_target[DefaultInfo],
         ctx.attr.library_target[CcSharedLibraryInfo],
         ctx.attr.stub_target[CcStubInfo],
+        toc_info,
         cc_info,
         CcStubLibrariesInfo(has_stubs = True),
         OutputGroupInfo(rule_impl_debug_files = depset()),
@@ -207,15 +211,44 @@ _cc_stub_library_shared = rule(
     # to converge the configurations of the stub targets
     cfg = drop_fdo_profile_transition,
     attrs = {
-        "stub_target": attr.label(mandatory = True),
-        "library_target": attr.label(mandatory = True),
-        "root": attr.label(mandatory = True),
+        "stub_target": attr.label(
+            providers = [CcStubInfo],
+            mandatory = True,
+        ),
+        "library_target": attr.label(
+            providers = [CcSharedLibraryInfo],
+            mandatory = True,
+        ),
+        "root": attr.label(
+            providers = [CcInfo],
+            mandatory = True,
+        ),
         "source_library_label": attr.string(mandatory = True),
         "version": attr.string(mandatory = True),
         "_allowlist_function_transition": attr.label(
             default = "@bazel_tools//tools/allowlists/function_transition_allowlist",
         ),
+        "_toc_script": attr.label(
+            cfg = "exec",
+            executable = True,
+            allow_single_file = True,
+            default = "//build/soong/scripts:toc.sh",
+        ),
+        "_readelf": attr.label(
+            cfg = "exec",
+            executable = True,
+            allow_single_file = True,
+            default = "//prebuilts/clang/host/linux-x86:llvm-readelf",
+        ),
     },
+    provides = [
+        CcSharedLibraryInfo,
+        CcTocInfo,
+        CcInfo,
+        CcStubInfo,
+        CcStubLibrariesInfo,
+        CcStubLibrarySharedInfo,
+    ],
 )
 
 def cc_stub_suite(

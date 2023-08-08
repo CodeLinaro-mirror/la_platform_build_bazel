@@ -508,7 +508,7 @@ _cc_library_shared_proxy = rule(
             default = "//prebuilts/clang/host/linux-x86:llvm-readelf",
         ),
     },
-    provides = [CcAndroidMkInfo, CcInfo],
+    provides = [CcAndroidMkInfo, CcInfo, CcTocInfo],
     fragments = ["cpp"],
     toolchains = ["@bazel_tools//tools/cpp:toolchain_type"],
 )

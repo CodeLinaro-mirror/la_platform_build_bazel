@@ -4,6 +4,7 @@ load("@soong_injection//api_levels:platform_versions.bzl", "platform_versions")
 load("@soong_injection//product_config:product_variables.bzl", "product_vars")
 load("//build/bazel/flags:common.bzl", "is_env_true")
 load("//build/bazel/product_variables:constants.bzl", "constants")
+load("//build/bazel/rules:metadata.bzl", "metadata")
 load("//build/bazel/rules/apex:toolchain.bzl", "apex_toolchain")
 load("//build/bazel/rules/common:api.bzl", "api")
 load(":apex_aab_test.bzl", "apex_aab_test_suite")
@@ -14,11 +15,7 @@ load(":apex_test.bzl", "apex_test_suite")
 # Setup package and default_metadata_file for _test_apex_sbom in apex_test.bzl
 package(default_package_metadata = [":default_metadata_file"])
 
-filegroup(
-    name = "default_metadata_file",
-    srcs = ["METADATA"],
-    applicable_licenses = [],
-)
+metadata(name = "default_metadata_file")
 
 string_setting(
     name = "apex_name",

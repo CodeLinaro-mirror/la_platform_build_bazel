@@ -17,3 +17,13 @@ MetadataFileInfo = provider(
         "metadata_file": "METADATA file of a module",
     },
 )
+
+# Define metadata file of packages, usually the file is METADATA in the root directory of a package.
+# Attribute applicable_licenses is needed on the filegroup, so when the filegroup is used in
+# package(default_package_metadata=) Bazel will not regard it as cyclic reference.
+def metadata(name, metadata = "METADATA"):
+    native.filegroup(
+        name = name,
+        srcs = [metadata],
+        applicable_licenses = [],
+    )
