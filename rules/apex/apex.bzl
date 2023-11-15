@@ -786,12 +786,25 @@ def _generate_sbom(ctx, file_mapping, metadata_file_mapping, apex_file):
     sbom_metadata_csv = ctx.actions.declare_file(apex_filename + "-sbom-metadata.csv")
     command = []
     metadata_files = []
-    command.append("echo installed_file,module_path,soong_module_type,is_prebuilt_make_module,product_copy_files,kernel_module_copy_files,is_platform_generated,build_output_path")
-    command.append("echo %s,%s,,,,,,%s" % (apex_filename, ctx.label.package, apex_file.path))
+    sbom_metadata_csv_columns = [
+        "installed_file",
+        "module_path",
+        "soong_module_type",
+        "is_prebuilt_make_module",
+        "product_copy_files",
+        "kernel_module_copy_files",
+        "is_platform_generated",
+        "build_output_path",
+        "static_libraries",
+        "whole_static_libraries",
+        "is_static_lib",
+    ]
+    command.append("echo " + ",".join(sbom_metadata_csv_columns))
+    command.append("echo %s,%s,,,,,,%s,,," % (apex_filename, ctx.label.package, apex_file.path))
     for installed_file, bazel_output_file in file_mapping.items():
         if metadata_file_mapping[installed_file]:
             metadata_files.append(metadata_file_mapping[installed_file])
-        command.append("echo %s,%s,,,,,,%s" % (installed_file, paths.dirname(bazel_output_file.short_path), bazel_output_file.path))
+        command.append("echo %s,%s,,,,,,%s,,," % (installed_file, paths.dirname(bazel_output_file.short_path), bazel_output_file.path))
     ctx.actions.run_shell(
         inputs = file_mapping.values(),
         outputs = [sbom_metadata_csv],
