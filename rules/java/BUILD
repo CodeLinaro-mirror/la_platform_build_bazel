@@ -136,14 +136,14 @@ bootclasspath(
 )
 
 default_java_toolchain(
-    name = "jdk17_host_toolchain_java",
+    name = "jdk21_host_toolchain_java",
     bootclasspath = select({
         "host_config_setting_java_7": [":pre_java9_bootclasspath"],
         "host_config_setting_java_8": [":pre_java9_bootclasspath"],
         "//conditions:default": ["@rules_java_builtin//toolchains:platformclasspath"],
     }),
     # TODO(b/218720643): Support switching between multiple JDKs.
-    java_runtime = "//prebuilts/jdk/jdk17:jdk17_runtime",
+    java_runtime = "//prebuilts/jdk/jdk21:jdk21_runtime",
     misc = errorprone_global_flags + DEFAULT_JAVACOPTS + constants.CommonJdkFlags,
     source_version = select(java_version_select_dict),
     target_version = select(java_version_select_dict),
@@ -151,10 +151,10 @@ default_java_toolchain(
 )
 
 toolchain(
-    name = "jdk17_host_toolchain_java_definition",
+    name = "jdk21_host_toolchain_java_definition",
     exec_compatible_with = ["//build/bazel_common_rules/platforms/os:linux"],
     target_compatible_with = ["//build/bazel_common_rules/platforms/os:linux"],
     target_settings = [],
-    toolchain = ":jdk17_host_toolchain_java",
+    toolchain = ":jdk21_host_toolchain_java",
     toolchain_type = "@bazel_tools//tools/jdk:toolchain_type",
 )
