@@ -453,7 +453,7 @@ def _tradefed_test_impl(ctx, tradefed_options = []):
     # Append remote device runfiles if using remote execution.
     if _is_remote_device_test(ctx):
         runfiles = runfiles.merge(ctx.runfiles().merge(ctx.attr._run_with[DeviceEnvironment].data))
-        java_home = "/jdk/jdk17/linux-x86"
+        java_home = "/jdk/jdk21/linux-x86"
     else:
         java_runtime = ctx.attr._java_runtime[java_common.JavaRuntimeInfo]
         runfiles = runfiles.merge(ctx.runfiles(java_runtime.files.to_list()))

@@ -29,7 +29,7 @@ case $(uname -s) in
     Darwin)
         ANDROID_BAZEL_PATH="${TOP}/prebuilts/bazel/darwin-x86_64/bazel"
         ANDROID_BAZELRC_NAME="darwin.bazelrc"
-        ANDROID_BAZEL_JDK_PATH="${TOP}/prebuilts/jdk/jdk17/darwin-x86"
+        ANDROID_BAZEL_JDK_PATH="${TOP}/prebuilts/jdk/jdk21/darwin-x86"
 
         # Lock down PATH in action execution environment, thereby removing
         # Bazel's default /bin, /usr/bin, /usr/local/bin and ensuring
@@ -52,7 +52,7 @@ case $(uname -s) in
         ANDROID_BAZEL_PATH="${TOP}/prebuilts/bazel/linux-x86_64/bazel"
         ANDROID_BAZELISK_PATH="${TOP}/prebuilts/bazel/linux-x86_64/dev_tools/bazelisk/bazelisk"
         ANDROID_BAZELRC_NAME="linux.bazelrc"
-        ANDROID_BAZEL_JDK_PATH="${TOP}/prebuilts/jdk/jdk17/linux-x86"
+        ANDROID_BAZEL_JDK_PATH="${TOP}/prebuilts/jdk/jdk21/linux-x86"
         RESTRICTED_PATH="${TOP}/prebuilts/build-tools/path/linux-x86:${ABSOLUTE_OUT_DIR}/.path"
         ;;
     *)

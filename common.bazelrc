@@ -8,8 +8,8 @@ build --experimental_platform_in_output_dir
 build --incompatible_enable_cc_toolchain_resolution
 
 # Ensure that the host_javabase always use the checked-in JDK.
-build --tool_java_runtime_version=jdk17
-build --java_runtime_version=jdk17
+build --tool_java_runtime_version=jdk21
+build --java_runtime_version=jdk21
 
 # Lock down the PATH variable in actions to /usr/bin and /usr/local/bin.
 build --experimental_strict_action_env

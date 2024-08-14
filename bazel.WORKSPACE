@@ -17,14 +17,17 @@ load("//build/bazel/rules:api_surfaces_injection.bzl", "api_surfaces_repository"
 # TODO: Once BUILD files for stubs are checked-in, this should be converted to a local_repository.
 api_surfaces_repository(name = "api_surfaces")
 
-load("//build/bazel_common_rules/workspace:external.bzl", "import_external_repositories")
-
-import_external_repositories(
-    bazel_skylib = True,
-    io_abseil_py = True,
+local_repository(
+    name = "bazel_skylib",
+    path = "external/bazel-skylib",
 )
 
 load("@bazel_skylib//:workspace.bzl", "bazel_skylib_workspace")
+
+local_repository(
+    name = "io_abseil_py",
+    path = "external/python/absl-py",
+)
 
 bazel_skylib_workspace()
 
@@ -139,8 +142,8 @@ local_repository(
 )
 
 register_toolchains(
-    "//prebuilts/jdk/jdk17:runtime_toolchain_definition",
-    "//build/bazel/rules/java:jdk17_host_toolchain_java_definition",
+    "//prebuilts/jdk/jdk21:runtime_toolchain_definition",
+    "//build/bazel/rules/java:jdk21_host_toolchain_java_definition",
 )
 
 local_repository(
