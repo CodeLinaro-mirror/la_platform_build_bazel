@@ -12,10 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-Api levels for code names.
-"""
-
 api_levels_released_versions = {
     "G": 9,
     "I": 14,
@@ -37,5 +33,4 @@ api_levels_released_versions = {
     "S-V2": 32,
     "Tiramisu": 33,
     "UpsideDownCake": 34,
-    "VanillaIceCream": 35,
 }
