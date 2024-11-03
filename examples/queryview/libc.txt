@@ -1,1 +1,0 @@
-attr(module_name, \Alibc$, //bionic/libc:all)
