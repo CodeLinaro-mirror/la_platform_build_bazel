@@ -1,0 +1,9 @@
+load("//build/bazel/toolchains/cc:rules.bzl", "cc_toolchain_import")
+
+package(default_visibility = ["//build/bazel/toolchains/cc/windows_clang:__pkg__"])
+
+cc_toolchain_import(
+    name = "headers",
+    include_paths = [":includes"],
+    support_files = glob(["includes/**"]),
+)
