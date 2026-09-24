@@ -4,6 +4,7 @@ load(
     "cc_toolchain_dynamic_runtime",
     "cc_toolchain_static_runtime",
 )
+load("@rules_cc//cc:defs.bzl", "cc_toolchain")
 load(":features.bzl", "cc_features")
 
 package(default_visibility = ["//visibility:public"])
