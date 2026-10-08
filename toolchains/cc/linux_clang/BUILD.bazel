@@ -127,3 +127,89 @@ toolchain(
     toolchain = ":x64",
     toolchain_type = "@bazel_tools//tools/cpp:toolchain_type",
 )
+
+# Cross-compiling toolchain targeting Linux ARM64, from Linux x86_64.
+#
+# Clang and lld are inherently cross-compilers, so we reuse the host prebuilts. The target
+# libraries (glibc, libgcc) come from a Debian arm64 sysroot, since our clang prebuilt does not
+# ship aarch64-unknown-linux-gnu runtimes. Consequently this toolchain uses libgcc rather than
+# compiler-rt, and does not provide a C++ standard library (currently only C and Rust
+# code are built for this target). Clang derives all include and library paths from --sysroot.
+#
+# Note: this was originally added in a rush to support Android CLI on Googlebooks (b/549892162).
+# We don't know yet if it's suitable beyond that purpose.
+cc_features(
+    name = "arm64_features",
+    compile_flags = [
+        "--target=aarch64-unknown-linux-gnu",
+        "-no-canonical-prefixes",
+        "-Wno-builtin-macro-redefined",
+        "-D__DATE__=\"redacted\"",
+        "-D__TIMESTAMP__=\"redacted\"",
+        "-D__TIME__=\"redacted\"",
+        "-Wall",
+        "-Wthread-safety",
+        "-fstack-protector-strong",
+        "-fcolor-diagnostics",
+    ],
+    cxx_flags = [
+        "-nostdinc++",
+    ],
+    link_flags = [
+        "--target=aarch64-unknown-linux-gnu",
+        "-fuse-ld=lld",
+        "-Wno-unused-command-line-argument",
+        "-Wl,--as-needed",
+        "-lm",
+        "-ldl",
+        "-Wl,--no-as-needed",
+    ],
+    toolchain_imports = ["@clang_linux_x64//:builtin_headers"],
+)
+
+cc_toolchain_config(
+    name = "arm64_config",
+    cc_features = ":arm64_features",
+    cc_tools = [
+        "@clang_linux_x64//:clang",
+        "@clang_linux_x64//:archiver",
+        "@clang_linux_x64//:strip",
+    ],
+    compiler_name = "clang",
+    identifier = "linux_clang_arm64",
+    sysroot = "@sysroot_linux_arm64//:sysroot",
+    target_cpu = "aarch64",
+    toolchain_imports = ["@clang_linux_x64//:builtin_headers"],
+)
+
+cc_toolchain(
+    name = "arm64",
+    all_files = ":arm64_config",
+    ar_files = "@clang_linux_x64//:archiver",
+    as_files = "@clang_linux_x64//:clang",
+    compiler_files = ":arm64_config",
+    dwp_files = "@//build/bazel/toolchains/cc:empty",
+    # The clang driver links the runtime libraries (glibc, libgcc) from the sysroot itself.
+    dynamic_runtime_lib = "@//build/bazel/toolchains/cc:empty",
+    linker_files = ":arm64_config",
+    objcopy_files = "@//build/bazel/toolchains/cc:empty",
+    static_runtime_lib = "@//build/bazel/toolchains/cc:empty",
+    strip_files = "@clang_linux_x64//:strip",
+    supports_param_files = 1,
+    toolchain_config = ":arm64_config",
+)
+
+toolchain(
+    name = "arm64_toolchain",
+    exec_compatible_with = [
+        "@platforms//cpu:x86_64",
+        "@platforms//os:linux",
+        "@bazel_tools//tools/cpp:clang",
+    ],
+    target_compatible_with = [
+        "@platforms//cpu:aarch64",
+        "@platforms//os:linux",
+    ],
+    toolchain = ":arm64",
+    toolchain_type = "@bazel_tools//tools/cpp:toolchain_type",
+)

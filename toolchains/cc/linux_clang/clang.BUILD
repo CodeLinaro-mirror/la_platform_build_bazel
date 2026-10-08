@@ -102,6 +102,24 @@ cc_toolchain_import(
     ),
 )
 
+# Clang's builtin headers (stddef.h, arm_neon.h, etc.) without any target-specific
+# runtime libraries. Used by cross-compiling toolchains, which get their runtime libs
+# from a target sysroot instead.
+cc_toolchain_import(
+    name = "builtin_headers",
+    include_paths = glob(
+        [
+            "lib/clang/*/include",
+        ],
+        exclude_directories = 0,
+    ),
+    support_files = glob(
+        [
+            "lib/clang/*/include/**",
+        ],
+    ),
+)
+
 cc_toolchain_import(
     name = "libunwind",
     lib_search_paths = [
