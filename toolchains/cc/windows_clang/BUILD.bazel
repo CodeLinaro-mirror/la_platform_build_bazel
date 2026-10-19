@@ -9,9 +9,10 @@ load(":features.bzl", "cc_features")
 package(default_visibility = ["//visibility:public"])
 
 _x64_imports_msvc = [
+    "//build/bazel/toolchains/cc/windows_clang/compat:headers",
+    "@clang_win_x64//:compiler_runtime",
     "@vctools//:msvc_runtimes_x64",
     "@windows_sdk//:sdk_libs_x64",
-    "@clang_win_x64//:compiler_runtime",
 ]
 
 # This list used to include MinGW libs for linking rust. It's now empty as we

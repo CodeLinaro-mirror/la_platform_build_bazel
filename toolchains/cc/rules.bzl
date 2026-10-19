@@ -10,7 +10,7 @@ load(
     "flag_group",
     "flag_set",
 )
-load("@rules_cc//cc:defs.bzl", "cc_common")
+load("@rules_cc//cc:defs.bzl", "CcToolchainConfigInfo", "cc_common")
 load(":actions.bzl", "create_action_configs")
 load(":utils.bzl", "filter_none")
 
