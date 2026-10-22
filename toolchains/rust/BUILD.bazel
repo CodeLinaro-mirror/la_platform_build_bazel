@@ -1,9 +1,0 @@
-load("@bazel_skylib//rules:common_settings.bzl", "bool_flag")
-
-# Whether the custom toolchains link rust_binary and rust_test targets using
-# cc_common.link instead of rustc. For linux and macOS only.
-bool_flag(
-    name = "use_cc_common_link",
-    build_setting_default = True,
-    visibility = ["//visibility:public"],
-)
