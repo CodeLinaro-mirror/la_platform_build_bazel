@@ -1,17 +1,22 @@
 #!/usr/bin/env bash
 
-unameOut="$(uname -s)"
-case "${unameOut}" in
-Linux*) machine=Linux ;;
-Darwin*) machine=Mac ;;
-*)
-  echo "UNSUPPORTED OS: ${unameOut}" 1>&2
-  exit 1
-  ;;
+os="$(uname -s)"
+arch="$(uname -m)"
+case "${os}-${arch}" in
+  Darwin-arm64 | Darwin-x86_64)
+    # This is a Mach-O universal binary for arm64 and x86_64.
+    python_bin="prebuilts/python/darwin-x86/bin/python3"
+    ;;
+  Linux-aarch64)
+    python_bin="prebuilts/python/linux-arm64/bin/python3"
+    ;;
+  Linux-x86_64)
+    python_bin="prebuilts/python/linux-x86/bin/python3"
+    ;;
+  *)
+    echo "UNSUPPORTED PLATFORM: ${os}-${arch}" >&2
+    exit 1
+    ;;
 esac
 
-if [[ "$machine" = "Linux" ]]; then
-  prebuilts/python/linux-x86/bin/python3 build/bazel/tools/credhelper.py $@ < /dev/stdin
-elif [[ "$machine" = "Mac" ]]; then
-  prebuilts/python/darwin-x86/bin/python3 build/bazel/tools/credhelper.py $@ < /dev/stdin
-fi
+exec "${python_bin}" build/bazel/tools/credhelper.py "$@"
