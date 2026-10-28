@@ -10,7 +10,7 @@
         "llvm/BUILD.bazel": "sha256-+gWrS+u5ZvgL+K9+tLHIvIDtyGthPssPwPlezXnYirs=",
         "llvm/binary_alias.bzl": "sha256-yGIb97Tjj+hlGvJtWqRFlERhJJbEz6KEEHR2Dzr8i8k=",
         "llvm/cc_plugin_library.bzl": "sha256-pP6Z+3GHRPWEX2SeVtW1D595I29R6+bu/TmcIf2TRhs=",
-        "llvm/config.bzl": "sha256-i+oxQihrNyB2qizwjxfBawsSo1+RU7cLReIjzHUTZ2s=",
+        "llvm/config.bzl": "sha256-5pVwGzCIXpv5B/444CMo9rKhSStfjMR23h4tjQkFyp0=",
         "llvm/driver.bzl": "sha256-xRCpgWq32NZf/qE+pUWmgKZIh/k+T99WNY0cbMkWuLk=",
         "llvm/enum_targets_gen.bzl": "sha256-cOC1aQxaZ6V+e5rOLKOs6SZ1JMz/fqe5DEbMg4al7zA=",
         "llvm/include/llvm/CodeGen/RDFRegisters.h": "sha256-mAZ1ZhlTmAWp9GdsF5xxJ37PJ/zRq+CoGiHkPkqbt1s=",

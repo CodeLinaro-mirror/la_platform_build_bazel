@@ -5,8 +5,47 @@ load("@rules_gcs//gcs:repo_rules.bzl", "gcs_archive")
 load("//rules:overlay_repository.bzl", "overlay_repository")
 load("//toolchains/cc:repository_rules.bzl", "msvc_tools_repository", "windows_sdk_repository", "xcode_tools_repository")
 
+_BAZEL_WINDOWS_URL = "https://releases.bazel.build/9.1.1/rc1/bazel-9.1.1rc1-windows-x86_64.exe"
+_BAZEL_WINDOWS_SHA256 = "61b5fd85c4429b2a1633b3de66b1b40b3d83874f88a63f0aba9c0bf1ba069861"
+
+def _windows_test_tools_repo_impl(repo_ctx):
+    """Ensures tw.exe and xml.exe exist in @bazel_tools//tools/test for remote Windows test execution."""
+    if not repo_ctx.os.name.lower().startswith("windows"):
+        test_dir = repo_ctx.path(Label("@bazel_tools//tools/test:BUILD")).dirname
+        tw_exe = test_dir.get_child("tw.exe")
+        xml_exe = test_dir.get_child("xml.exe")
+        if not tw_exe.exists or not xml_exe.exists:
+            repo_ctx.download(
+                url = _BAZEL_WINDOWS_URL,
+                output = "bazel_windows.zip",
+                sha256 = _BAZEL_WINDOWS_SHA256,
+            )
+            python = repo_ctx.which("python3")
+            if python:
+                repo_ctx.execute([
+                    python,
+                    "-c",
+                    (
+                        "import zipfile, shutil, os; " +
+                        "d = r'{0}'; " +
+                        "st = os.stat(os.path.join(d, 'BUILD')); " +
+                        "z = zipfile.ZipFile('bazel_windows.zip'); " +
+                        "[shutil.copyfileobj(z.open('embedded_tools/tools/test/' + f), open(os.path.join(d, f), 'wb')) for f in ('tw.exe', 'xml.exe')]; " +
+                        "[os.chmod(os.path.join(d, f), 0o755) for f in ('tw.exe', 'xml.exe')]; " +
+                        "[os.utime(os.path.join(d, f), (st.st_atime, st.st_mtime)) for f in ('tw.exe', 'xml.exe')]"
+                    ).format(test_dir),
+                ])
+    repo_ctx.file("BUILD.bazel", "exports_files(['defs.bzl'])\n")
+    repo_ctx.file("defs.bzl", "WINDOWS_TEST_TOOLS_READY = True\n")
+
+windows_test_tools_repository = repository_rule(
+    implementation = _windows_test_tools_repo_impl,
+    local = True,
+)
+
 def _toolchain_impl(ctx):
     # type: (module_ctx) -> None
+    windows_test_tools_repository(name = "windows_test_tools")
     tool_versions = {}  # type: dict[string, string]
     version_file_tag = _get_singleton_tag(ctx.modules, "version_file")
     if version_file_tag:

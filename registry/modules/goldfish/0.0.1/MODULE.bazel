@@ -107,6 +107,7 @@ bazel_dep(name = "tools_emulator", version = "0.0.1")
 bazel_dep(name = "libuuid", version = "2.41.2.aemu")
 bazel_dep(name = "curl", version = "8.12.0")
 bazel_dep(name = "libx11", version = "1.8.12.bcr.3.aemu")
+bazel_dep(name = "libxcb", version = "1.17.0.bcr.2.aemu")
 
 # Perfetto tracing
 bazel_dep(name = "perfetto", version = "54.0")

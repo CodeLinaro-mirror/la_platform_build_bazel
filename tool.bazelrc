@@ -46,7 +46,7 @@ build --@rules_python//python/config_settings:bootstrap_impl=script
 build:windows --@rules_python//python/config_settings:build_python_zip=false
 
 # Default clang tidy config, use --config clang-tidy
-build:clang-tidy --aspects @goldfish_build//rules:clang_tidy.bzl%clang_tidy_aspect
+build:clang-tidy --aspects @aemu//tools/clang_tidy:defs.bzl%clang_tidy_aspect
 build:clang-tidy --output_groups=tidy_fixes
-build:clang-tidy "--@goldfish_build//:clang_tidy_config=@goldfish//:clang_tidy_config"
-build:clang-tidy "--@goldfish_build//:clang_tidy_regex=s/m_//g"
+build:clang-tidy "--@aemu//tools/clang_tidy:clang_tidy_config=@goldfish//:clang_tidy_config"
+build:clang-tidy "--@aemu//tools/clang_tidy:clang_tidy_regex=s/m_//g"

@@ -1,4 +1,3 @@
-load("@goldfish-build-pypi//:requirements.bzl", "requirement")
 load("@rules_python//python:defs.bzl", "py_binary", "py_test")
 
 exports_files(
@@ -11,14 +10,6 @@ py_binary(
     srcs = ["gen_cc_snippet.py"],
     main = "gen_cc_snippet.py",
     visibility = ["//visibility:public"],
-)
-
-py_binary(
-    name = "run-clang-tidy",
-    srcs = ["run_clang_tidy.py"],
-    main = "run_clang_tidy.py",
-    visibility = ["//visibility:public"],
-    deps = [requirement("PyYAML")],
 )
 
 py_binary(

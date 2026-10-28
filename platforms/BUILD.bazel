@@ -3,6 +3,7 @@ load(
     "@bazel_toolchains//rules/exec_properties:exec_properties.bzl",
     "create_rbe_exec_properties_dict",
 )
+load("@windows_test_tools//:defs.bzl", "WINDOWS_TEST_TOOLS_READY")  # @unused
 
 package(default_visibility = ["//visibility:public"])
 

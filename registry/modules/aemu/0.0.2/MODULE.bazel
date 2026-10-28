@@ -79,9 +79,11 @@ python.toolchain(
 
 pip = use_extension("@rules_python//python/extensions:pip.bzl", "pip")
 pip.parse(
+    envsubst = ["PIP_INDEX_URL"],
+    experimental_index_url = "${PIP_INDEX_URL:-https://pypi.org/simple}",
     hub_name = "pypi_aemu",
     python_version = "3.10",
     requirements_lock = "//tools/libs_python:requirements_lock.txt",
     requirements_windows = "//tools/libs_python:requirements_windows.txt",
 )
-use_repo(pip, "goldfish-build-pypi", "pypi_aemu")
+use_repo(pip, "pypi_aemu")
