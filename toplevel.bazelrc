@@ -33,8 +33,8 @@ build:ciasan --config=debug
 build:ciasan --config=asan
 
 # Clang-tidy execution configuration
-build:tidy --@goldfish_build//:clang_tidy_enabled=true
-test:tidy --@goldfish_build//:clang_tidy_enabled=true
+build:tidy --@aemu//tools/clang_tidy:clang_tidy_enabled=true
+test:tidy --@aemu//tools/clang_tidy:clang_tidy_enabled=true
 
 # Code coverage configuration (LLVM source-based coverage)
 coverage --build_tests_only
@@ -44,12 +44,13 @@ coverage --experimental_use_llvm_covmap
 coverage --experimental_generate_llvm_lcov
 coverage --instrumentation_filter=//emulator[/:],@goldfish//emulator[/:],//common[/:],//host[/:]
 
-# Gfxstream software GLES (ANGLE) and Vulkan (Lavapipe) test environment (Linux-only
-# for now: SetupGraphicsTestEnvironment() hardcodes .so names and gfxstream_unit_tests
-# currently only runs on Linux).
+# Gfxstream software GLES (ANGLE) and Vulkan (Lavapipe) test environment (Linux and macOS).
 build:linux --@gfxstream//common/testenv:graphics_test_environment=gles_angle_vulkan_lavapipe
 build:linux --@gfxstream//common/testenv:gles_angle_drivers=@goldfish_prebuilts_common//ANGLE:lib_linux_x86_64
 build:linux --@gfxstream//common/testenv:vulkan_lavapipe_drivers=@goldfish//emulator/libs/ver:test_vulkan_icds
+build:macos --@gfxstream//common/testenv:graphics_test_environment=gles_angle_vulkan_lavapipe
+build:macos --@gfxstream//common/testenv:gles_angle_drivers=@goldfish_prebuilts_common//ANGLE:lib_darwin_aarch64
+build:macos --@gfxstream//common/testenv:vulkan_lavapipe_drivers=@goldfish//emulator/libs/ver:test_vulkan_icds
 
 # User overrides must come last
 try-import %workspace%/user.bazelrc

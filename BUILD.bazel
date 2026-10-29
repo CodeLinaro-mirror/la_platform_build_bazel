@@ -1,6 +1,4 @@
 load("@rules_license//rules:license.bzl", "license")
-load("@rules_python//python:pip.bzl", "compile_pip_requirements")
-load("//rules:clang_tidy.bzl", "tidy_enabled_flag", "tidy_exclude_tags_flag", "tidy_line_filter_flag", "tidy_regex_flag", "tidy_source_flag")
 
 package(
     default_applicable_licenses = [":license"],
@@ -25,65 +23,4 @@ test_suite(
     tests = [
         "//toolchains:tool_versions_test",
     ],
-)
-
-# Flag to globally enable/disable clang-tidy analysis and testing.
-tidy_enabled_flag(
-    name = "clang_tidy_enabled",
-    build_setting_default = False,
-    visibility = ["//visibility:public"],
-)
-
-config_setting(
-    name = "enable_clang_tidy_setting",
-    flag_values = {
-        ":clang_tidy_enabled": "true",
-    },
-    visibility = ["//visibility:public"],
-)
-
-# Here are the various flags used for our clang-tidy rules
-# By default we will just accept all goldfish thingies.
-tidy_source_flag(
-    name = "clang_tidy_check_files",
-    build_setting_default = "goldfish",
-    visibility = ["//visibility:public"],
-)
-
-tidy_regex_flag(
-    name = "clang_tidy_regex",
-    build_setting_default = "",
-    visibility = ["//visibility:public"],
-)
-
-tidy_line_filter_flag(
-    name = "clang_tidy_line_filter",
-    build_setting_default = "",
-    visibility = ["//visibility:public"],
-)
-
-filegroup(
-    name = "default_tidy_config",
-    srcs = [".clang-tidy"],
-    visibility = ["//visibility:public"],
-)
-
-label_flag(
-    name = "clang_tidy_config",
-    build_setting_default = ":default_tidy_config",
-    visibility = ["//visibility:public"],
-)
-
-tidy_exclude_tags_flag(
-    name = "clang_tidy_exclude_tags",
-    build_setting_default = [],
-    visibility = ["//visibility:public"],
-)
-
-# This rule adds a convenient way to update the requirements file.
-# If you make changes to "requirements.in" you will have to run this target.
-compile_pip_requirements(
-    name = "requirements",
-    src = "requirements.in",
-    requirements_txt = "requirements_lock.txt",
 )

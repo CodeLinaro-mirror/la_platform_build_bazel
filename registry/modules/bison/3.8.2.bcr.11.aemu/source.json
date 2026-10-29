@@ -1,0 +1,24 @@
+{
+    "url": "https://mirror.bazel.build/ftp.gnu.org/gnu/bison/bison-3.8.2.tar.xz",
+    "mirror_urls": [
+        "https://ftp.gnu.org/gnu/bison/bison-3.8.2.tar.xz",
+        "https://ftpmirror.gnu.org/gnu/bison/bison-3.8.2.tar.xz",
+        "https://mirrors.kernel.org/gnu/bison/bison-3.8.2.tar.xz"
+    ],
+    "integrity": "sha256-m7oCFMz38QecXVkhAEUie89hlRmEDr+oDNOEnP9aW/I=",
+    "strip_prefix": "bison-3.8.2",
+    "overlay": {
+        "BUILD.bazel": "sha256-9BtkPJPNgmaXUUooclyTiXx/3NIgS/SevMLdTyNPXXM=",
+        "MODULE.bazel": "sha256-FMXO8LGNn9TBBuLAND7mbx1kBvXGQEavuGu4L+xXSL4=",
+        "bison_utils.bzl": "sha256-XWtWirNYZPN+NMt/rmlRu6tZiCgWHPnZVY5Lwo7PkgM=",
+        "config_linux.bzl": "sha256-lijYZ3gYnTuJFoOrT1sD6UsdiirRwqPEdOvko9OLWPQ=",
+        "config_linux.h": "sha256-WBibCZ7qOL8JNsTg+OaRJe1+TI65UZwHMfmgLIVlnOg=",
+        "config_macos.bzl": "sha256-WwKIIdkmTCDamN+b9gurinXnuoTZVI+Dy+k4aalL0/A=",
+        "config_macos.h": "sha256-XYRI3dnkWluYQjkM2ksBKEbIBDjIK4wZJ/9pa3ow+DA=",
+        "src/bazel_runfiles.cc": "sha256-IvyAcoLtdhfbD5Hfe8JrpSfy/7vg/xrlM2ybLcJ/jHk="
+    },
+    "patch_strip": 1,
+    "patches": {
+        "bison_runfiles.patch": "sha256-uidTCUWziQGa67B0Eoz6i9BBo/E3I6WS2Cr5CAoZbxw="
+    }
+}

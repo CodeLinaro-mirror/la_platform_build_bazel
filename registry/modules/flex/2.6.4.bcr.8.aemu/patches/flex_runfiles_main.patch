@@ -1,0 +1,11 @@
+diff --git a/src/main.c b/src/main.c
+--- a/src/main.c
++++ b/src/main.c
+@@ -1012,5 +1012,7 @@ int main (int argc, char *argv[])
+ {
+ 	int     i;
++	extern void flex_bazel_runfiles_init(const char *argv0);
++	flex_bazel_runfiles_init(argv[0]);
+ 
+ #if ENABLE_NLS
+ #if HAVE_LOCALE_H

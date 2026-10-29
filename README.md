@@ -298,7 +298,7 @@ To invoke clang-tidy validation during a test or build phase, pass the following
 flag:
 
 ```bash
---@goldfish_build//:clang_tidy_enabled=true
+--@aemu//tools/clang_tidy:clang_tidy_enabled=true
 ```
 
 ### Performance & Diagnostic Scoping
@@ -314,13 +314,13 @@ hooks or `emu-dev-cli tidy` refactoring pipelines):
    evaluation time.
 
    ```bash
-   --@goldfish_build//:clang_tidy_check_files="foo.cc"
-   --@goldfish_build//:clang_tidy_check_files="bar.h"
+   --@aemu//tools/clang_tidy:clang_tidy_check_files="foo.cc"
+   --@aemu//tools/clang_tidy:clang_tidy_check_files="bar.h"
    ```
 
 2. **Restrict Emitted Diagnostics (`clang_tidy_line_filter`)** Even when parsing
    `foo.cc`, limit the generated report to lines actually modified by passing
    the native `clang-tidy` line filter block format encoded as JSON.
    ```bash
-   --@goldfish_build//:clang_tidy_line_filter='[{"name": "foo.cc", "lines": [[10, 20]]}]'
+   --@aemu//tools/clang_tidy:clang_tidy_line_filter='[{"name": "foo.cc", "lines": [[10, 20]]}]'
    ```
