@@ -136,7 +136,7 @@ maven.install(
         "grpc-java",
         "protobuf",
     ],
-    lock_file = "//build/bazel:maven_install.json",
+    lock_file = "//build/bzlmod:maven/maven_install.json",
     repositories = [
         "https://repo.maven.apache.org/maven2/",
         "https://maven.google.com",
@@ -150,7 +150,7 @@ maven.install(
     known_contributing_modules = ["rules_android"],
     # Rerun REPIN=1 bazel run @android_ide_common_30_1_3//:pin to update
     # the lock_file after upgrading rules_android.
-    lock_file = "//build/bazel:registry/modules/rules_android/android_ide_maven_install.json",
+    lock_file = "//build/bzlmod:maven/android_ide_maven_install.json",
     repositories = [
         "https://maven.google.com",
         "https://repo1.maven.org/maven2",
@@ -161,7 +161,7 @@ maven.install(
     known_contributing_modules = ["rules_android"],
     # Rerun REPIN=1 bazel run @rules_android_maven//:pin to update
     # the lock_file after upgrading rules_android.
-    lock_file = "//build/bazel:registry/modules/rules_android/maven_install.json",
+    lock_file = "//build/bzlmod:maven/rules_android_maven_install.json",
     repositories = [
         "https://maven.google.com",
         "https://repo1.maven.org/maven2",
