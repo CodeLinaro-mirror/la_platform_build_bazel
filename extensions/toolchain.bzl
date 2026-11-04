@@ -86,8 +86,8 @@ def _toolchain_impl(ctx):
         gcs_archive(
             name = "xcode_tools_hermetic",
             build_file = "//toolchains/cc/mac_clang:xcode.BUILD",
-            sha256 = "e1fca4bee5f88bd6d3108e380235860a5a0cb5cec17d664e98ad0c3e58675f77",
-            url = "gs://emu-next-bazel/hermetic-xcode/xcode_command_line_tools-16.2-202505191216.zip",
+            sha256 = "f796d6fd69821e9312d28bb032b94cdc47c7d59c82b41102210d59c8899f70d3",
+            url = "gs://emu-next-bazel/hermetic-xcode/xcode_clt-26.4.1.0.1775747724-macos_sdk-26.4.tar.zst",
         )
         gcs_archive(
             name = "vctools_hermetic",

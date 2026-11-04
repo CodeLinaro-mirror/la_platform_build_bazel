@@ -10,6 +10,11 @@ common --registry=https://bcr.bazel.build
 # Docs: https://bazel.build/reference/command-line-reference#flag--incompatible_strict_action_env
 build --incompatible_strict_action_env
 build --nolegacy_external_runfiles
+# Skip eager local .runfiles symlink tree creation (SymlinkTree) during the build
+# phase. Remote tests on RBE construct their input root directly from the
+# in-memory RunfilesTree, while local tests and `bazel run` materialize runfiles
+# on demand via sandbox mounts or RunfilesTreeUpdater.
+build --nobuild_runfile_links
 
 # Hardened sandboxes
 build --nosandbox_default_allow_network
@@ -132,10 +137,6 @@ common:ci --experimental_collect_system_network_usage
 build:ci --config=_remote_base
 build:ci --config=sponge
 build:ci --config=hermetic
-# Skip eager local .runfiles symlink tree creation (SymlinkTree) during the build
-# phase. Remote tests on RBE construct their input root directly from the
-# in-memory RunfilesTree, while local tests still materialize runfiles on demand.
-build:ci --nobuild_runfile_links
 # When targets are all cached the BES upload may take a long time.
 build:ci --bes_timeout=600s
 build:ci --experimental_enable_execution_graph_log
