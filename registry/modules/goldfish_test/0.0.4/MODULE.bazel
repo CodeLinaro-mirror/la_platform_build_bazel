@@ -17,7 +17,6 @@ bazel_dep(name = "rules_python", version = "1.6.3")
 bazel_dep(name = "grpc-java", version = "1.75.0")
 bazel_dep(name = "grpc", version = "1.74.1")
 bazel_dep(name = "protobuf", version = "33.4")
-bazel_dep(name = "netsim", version = "0.0.1")
 bazel_dep(name = "aemu", version = "0.0.2")
 
 # Enable Java gRPC compilation

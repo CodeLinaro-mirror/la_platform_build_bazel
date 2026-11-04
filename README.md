@@ -6,7 +6,7 @@ the Android Emulator (AEMU).
 ## Repository Overview
 
 This repository is structured to support a hermetic, reproducible build of the
-Android Emulator and its associated tools (e.g., `netsim`, `rootcanal`). It
+Android Emulator. It
 integrates various components including QEMU and GFXstream, managing
 their dependencies and build configurations through Bazel.
 
