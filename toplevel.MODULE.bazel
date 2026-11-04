@@ -66,10 +66,6 @@ bazel_dep(name = "dav1d", version = "1.5.3-58-g14c73c7d")
 bazel_dep(name = "libsrtp2", version = "2.3.0")
 bazel_dep(name = "libyuv", version = "1948")
 bazel_dep(name = "webrtc_sdk_android", version = "150.7871.01")
-bazel_dep(name = "nasm", version = "2.16.03.bcr.3")
-bazel_dep(name = "rules_nasm", version = "0.5.0")
-
-register_toolchains("//build/bazel/toolchains:nasm_toolchain")
 
 # These are all deps of lavapipe?
 bazel_dep(name = "libdrm", version = "2.4.110")
@@ -100,8 +96,6 @@ android_sdk_repository_extension.configure(paths = {
 })
 
 # Enable Java gRPC compilation
-bazel_dep(name = "rules_jvm_external", version = "6.10")
-
 maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
 maven.artifact(
     testonly = True,
