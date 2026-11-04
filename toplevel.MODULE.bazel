@@ -18,7 +18,7 @@ module(
     version = "0.0.1",
 )
 
-include("//build/bazel/toolchains:toolchain.MODULE.bazel")
+include("//build/bzlmod:toolchain.MODULE.bazel")
 
 custom_toolchains = use_extension("@goldfish_build//extensions:toolchain.bzl", "toolchain")
 custom_toolchains.clang(root_path = "prebuilts/clang/host")
@@ -89,7 +89,7 @@ local_path_override(
     path = "prebuilts/android-emulator-build/qt",
 )
 
-include("//build/bazel:vendor.MODULE.bazel")
+include("//:vendor.MODULE.bazel")
 
 # rules_android is imported by toolchain.MODULE.bazel
 android_sdk_repository_extension = use_extension("@rules_android//rules/android_sdk_repository:rule.bzl", "android_sdk_repository_extension")
