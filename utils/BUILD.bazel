@@ -48,3 +48,18 @@ py_test(
         ":update_sysimage",
     ],
 )
+
+py_binary(
+    name = "update_repo_bazel",
+    srcs = ["update_repo_bazel.py"],
+    main = "update_repo_bazel.py",
+    visibility = ["//visibility:public"],
+)
+
+py_test(
+    name = "update_repo_bazel_test",
+    srcs = ["update_repo_bazel_test.py"],
+    deps = [
+        ":update_repo_bazel",
+    ],
+)

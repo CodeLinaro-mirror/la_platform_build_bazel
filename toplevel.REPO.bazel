@@ -1,0 +1,39 @@
+"""The top-level REPO.bazel file."""
+
+# DO NOT EDIT: The ignored directories are derived from external repositories.
+# To update, run:
+# bazel run @goldfish_build//utils:update_repo_bazel -- \
+#    --repo_file=build/bazel/toplevel.REPO.bazel \
+#    --extra_ignore_file=build/bazel/bazel-ignore.txt
+ignore_directories([
+    "build/bazel",
+    "hardware/generic/goldfish",
+    "hardware/google/*",
+    "prebuilts/android-emulator-build/*",
+    "prebuilts/android/android-sdk",
+    "prebuilts/clang/host/*",
+    "prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.17-4.8",
+    "prebuilts/python/windows-x86",
+    "prebuilts/studio/jdk/jdk17/linux",
+    "prebuilts/studio/jdk/jdk17/mac-arm64/Contents/Home",
+    "prebuilts/studio/jdk/jdk17/win",
+    "third_party/adt-infra/goldfish_test",
+    "third_party/crashpad",
+    "third_party/dtc",
+    "third_party/ffmpeg",
+    "third_party/google-breakpad",
+    "third_party/keycodemapdb",
+    "third_party/libdrm",
+    "third_party/libpng",
+    "third_party/libslirp",
+    "third_party/mesa3d",
+    "third_party/meson",
+    "third_party/pixman",
+    "third_party/qemu",
+    "third_party/rust/*",
+    "third_party/vulkan-headers",
+    "third_party/wayland",
+    "third_party/webrtc",
+    "tools/analytics-library/protos/src/main/proto",
+    "tools/emulator",
+])
