@@ -256,6 +256,15 @@ gcs_archive(
     url = "gs://emu-next-bazel/ab/git_26Q2-release/test_suites_arm64/15492250/signed-android-gts.zip",
 )
 
+# ANGLE restricted traces, the angle_trace_tests APK and the golden images of AngleTracesTest, with
+# prebuilts/ and golden/ at the root. They may contain third party IP: keep them out of the source tree.
+gcs_archive(
+    name = "angle_traces",
+    build_file_content = _generic_build,
+    sha256 = "493c7bfcc7d2b9278438d0c4c6c4950b2e36a2565cbd14bc1269ff83df9c729f",
+    url = "gs://emu-next-bazel/angle_traces/2026-11-04/angle_traces.zip",
+)
+
 gcs_archive(
     name = "gears",
     build_file_content = _generic_build,
