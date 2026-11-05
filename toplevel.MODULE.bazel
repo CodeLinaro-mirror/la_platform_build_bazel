@@ -35,9 +35,9 @@ bazel_dep(name = "qemu", version = "0.0.1")
 bazel_dep(name = "breakpad", version = "0.0.1")
 bazel_dep(name = "pkg-config", version = "0.29.2")
 bazel_dep(name = "ninja", version = "1.12.1.bcr.1")
-bazel_dep(name = "boringssl", version = "0.20260413.0")
+bazel_dep(name = "boringssl", version = "0.20260803.0")
 bazel_dep(name = "abseil-cpp", version = "20260526.0")
-bazel_dep(name = "tink_cc", version = "2.7.0")
+bazel_dep(name = "tink_cc", version = "2.9.2")
 
 # repo_name override needed by @grpc
 bazel_dep(name = "protoc-gen-validate", version = "1.3.0", repo_name = "com_envoyproxy_protoc_gen_validate")
