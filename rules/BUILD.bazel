@@ -30,3 +30,23 @@ alias(
     actual = "@sevenzip//:7za",
     visibility = ["//visibility:public"],
 )
+
+py_library(
+    name = "gen_linker_exports_lib",
+    srcs = ["gen_linker_exports.py"],
+    visibility = ["//visibility:public"],
+)
+
+py_binary(
+    name = "gen_linker_exports",
+    srcs = ["gen_linker_exports.py"],
+    visibility = ["//visibility:public"],
+    deps = [":gen_linker_exports_lib"],
+)
+
+py_test(
+    name = "gen_linker_exports_test",
+    size = "small",
+    srcs = ["gen_linker_exports_test.py"],
+    deps = [":gen_linker_exports_lib"],
+)
