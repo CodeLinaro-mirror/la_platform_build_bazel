@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Compact catalog of Android system images, CTS, and CTS-Verifier archives (API 29-37).
+"""Compact catalog of Android system images (API 24-37), CTS, and CTS-Verifier archives (API 29-37).
 
 This module provides a table-driven registry loaded by `multisource_repo.bzl`.
 For archives mirrored from `dl.google.com` to `gs://emu-next-bazel/`, each entry is a
@@ -59,6 +59,18 @@ DEFAULT_SYSTEM_IMAGE_ARCHIVES = {
 # (api_level, abi, filename, sha256)
 # Each entry defines `@sysimg-android-<api_level>-<abi>`.
 SYSTEM_IMAGE_ARCHIVES = [
+    # API 24-28 guests lack CONFIG_VIRTIO_INPUT and exercise the legacy
+    # goldfish-events ("qwerty2") input device. dl.google.com ships no
+    # google_apis x86_64 image for API 27 (x86 only), so 27 is arm64 only.
+    ("24", "x86_64", "x86_64-24_r27.zip", "c59f44a064d702c20fd0a40262cd77d710ab1d36758e00f0c66632482de3c6a2"),
+    ("24", "arm64-v8a", "arm64-v8a-24_r29.zip", "9587ca047b0f7334e6fe70380e4f99b3611805e8ab45f46e267d8b858e9a0939"),
+    ("25", "x86_64", "x86_64-25_r18.zip", "f4a56029786c0c2ab5e9d33e30be9a9153edb5c3bfaed2f7289bbb84452ffa4a"),
+    ("25", "arm64-v8a", "arm64-v8a-25_r20.zip", "08617b7edaa438d062a08bfb387632b33a75f7cabb6729b4803fa3dcef584332"),
+    ("26", "x86_64", "x86_64-26_r16.zip", "cd19a220610518b107ba8bca5da16088bb07d5ffedb53106ca9caf9adda06a4d"),
+    ("26", "arm64-v8a", "arm64-v8a-26_r03.zip", "d004708c0792c97ded8f7f9f8d341eac9534437b3dcd1b9b4b7f5589b35203d3"),
+    ("27", "arm64-v8a", "arm64-v8a-27_r03.zip", "2c2e9ad02de39a5278491dd2e132db36da543e3e12f323d4c4ff43f1726d327f"),
+    ("28", "x86_64", "x86_64-28_r11.zip", "57fcdae393eac7dbe4bf854093e18d225ca7bfb9746321de70f01c5faa0c37ed"),
+    ("28", "arm64-v8a", "arm64-v8a-28_r02.zip", "b71e924e08b18cb176b3466aa16f4b1f27778017f82223b70eac709a065ed706"),
     ("29", "x86_64", "x86_64-29_r13.zip", "eaf28fa8c267b97a874ffbb8156a1038cc66c1a95167f9b6954a62da2c3091ee"),
     ("29", "arm64-v8a", "arm64-v8a-29_r13.zip", "6f6afee33bd33576e88f5a3dc72ce525da89b31dfe0451f7e857175c10e20091"),
     ("30", "x86_64", "x86_64-30_r16.zip", "daae27654be74ae83a484daea4db2c0c77b4f4ad661a645bd5f36d96ce03e4d5"),
