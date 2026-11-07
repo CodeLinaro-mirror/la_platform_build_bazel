@@ -1,7 +1,7 @@
 """Aspect for gathering PrebuiltPackageInfo providers."""
 
 load("@rules_license//rules:licenses_core.bzl", "should_traverse")
-load("//build/bazel/rules/gathering:providers.bzl", "PrebuiltPackageInfo", "TransitivePrebuiltPackageInfo")
+load("//rules/gathering:providers.bzl", "PrebuiltPackageInfo", "TransitivePrebuiltPackageInfo")
 
 def _collect_transitive_package_info(ctx):
     """Collects all transitive PrebuiltPackageInfo providers.
