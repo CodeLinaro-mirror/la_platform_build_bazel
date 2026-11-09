@@ -173,7 +173,7 @@ gcs_archive(
     url = "gs://emu-next-bazel/ab/aosp-sdk-release/sdk_mac/13278306/sdk-repo-darwin-build-tools-13278306.zip",
 )
 
-# API 29-37 system images, CTS, and CTS-Verifier archives from the compact catalog
+# API 24-37 system images and API 29-37 CTS / CTS-Verifier archives from the compact catalog
 # in build/bazel/extensions/android_repos.bzl.
 multisource_repo = use_extension("@goldfish_build//extensions:multisource_repo.bzl", "multisource_repo")
 use_repo(
@@ -217,6 +217,15 @@ use_repo(
     "cts-verifier-android-37-arm64",
     "cts-verifier-android-37-x86-64",
     "cts-x86-64",
+    "sysimg-android-24-arm64-v8a",
+    "sysimg-android-24-x86_64",
+    "sysimg-android-25-arm64-v8a",
+    "sysimg-android-25-x86_64",
+    "sysimg-android-26-arm64-v8a",
+    "sysimg-android-26-x86_64",
+    "sysimg-android-27-arm64-v8a",
+    "sysimg-android-28-arm64-v8a",
+    "sysimg-android-28-x86_64",
     "sysimg-android-29-arm64-v8a",
     "sysimg-android-29-x86_64",
     "sysimg-android-30-arm64-v8a",
