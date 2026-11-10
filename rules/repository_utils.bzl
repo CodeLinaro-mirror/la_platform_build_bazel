@@ -125,14 +125,15 @@ def _list_files_recursive(path, repo_ctx):
     if is_windows(repo_ctx):
         path = path.replace("/", "\\")
         command = ["cmd.exe", "/c", "dir /a-d /s /b"]
+        result = run_command(command, repo_ctx, working_directory = path)
+        return [relative_path(f, path) for f in result.stdout.splitlines()]
     else:
-        command = ["find", path, "-type", "f,l"]
-    result = run_command(command, repo_ctx, working_directory = path)
-    return [relative_path(f, path) for f in result.stdout.splitlines()]
+        command = ["find", ".", "-type", "f,l"]
+        result = run_command(command, repo_ctx, working_directory = path)
+        return [f.removeprefix("./") for f in result.stdout.splitlines()]
 
 def _add_file_tree_stat(files, directories, root, file_paths, path_sep, prune_filter = None, conf_resolver = None):
-    # pruned_prefixes is a dict used as a set (values are always None)
-    pruned_prefixes = {}
+    pruned_prefixes = set()
     for file_path in file_paths:
         path_seg = tuple(file_path.split(path_sep))
         prune = False
@@ -146,7 +147,7 @@ def _add_file_tree_stat(files, directories, root, file_paths, path_sep, prune_fi
                 _add_path_stat(directories, root, ancestor)
         else:
             if type(prune) == "tuple":
-                pruned_prefixes[prune] = None
+                pruned_prefixes.add(prune)
             is_pruned = _handle_file_conflict(files, directories, root, path_seg, conf_resolver)
             for ancestor in _path_ancestors(path_seg):
                 _add_path_stat(directories, root, ancestor, is_pruned)
