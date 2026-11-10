@@ -44,13 +44,14 @@ coverage --experimental_use_llvm_covmap
 coverage --experimental_generate_llvm_lcov
 coverage --instrumentation_filter=//emulator[/:],@goldfish//emulator[/:],//common[/:],//host[/:]
 
-# Gfxstream software GLES (ANGLE) and Vulkan (Lavapipe) test environment (Linux and macOS).
-build:linux --@gfxstream//common/testenv:graphics_test_environment=gles_angle_vulkan_lavapipe
+# Gfxstream software GLES (ANGLE) and Vulkan (Lavapipe) test environment.
+build --@gfxstream//common/testenv:graphics_test_environment=gles_angle_vulkan_lavapipe
 build:linux --@gfxstream//common/testenv:gles_angle_drivers=@goldfish_prebuilts_common//ANGLE:lib_linux_x86_64
 build:linux --@gfxstream//common/testenv:vulkan_lavapipe_drivers=@goldfish//emulator/libs/ver:test_vulkan_icds
-build:macos --@gfxstream//common/testenv:graphics_test_environment=gles_angle_vulkan_lavapipe
 build:macos --@gfxstream//common/testenv:gles_angle_drivers=@goldfish_prebuilts_common//ANGLE:lib_darwin_aarch64
 build:macos --@gfxstream//common/testenv:vulkan_lavapipe_drivers=@goldfish//emulator/libs/ver:test_vulkan_icds
+build:windows --@gfxstream//common/testenv:gles_angle_drivers=@goldfish_prebuilts_common//ANGLE:lib_windows_x86_64
+build:windows --@gfxstream//common/testenv:vulkan_lavapipe_drivers=@goldfish//emulator/libs/ver:test_vulkan_icds
 
 # User overrides must come last
 try-import %workspace%/user.bazelrc
