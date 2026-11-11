@@ -1,7 +1,7 @@
 """A repository rule to create free-form overlay repositories."""
 
 load(
-    "//rules:repository_utils.bzl",
+    ":repository_utils.bzl",
     "create_repo_file",
     "merge_and_link_tree",
     "resolve_workspace_path",

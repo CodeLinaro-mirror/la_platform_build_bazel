@@ -5,8 +5,8 @@ load("@rules_gcs//gcs:repo_rules.bzl", "gcs_archive")
 load("//rules:overlay_repository.bzl", "overlay_repository")
 load("//toolchains/cc:repository_rules.bzl", "msvc_tools_repository", "windows_sdk_repository", "xcode_tools_repository")
 
-_BAZEL_WINDOWS_URL = "https://releases.bazel.build/9.1.1/rc1/bazel-9.1.1rc1-windows-x86_64.exe"
-_BAZEL_WINDOWS_SHA256 = "61b5fd85c4429b2a1633b3de66b1b40b3d83874f88a63f0aba9c0bf1ba069861"
+_BAZEL_WINDOWS_URL = "https://releases.bazel.build/9.3.2/release/bazel-9.3.2-windows-x86_64.exe"
+_BAZEL_WINDOWS_SHA256 = "f395acbf1e6ffa714ef2da9e65403b0633f7cab8db2df90fe3a1ac89bab6ba2e"
 
 def _windows_test_tools_repo_impl(repo_ctx):
     """Ensures tw.exe and xml.exe exist in @bazel_tools//tools/test for remote Windows test execution."""
