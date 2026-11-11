@@ -24,7 +24,7 @@ py_test(
     srcs = ["tool_versions_test.py"],
     data = [
         ":tool_versions.json",
-        ":toolchain.MODULE.bazel",
+        "//bzlmod:toolchain.MODULE.bazel",
     ],
     deps = ["@rules_python//python/runfiles"],
 )

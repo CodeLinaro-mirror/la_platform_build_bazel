@@ -180,6 +180,7 @@ cc_toolchain_config(
     cc_features = ":arm64_features",
     cc_tools = [
         "@clang_linux_x64//:clang",
+        "@clang_linux_x64//:clang-tidy",
         "@clang_linux_x64//:archiver",
         "@clang_linux_x64//:strip",
         "@clang_linux_x64//:llvm-cov",
