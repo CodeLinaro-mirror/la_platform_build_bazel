@@ -296,6 +296,13 @@ gcs_archive(
 )
 
 gcs_archive(
+    name = "memtest_vulkan",
+    build_file_content = _generic_build,
+    sha256 = "109db9e39df9f4fb38ea2ad665e081439faffd1a36407516fe5075b4498e3a27",
+    url = "gs://emu-next-bazel/apps/memtest_vulkan/2026-11-11/memtest_vulkan.zip",
+)
+
+gcs_archive(
     name = "qr-generator",
     build_file_content = _generic_build,
     sha256 = "ea38bbbd96c3a75d534b76fe4ccbaf13408a1112ff61e351edbe29130295d90e",
