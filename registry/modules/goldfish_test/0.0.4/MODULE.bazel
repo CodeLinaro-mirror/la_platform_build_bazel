@@ -270,8 +270,8 @@ gcs_archive(
 gcs_archive(
     name = "angle_traces",
     build_file_content = _generic_build,
-    sha256 = "493c7bfcc7d2b9278438d0c4c6c4950b2e36a2565cbd14bc1269ff83df9c729f",
-    url = "gs://emu-next-bazel/angle_traces/2026-11-04/angle_traces.zip",
+    sha256 = "0638a063bc4ba3c2602d7d5c7ff12e387af4bb5863392d5f14ba1ebe3c2f23f1",
+    url = "gs://emu-next-bazel/angle_traces/2026-11-12/angle_traces.zip",
 )
 
 gcs_archive(
