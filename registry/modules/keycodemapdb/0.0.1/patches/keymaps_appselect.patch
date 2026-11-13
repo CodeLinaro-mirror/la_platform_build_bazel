@@ -1,0 +1,7 @@
+--- a/data/keymaps.csv
++++ b/data/keymaps.csv
+@@ -539,3 +539,4 @@ KEY_NUMERIC_9,0x209,,,,,,,,,,,,,,,,,
+ KEY_NUMERIC_STAR,0x20a,,,,,,,,,,,,,NumpadStar,,,,
+ KEY_NUMERIC_POUND,0x20b,,,,,,,,,,,,,NumpadHash,,,,
+ KEY_RFKILL,0x20c,,,,,,,,,,,,,,,,,
++KEY_APPSELECT,0x244,,,,,,,,,,,,,,,appselect,,

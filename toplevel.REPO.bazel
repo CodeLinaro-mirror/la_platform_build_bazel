@@ -21,7 +21,6 @@ ignore_directories([
     "third_party/crashpad",
     "third_party/ffmpeg",
     "third_party/google-breakpad",
-    "third_party/keycodemapdb",
     "third_party/libslirp",
     "third_party/mesa3d",
     "third_party/meson",

@@ -1,0 +1,44 @@
+load("@rules_license//rules:license.bzl", "license")
+load("@rules_python//python:defs.bzl", "py_binary")
+
+package(
+    default_applicable_licenses = [":license"],
+)
+
+license(
+    name = "license",
+    package_name = "keycodemapdb",
+    license_kinds = [
+        "@rules_license//licenses/spdx:BSD-3-Clause",
+        "@rules_license//licenses/spdx:GPL-2.0-or-later",
+    ],
+    license_text = "LICENSE.BSD",
+    visibility = ["//visibility:public"],
+)
+
+exports_files([
+    "LICENSE.BSD",
+    "LICENSE.GPL2",
+    "data/keymaps.csv",
+    "tools/keymap-gen",
+])
+
+filegroup(
+    name = "keycodemapdb_sources",
+    srcs = glob(["**/*"]),
+    visibility = ["//visibility:public"],
+)
+
+py_binary(
+    name = "keymap-gen",
+    srcs = ["tools/keymap-gen.py"],
+    data = [
+        "data/keymaps.csv",
+        "tools/keymap-gen",
+    ],
+    imports = select({
+        "@platforms//os:windows": ["scripts"],
+        "//conditions:default": [],
+    }),
+    visibility = ["//visibility:public"],
+)

@@ -1,4 +1,15 @@
 {
-  "type": "local_path",
-  "path": "third_party/keycodemapdb"
+    "integrity": "sha256-lPWqj/9rvCpOtBPiOZ4JTdhgEMp82rS35W7aNWYbqIc=",
+    "strip_prefix": "keycodemapdb-22b8996dba9041874845c7446ce89ec4ae2b713d",
+    "url": "https://gitlab.com/keycodemap/keycodemapdb/-/archive/22b8996dba9041874845c7446ce89ec4ae2b713d/keycodemapdb-22b8996dba9041874845c7446ce89ec4ae2b713d.tar.gz",
+    "overlay": {
+        "BUILD.bazel": "sha256-Y/q8bibfPl1LEtz+2+KV0GdQ/EcO+oCpIHfSOYzgRRM=",
+        "MODULE.bazel": "sha256-VfFj93jyrdK7qlDsquAwmeHstCfTgC1r6Chsd50l2Sk=",
+        "tools/keymap-gen.py": "sha256-ZX6SlAfnDP7Hwv0NSvX2u3jdmVNco1Ccj+THfgmxQMQ="
+    },
+    "patches": {
+        "keymaps_appselect.patch": "sha256-F7OkVK0c0E6ITPuOLus/nScX4awf1E3z3/+D4N/N+Pw=",
+        "meson_keymap_gen_py.patch": "sha256-Osv6sJm1ld/GWAV5ffpnDzZQwFo7lgwvycAC7DaLYuc="
+    },
+    "patch_strip": 1
 }
