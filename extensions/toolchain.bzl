@@ -123,14 +123,10 @@ def _toolchain_impl(ctx):
             # dummy
             overlay_repository(
                 name = "vctools",
-                path = "build/bazel/no-such-dir",
-                not_found_ok = True,
                 overlay_files = {"BUILD.bazel": "//toolchains/cc/windows_clang:vctools.BUILD"},
             )
             overlay_repository(
                 name = "windows_sdk",
-                path = "build/bazel/no-such-dir",
-                not_found_ok = True,
                 overlay_files = {"BUILD.bazel": "//toolchains/cc/windows_clang:sdk.BUILD"},
             )
             gcs_archive(
@@ -156,8 +152,6 @@ def _toolchain_impl(ctx):
             # dummy
             overlay_repository(
                 name = "xcode_tools",
-                path = "build/bazel/no-such-dir",
-                not_found_ok = True,
                 overlay_files = {"BUILD.bazel": "//toolchains/cc/mac_clang:xcode.BUILD"},
             )
 
