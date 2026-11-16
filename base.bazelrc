@@ -8,34 +8,34 @@ common --registry=https://bcr.bazel.build
 
 # See https://docs.aspect.build/guides/bazelrc/
 # Docs: https://bazel.build/reference/command-line-reference#flag--incompatible_strict_action_env
-build --incompatible_strict_action_env
-build --nolegacy_external_runfiles
+common --incompatible_strict_action_env
+common --nolegacy_external_runfiles
 # Skip eager local .runfiles symlink tree creation (SymlinkTree) during the build
 # phase. Remote tests on RBE construct their input root directly from the
 # in-memory RunfilesTree, while local tests and `bazel run` materialize runfiles
 # on demand via sandbox mounts or RunfilesTreeUpdater.
-build --nobuild_runfile_links
+common --nobuild_runfile_links
 
 # Hardened sandboxes
-build --nosandbox_default_allow_network
-build --sandbox_fake_hostname
-build --sandbox_fake_username
+common --nosandbox_default_allow_network
+common --sandbox_fake_hostname
+common --sandbox_fake_username
 
 # Qemu is resource intensive and causes timeouts if concurrency is too high.
 # Consume this resource to limit local parallelism for tests booting qemu:
 # tags = ["resources:qemu_instances:1"],
-build:linux --local_resources=qemu_instances=3
-build:macos --local_resources=qemu_instances=1
-build:windows --local_resources=qemu_instances=1
+common:linux --local_resources=qemu_instances=3
+common:macos --local_resources=qemu_instances=1
+common:windows --local_resources=qemu_instances=1
 
 # Enable windows symlink and runfiles
 startup --windows_enable_symlinks
-build:windows --enable_runfiles
+common:windows --enable_runfiles
 
 # Custom workspace commands
-build:linux --workspace_status_command="prebuilts/python/linux-x86/bin/python3 build/bazel/utils/bazel_workspace.py"
-build:macos --workspace_status_command="prebuilts/python/darwin-x86/bin/python3 build/bazel/utils/bazel_workspace.py"
-build:windows --workspace_status_command="build\\bazel\\utils\\bazel_workspace.cmd"
+common:linux --workspace_status_command="prebuilts/python/linux-x86/bin/python3 build/bazel/utils/bazel_workspace.py"
+common:macos --workspace_status_command="prebuilts/python/darwin-x86/bin/python3 build/bazel/utils/bazel_workspace.py"
+common:windows --workspace_status_command="build\\bazel\\utils\\bazel_workspace.cmd"
 
 # Enable repository cache hardlinks for fast zero-copy repo extraction
 common --experimental_repository_cache_hardlinks
@@ -56,76 +56,76 @@ common:macos --credential_helper="*.pkg.dev=%workspace%/build/bazel/utils/creden
 common:windows --credential_helper="*.pkg.dev=%workspace%/build/bazel/utils/credential_helper.cmd"
 
 # Publish to the private BES backend.
-build:sponge --grpc_keepalive_time=30s
-build:sponge --bes_keywords=android-emulator
-build:sponge --bes_backend=buildeventservice-pa.googleapis.com
-build:sponge --bes_results_url=https://fusion2.corp.google.com/invocations/
-build:sponge --bes_timeout=240s
-build:sponge --build_event_upload_max_retries=5
-build:sponge --legacy_important_outputs
+common:sponge --grpc_keepalive_time=30s
+common:sponge --bes_keywords=android-emulator
+common:sponge --bes_backend=buildeventservice-pa.googleapis.com
+common:sponge --bes_results_url=https://fusion2.corp.google.com/invocations/
+common:sponge --bes_timeout=240s
+common:sponge --build_event_upload_max_retries=5
+common:sponge --legacy_important_outputs
 
-build:no_sponge --bes_backend=
-build:no_sponge --bes_results_url=
+common:no_sponge --bes_backend=
+common:no_sponge --bes_results_url=
 
 # Enable go/antswatcher to process test results.
 # This config must be used with the sponge config as it relies on the same bes_backend.
 # NOTE: Bazel invocations must still supply --build_metadata values for test_definition_name
-build:ants --bes_keywords="android-test-storage"
-build:ants --bes_keywords="antswatcher:skip_tests_if_timeout"
-build:ants --build_metadata="generate_test_uri=fusion"
-build:ants --build_metadata="run_type=critical"
+common:ants --bes_keywords="android-test-storage"
+common:ants --bes_keywords="antswatcher:skip_tests_if_timeout"
+common:ants --build_metadata="generate_test_uri=fusion"
+common:ants --build_metadata="run_type=critical"
 
 # Base RBE configuration
-build:_remote_base --grpc_keepalive_time=30s
-build:_remote_base --remote_cache=grpcs://remotebuildexecution.googleapis.com
-build:_remote_base --remote_instance_name=projects/emulator-builds/instances/default_instance
-build:_remote_base --jobs=100
+common:_remote_base --grpc_keepalive_time=30s
+common:_remote_base --remote_cache=grpcs://remotebuildexecution.googleapis.com
+common:_remote_base --remote_instance_name=projects/emulator-builds/instances/default_instance
+common:_remote_base --jobs=100
 # remote_local_fallback allows bazel to continue if there are
 # network connectivity failures (e.g., offline)
-build:_remote_base --remote_local_fallback
+common:_remote_base --remote_local_fallback
 # ThinLTO indexing on large targets (libgoldfish) outputs >20k files, exceeding RBE's 1MB ActionResult limit.
-build:_remote_base --modify_execution_info=CppLTOIndexing=+no-remote
+common:_remote_base --modify_execution_info=CppLTOIndexing=+no-remote
 
 
 # Config to use hermetic SDKs (enabled by default; overridden in build:aosp)
-build --config=hermetic
-build:hermetic --@goldfish_build//toolchains/cc/mac_clang:hermetic_xcode
-build:hermetic --@goldfish_build//toolchains/cc/windows_clang:hermetic_msvc
-build:hermetic --repo_env=CC_ALLOW_HOST_SDK=0
+common --config=hermetic
+common:hermetic --@goldfish_build//toolchains/cc/mac_clang:hermetic_xcode
+common:hermetic --@goldfish_build//toolchains/cc/windows_clang:hermetic_msvc
+common:hermetic --repo_env=CC_ALLOW_HOST_SDK=0
 
 # Java config
-build --java_language_version=17
-build --java_runtime_version=jdk17
+common --java_language_version=17
+common --java_runtime_version=jdk17
 
 # Configs for local builds with remote cache in read-only.
 # This avoids re-running cached actions.
-build:rcache --config=_remote_base
-build:rcache --noremote_upload_local_results
+common:rcache --config=_remote_base
+common:rcache --noremote_upload_local_results
 
 # Configs for local builds with all online features
-build:connected --config=rcache
-build:connected --config=hermetic
-build:connected --config=sponge
+common:connected --config=rcache
+common:connected --config=hermetic
+common:connected --config=sponge
 
 # Configs for remote builds with RBE
-build:remote --config=_remote_base
-build:remote --remote_executor=grpcs://remotebuildexecution.googleapis.com
-build:remote --remote_timeout=3600
-build:remote --show_timestamps
-build:remote --jobs=200
+common:remote --config=_remote_base
+common:remote --remote_executor=grpcs://remotebuildexecution.googleapis.com
+common:remote --remote_timeout=3600
+common:remote --show_timestamps
+common:remote --jobs=200
 
 # Configs to run certain actions dynamically
 # Used when big action running on RBE is the main bottleneck while local
 # resources are available.
-build:dynamic --config=remote
-build:dynamic --internal_spawn_scheduler
-build:dynamic --strategy=CppLink=dynamic
-build:dynamic --strategy=SymbolZip=dynamic
-build:dynamic --strategy=PackageZip=local
-build:dynamic --strategy=PythonZipper=dynamic
-build:dynamic --strategy=Strip=dynamic
-build:dynamic --strategy=GnuDebugInfo=dynamic
-build:dynamic --strategy=ExtractBreakpadSymbols=dynamic
+common:dynamic --config=remote
+common:dynamic --internal_spawn_scheduler
+common:dynamic --strategy=CppLink=dynamic
+common:dynamic --strategy=SymbolZip=dynamic
+common:dynamic --strategy=PackageZip=local
+common:dynamic --strategy=PythonZipper=dynamic
+common:dynamic --strategy=Strip=dynamic
+common:dynamic --strategy=GnuDebugInfo=dynamic
+common:dynamic --strategy=ExtractBreakpadSymbols=dynamic
 
 # Configs for CI builds
 # When running CI, fail the build if the lockfile needs update
@@ -134,50 +134,50 @@ common:ci --lockfile_mode=error
 # rather than uploading multi-GB top-level release/symbol .zip archives to CAS.
 common:ci --remote_build_event_upload=minimal
 common:ci --experimental_collect_system_network_usage
-build:ci --config=_remote_base
-build:ci --config=sponge
-build:ci --config=hermetic
+common:ci --config=_remote_base
+common:ci --config=sponge
+common:ci --config=hermetic
 # When targets are all cached the BES upload may take a long time.
-build:ci --bes_timeout=600s
-build:ci --experimental_enable_execution_graph_log
-build:ci --experimental_execution_graph_log_dep_type=all
+common:ci --bes_timeout=600s
+common:ci --experimental_enable_execution_graph_log
+common:ci --experimental_execution_graph_log_dep_type=all
 
 # Reduce log spam
-build:ci --ui_event_filters=-info
-build:ci --ui_event_filters=-debug
-build:ci --noshow_progress
-build:ci --noshow_loading_progress
+common:ci --ui_event_filters=-info
+common:ci --ui_event_filters=-debug
+common:ci --noshow_progress
+common:ci --noshow_loading_progress
 
 
 # RBE-based cross-platform and multi-platform build configurations
 # Experimental and best-effort support only; NOT tested in CI builds.
 ## (Any) -> Windows x64
-build:rbe-win-x64 --config=hermetic --config=remote --remote_local_fallback=false
-build:rbe-win-x64 --platforms=@goldfish_build//platforms:windows_x64
-build:rbe-win-x64 --extra_execution_platforms=@goldfish_build//platforms:windows_x64
-build:rbe-win-x64 --remote_upload_local_results=false
+common:rbe-win-x64 --config=hermetic --config=remote --remote_local_fallback=false
+common:rbe-win-x64 --platforms=@goldfish_build//platforms:windows_x64
+common:rbe-win-x64 --extra_execution_platforms=@goldfish_build//platforms:windows_x64
+common:rbe-win-x64 --remote_upload_local_results=false
 
 ## (Any) -> Windows aarch64 (cross-compiled on windows x64)
-build:rbe-win-aarch64 --config=hermetic --config=remote --remote_local_fallback=false
-build:rbe-win-aarch64 --platforms=@goldfish_build//platforms:windows_aarch64
-build:rbe-win-aarch64 --extra_execution_platforms=@goldfish_build//platforms:windows_x64
-build:rbe-win-aarch64 --remote_upload_local_results=false
+common:rbe-win-aarch64 --config=hermetic --config=remote --remote_local_fallback=false
+common:rbe-win-aarch64 --platforms=@goldfish_build//platforms:windows_aarch64
+common:rbe-win-aarch64 --extra_execution_platforms=@goldfish_build//platforms:windows_x64
+common:rbe-win-aarch64 --remote_upload_local_results=false
 
 ## (Any) -> Linux x64
-build:rbe-linux-x64 --config=remote --remote_local_fallback=false
-build:rbe-linux-x64 --platforms=@goldfish_build//platforms:linux_x64
-build:rbe-linux-x64 --extra_execution_platforms=@goldfish_build//platforms:linux_x64
-build:rbe-linux-x64 --remote_upload_local_results=false
+common:rbe-linux-x64 --config=remote --remote_local_fallback=false
+common:rbe-linux-x64 --platforms=@goldfish_build//platforms:linux_x64
+common:rbe-linux-x64 --extra_execution_platforms=@goldfish_build//platforms:linux_x64
+common:rbe-linux-x64 --remote_upload_local_results=false
 
 ## (Any) -> Linux aarch64 (cross-compiled on linux x64)
-build:rbe-linux-aarch64 --config=remote --remote_local_fallback=false
-build:rbe-linux-aarch64 --platforms=@goldfish_build//platforms:linux_aarch64
-build:rbe-linux-aarch64 --extra_execution_platforms=@goldfish_build//platforms:linux_x64
-build:rbe-linux-aarch64 --remote_upload_local_results=false
+common:rbe-linux-aarch64 --config=remote --remote_local_fallback=false
+common:rbe-linux-aarch64 --platforms=@goldfish_build//platforms:linux_aarch64
+common:rbe-linux-aarch64 --extra_execution_platforms=@goldfish_build//platforms:linux_x64
+common:rbe-linux-aarch64 --remote_upload_local_results=false
 
 # Local cross-compiling for Windows ARM64 (aarch64)
-build:win_arm64 --platforms=@goldfish_build//platforms:windows_aarch64
-build:win_aarch64 --platforms=@goldfish_build//platforms:windows_aarch64
+common:win_arm64 --platforms=@goldfish_build//platforms:windows_aarch64
+common:win_aarch64 --platforms=@goldfish_build//platforms:windows_aarch64
 
 # External open-source AOSP configuration (b/555489617).
 # downloader_aosp.cfg blocks storage.googleapis.com (including gs://emu-next-bazel),
@@ -185,6 +185,6 @@ build:win_aarch64 --platforms=@goldfish_build//platforms:windows_aarch64
 # the local host SDK (while default internal builds use hermetic_xcode=true).
 common:aosp --repo_env=MULTISOURCE_REPO_TYPE=aosp
 common:aosp --downloader_config=build/bazel/utils/downloader_aosp.cfg
-build:aosp --@goldfish_build//toolchains/cc/mac_clang:hermetic_xcode=false
-build:aosp --@goldfish_build//toolchains/cc/windows_clang:hermetic_msvc=false
-build:aosp --repo_env=CC_ALLOW_HOST_SDK=1
+common:aosp --@goldfish_build//toolchains/cc/mac_clang:hermetic_xcode=false
+common:aosp --@goldfish_build//toolchains/cc/windows_clang:hermetic_msvc=false
+common:aosp --repo_env=CC_ALLOW_HOST_SDK=1
