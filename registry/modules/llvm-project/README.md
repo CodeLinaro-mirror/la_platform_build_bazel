@@ -13,4 +13,8 @@ Configured from upstream `llvm/llvm-project` `llvmorg-21.1.8` (`https://github.c
 - **`llvm/BUILD.bazel`**:
   - Exposes `//llvm:libLLVM.so` via `cc_opt_alias` (pointing to `//:libLLVM.so`) and defines `//llvm:llvm_shared` (`srcs = ["//:libLLVM.so"]`, `deps = [":llvm_headers"]`), allowing `lavapipe` (`libvulkan_lvp.so`), `llvmpipe` (`libgallium_dri.so`), and emulator packaging targets to share a single `opt`-built `libLLVM.so`.
   - Adds `-std=c++17` and `-fno-rtti` to `llvm_copts` (matching `mesa3d`'s `-fno-rtti` ABI) and splits C/assembly sources in `lib/Support` into `:Support_c`.
-- **`llvm/include/llvm/CodeGen/RDFRegisters.h`**: Specializes `std::__make_transparent<std::less<llvm::rdf::RegisterRef>>` for compatibility with modern `libc++` where `std::less<RegisterRef>` is stateful (`PRI` member).
+- **`REPO.bazel`**: Calls `ignore_directories(["utils/bazel"])` so `@@llvm-project+//...` skips the un-mounted `utils/bazel/llvm-project-overlay/` template BUILD files in the upstream archive.
+
+## Patches (`21.1.8.aemu/patches/`)
+
+- **`a558d656043734cc4d02e0a0a12e4c308c28f8c7.patch`**: Upstream LLVM PR `#160804` (`[CodeGen] Get rid of incorrect std template specializations`), replacing stateful `std::less<RegisterRef>` / `std::equal_to<RegisterRef>` specializations with `llvm::rdf::RegisterRefLess` and `llvm::rdf::RegisterRefEqualTo`.

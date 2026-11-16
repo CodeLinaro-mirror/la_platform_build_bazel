@@ -3499,7 +3499,7 @@ cc_library(
 # Flag documentation: https://bazel.build/extending/config
 string_flag(
     name = "pfm",
-    build_setting_default = "external",
+    build_setting_default = "disable",
     values = [
         "disable",  # Don't include pfm at all
         "external",  # Build pfm from source

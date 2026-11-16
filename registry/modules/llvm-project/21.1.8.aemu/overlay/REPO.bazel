@@ -1,0 +1,3 @@
+"""Defines ignored directories."""
+
+ignore_directories(["utils/bazel"])
