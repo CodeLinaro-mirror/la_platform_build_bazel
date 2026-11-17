@@ -15,9 +15,29 @@ configure generic aspects of all generated rules such as `testonly`. Lastly,
 `kwargs` is expanded into all the `cc_binary` rules.
 """
 
-load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_import", "cc_library")
+load("@rules_cc//cc:defs.bzl", "cc_import")
+load("//llvm:targets.bzl", "cc_binary", "cc_library")
 
 def cc_plugin_library(name, srcs, hdrs, include_prefix = None, strip_include_prefix = None, alwayslink = False, features = [], tags = [], testonly = False, **kwargs):
+    """Produces a loadable shared plugin library and exposes it via cc_library.
+
+    Creates OS-specific `cc_binary` targets (`.dll`, `.dylib`, `.so`), wraps
+    the active platform binary with `cc_import`, and exports `hdrs` through a
+    `cc_library` named `name`.
+
+    Args:
+      name: Name of the exposed `cc_library` and base prefix for generated targets.
+      srcs: Source files compiled into each platform-specific plugin binary.
+      hdrs: Header files exposed by the `cc_library` and also passed to the plugin binaries.
+      include_prefix: Optional `include_prefix` forwarded to the `cc_library`.
+      strip_include_prefix: Optional `strip_include_prefix` forwarded to the `cc_library`.
+      alwayslink: Passed to `cc_import` and `cc_library`.
+      features: Build features forwarded to the generated `cc_binary`, `cc_import`, and `cc_library` rules.
+      tags: Additional tags forwarded to the generated rules (`manual` is also added to the binaries).
+      testonly: Whether the generated targets are `testonly`.
+      **kwargs: Additional keyword arguments forwarded to the generated `cc_binary` rules.
+    """
+
     # Neither the name of the plugin binary nor tags on whether it is built are
     # configurable. Instead, we build a `cc_binary` with each name and
     # selectively depend on them based on platform.
