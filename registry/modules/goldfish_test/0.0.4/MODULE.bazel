@@ -17,7 +17,6 @@ bazel_dep(name = "rules_python", version = "1.6.3")
 bazel_dep(name = "grpc-java", version = "1.75.0")
 bazel_dep(name = "grpc", version = "1.74.1")
 bazel_dep(name = "protobuf", version = "33.4")
-bazel_dep(name = "netsim", version = "0.0.1")
 bazel_dep(name = "aemu", version = "0.0.2")
 
 # Enable Java gRPC compilation
@@ -174,7 +173,7 @@ gcs_archive(
     url = "gs://emu-next-bazel/ab/aosp-sdk-release/sdk_mac/13278306/sdk-repo-darwin-build-tools-13278306.zip",
 )
 
-# API 29-37 system images, CTS, and CTS-Verifier archives from the compact catalog
+# API 24-37 system images and API 29-37 CTS / CTS-Verifier archives from the compact catalog
 # in build/bazel/extensions/android_repos.bzl.
 multisource_repo = use_extension("@goldfish_build//extensions:multisource_repo.bzl", "multisource_repo")
 use_repo(
@@ -218,6 +217,15 @@ use_repo(
     "cts-verifier-android-37-arm64",
     "cts-verifier-android-37-x86-64",
     "cts-x86-64",
+    "sysimg-android-24-arm64-v8a",
+    "sysimg-android-24-x86_64",
+    "sysimg-android-25-arm64-v8a",
+    "sysimg-android-25-x86_64",
+    "sysimg-android-26-arm64-v8a",
+    "sysimg-android-26-x86_64",
+    "sysimg-android-27-arm64-v8a",
+    "sysimg-android-28-arm64-v8a",
+    "sysimg-android-28-x86_64",
     "sysimg-android-29-arm64-v8a",
     "sysimg-android-29-x86_64",
     "sysimg-android-30-arm64-v8a",
@@ -255,6 +263,15 @@ gcs_archive(
     build_file_content = _generic_build,
     sha256 = "0a14cb722bc37b993d68091779b8c002702e5cf85d846ca932f9bbf0c6e6252a",
     url = "gs://emu-next-bazel/ab/git_26Q2-release/test_suites_arm64/15492250/signed-android-gts.zip",
+)
+
+# ANGLE restricted traces, the angle_trace_tests APK and the golden images of AngleTracesTest, with
+# prebuilts/ and golden/ at the root. They may contain third party IP: keep them out of the source tree.
+gcs_archive(
+    name = "angle_traces",
+    build_file_content = _generic_build,
+    sha256 = "493c7bfcc7d2b9278438d0c4c6c4950b2e36a2565cbd14bc1269ff83df9c729f",
+    url = "gs://emu-next-bazel/angle_traces/2026-11-04/angle_traces.zip",
 )
 
 gcs_archive(

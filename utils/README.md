@@ -91,3 +91,32 @@ python utils/update_sysimage.py -b <build_id> [options]
 1.  Run the script on a Windows machine that has the desired Visual Studio / SDK version installed.
 2.  Use `--upload` and `--update-bzl` to streamline the process.
 3.  Commit the changes to `extensions/toolchain.bzl`.
+
+## `update_repo_bazel.py`
+
+This script uses `bazel mod show_repo --all_repos` to discover all external repositories pointing to workspace subdirectories, optionally merges extra ignored glob patterns from a file, shortens the list by removing nested paths and collapsing fully ignored sibling directories, and updates the `ignore_directories([...])` list in a target `REPO.bazel` file (such as `build/bazel/toplevel.REPO.bazel`).
+
+### Usage
+
+```bash
+# Update toplevel.REPO.bazel in-place
+bazel run @goldfish_build//utils:update_repo_bazel -- \
+    --repo_file=build/bazel/toplevel.REPO.bazel
+
+# Update with an extra ignore file
+bazel run @goldfish_build//utils:update_repo_bazel -- \
+    --repo_file=build/bazel/toplevel.REPO.bazel \
+    --extra_ignore_file=path/to/extra.ignore
+
+# Check if toplevel.REPO.bazel needs an update (prints unified diff and exits with 1 if out of date)
+bazel run @goldfish_build//utils:update_repo_bazel -- \
+    --repo_file=build/bazel/toplevel.REPO.bazel \
+    --extra_ignore_file=path/to/extra.ignore \
+    --diff
+```
+
+### Arguments
+*   `--repo_file <file>`: **Required**. Path to the `REPO.bazel` file to update or check.
+*   `--extra_ignore_file <file>`: Path to a file containing extra ignored glob patterns (one per line, allowing `#` line comments and blank lines).
+*   `--diff`: Output a unified diff and exit with status `1` if the file needs updating, without modifying the file.
+

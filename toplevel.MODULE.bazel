@@ -18,7 +18,7 @@ module(
     version = "0.0.1",
 )
 
-include("//build/bazel/toolchains:toolchain.MODULE.bazel")
+include("//build/bzlmod:toolchain.MODULE.bazel")
 
 custom_toolchains = use_extension("@goldfish_build//extensions:toolchain.bzl", "toolchain")
 custom_toolchains.clang(root_path = "prebuilts/clang/host")
@@ -35,16 +35,16 @@ bazel_dep(name = "qemu", version = "0.0.1")
 bazel_dep(name = "breakpad", version = "0.0.1")
 bazel_dep(name = "pkg-config", version = "0.29.2")
 bazel_dep(name = "ninja", version = "1.12.1.bcr.1")
-bazel_dep(name = "boringssl", version = "0.20260413.0")
+bazel_dep(name = "boringssl", version = "0.20260803.0")
 bazel_dep(name = "abseil-cpp", version = "20260526.0")
-bazel_dep(name = "tink_cc", version = "2.7.0")
+bazel_dep(name = "tink_cc", version = "2.9.2")
 
 # repo_name override needed by @grpc
 bazel_dep(name = "protoc-gen-validate", version = "1.3.0", repo_name = "com_envoyproxy_protoc_gen_validate")
 
 # Dep of GRPC but override here
 # Use local registry version to address https://github.com/bazelbuild/bazel/issues/26922
-bazel_dep(name = "c-ares", version = "1.34.6")
+bazel_dep(name = "c-ares", version = "1.34.9.bcr.1")
 bazel_dep(name = "grpc-java", version = "1.82.0")
 bazel_dep(name = "grpc", version = "1.81.1.aemu")
 
@@ -56,7 +56,6 @@ bazel_dep(name = "glib", version = "2.82.2.bcr.5.aemu")
 bazel_dep(name = "dtc", version = "0.0.1")
 bazel_dep(name = "pixman", version = "0.0.1")
 bazel_dep(name = "aemu", version = "0.0.2")
-bazel_dep(name = "rutabaga_gfx", version = "0.0.1")
 bazel_dep(name = "keycodemapdb", version = "0.0.1")
 bazel_dep(name = "libslirp", version = "0.0.1")
 bazel_dep(name = "libpng", version = "0.0.1")
@@ -67,10 +66,6 @@ bazel_dep(name = "dav1d", version = "1.5.3-58-g14c73c7d")
 bazel_dep(name = "libsrtp2", version = "2.3.0")
 bazel_dep(name = "libyuv", version = "1948")
 bazel_dep(name = "webrtc_sdk_android", version = "150.7871.01")
-bazel_dep(name = "nasm", version = "2.16.03.bcr.3")
-bazel_dep(name = "rules_nasm", version = "0.5.0")
-
-register_toolchains("//build/bazel/toolchains:nasm_toolchain")
 
 # These are all deps of lavapipe?
 bazel_dep(name = "libdrm", version = "2.4.110")
@@ -90,7 +85,7 @@ local_path_override(
     path = "prebuilts/android-emulator-build/qt",
 )
 
-include("//build/bazel:vendor.MODULE.bazel")
+include("//:vendor.MODULE.bazel")
 
 # rules_android is imported by toolchain.MODULE.bazel
 android_sdk_repository_extension = use_extension("@rules_android//rules/android_sdk_repository:rule.bzl", "android_sdk_repository_extension")
@@ -101,8 +96,6 @@ android_sdk_repository_extension.configure(paths = {
 })
 
 # Enable Java gRPC compilation
-bazel_dep(name = "rules_jvm_external", version = "6.10")
-
 maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
 maven.artifact(
     testonly = True,
@@ -135,10 +128,9 @@ maven.install(
         "goldfish",
         "goldfish_test",
         "grpc-java",
-        "netsim",
         "protobuf",
     ],
-    lock_file = "//build/bazel:maven_install.json",
+    lock_file = "//build/bzlmod:maven/maven_install.json",
     repositories = [
         "https://repo.maven.apache.org/maven2/",
         "https://maven.google.com",
@@ -152,7 +144,7 @@ maven.install(
     known_contributing_modules = ["rules_android"],
     # Rerun REPIN=1 bazel run @android_ide_common_30_1_3//:pin to update
     # the lock_file after upgrading rules_android.
-    lock_file = "//build/bazel:registry/modules/rules_android/android_ide_maven_install.json",
+    lock_file = "//build/bzlmod:maven/android_ide_maven_install.json",
     repositories = [
         "https://maven.google.com",
         "https://repo1.maven.org/maven2",
@@ -163,7 +155,7 @@ maven.install(
     known_contributing_modules = ["rules_android"],
     # Rerun REPIN=1 bazel run @rules_android_maven//:pin to update
     # the lock_file after upgrading rules_android.
-    lock_file = "//build/bazel:registry/modules/rules_android/maven_install.json",
+    lock_file = "//build/bzlmod:maven/rules_android_maven_install.json",
     repositories = [
         "https://maven.google.com",
         "https://repo1.maven.org/maven2",

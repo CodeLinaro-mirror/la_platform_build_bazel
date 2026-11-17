@@ -1,0 +1,4 @@
+prebuilts/clang/host/*
+
+# Rust crates
+third_party/rust/*

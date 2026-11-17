@@ -4,7 +4,7 @@
 #
 # Why this is done:
 # 1. The main 'toplevel.MODULE.bazel' (which root 'MODULE.bazel' symlinks to) includes
-#    '//build/bazel:vendor.MODULE.bazel'.
+#    '//:vendor.MODULE.bazel'.
 # 2. Bazel requires all included files to be present and resolvable within the workspace
 #    during the loading phase. It needs to "see the whole thing".
 # 3. By using a symlink ('vendor.MODULE.bazel') that points to different files in different
