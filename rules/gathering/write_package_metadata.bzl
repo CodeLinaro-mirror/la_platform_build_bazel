@@ -7,8 +7,8 @@ load(
     "gather_metadata_info",
     "write_metadata_info",
 )
-load("//build/bazel/rules/gathering:gather_prebuilt_info.bzl", "gather_prebuilt_metadata")
-load("//build/bazel/rules/gathering:providers.bzl", "TransitivePrebuiltPackageInfo")
+load("//rules/gathering:gather_prebuilt_info.bzl", "gather_prebuilt_metadata")
+load("//rules/gathering:providers.bzl", "TransitivePrebuiltPackageInfo")
 
 def _write_package_metadata_impl(ctx):
     licenses_file = ctx.actions.declare_file("_%s_licenses_info.json" % ctx.label.name)
@@ -61,7 +61,7 @@ write_package_metadata = rule(
             """,
         ),
         "_merge_metadata": attr.label(
-            default = Label("//build/bazel/rules/gathering:merge_metadata"),
+            default = Label("//rules/gathering:merge_metadata"),
             executable = True,
             cfg = "exec",
         ),

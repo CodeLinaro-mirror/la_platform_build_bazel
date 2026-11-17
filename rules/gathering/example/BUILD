@@ -1,9 +1,9 @@
 load("@rules_python//python:defs.bzl", "py_library")
-load("//build/bazel/rules/gathering:write_package_metadata.bzl", "write_package_metadata")
+load("//rules/gathering:write_package_metadata.bzl", "write_package_metadata")
 
 package(
     default_package_metadata = [
-        "//build/bazel/licenses:Android-Apache-2.0",
+        "//licenses:Android-Apache-2.0",
     ],
 )
 
