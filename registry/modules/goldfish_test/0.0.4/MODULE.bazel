@@ -91,9 +91,8 @@ test_seq_ext.windows(
 )
 use_repo(test_seq_ext, "test_seq")
 
-local = use_repo_rule("//deps/local:repo.bzl", "local")
-
-local(name = "local")
+artifacts = use_extension("//deps/local:extension.bzl", "artifacts")
+use_repo(artifacts, local = "hub")
 
 gcs_file(
     name = "animation_app",
@@ -270,8 +269,8 @@ gcs_archive(
 gcs_archive(
     name = "angle_traces",
     build_file_content = _generic_build,
-    sha256 = "493c7bfcc7d2b9278438d0c4c6c4950b2e36a2565cbd14bc1269ff83df9c729f",
-    url = "gs://emu-next-bazel/angle_traces/2026-11-04/angle_traces.zip",
+    sha256 = "0638a063bc4ba3c2602d7d5c7ff12e387af4bb5863392d5f14ba1ebe3c2f23f1",
+    url = "gs://emu-next-bazel/angle_traces/2026-11-12/angle_traces.zip",
 )
 
 gcs_archive(
@@ -293,6 +292,13 @@ gcs_archive(
     build_file_content = _generic_build,
     sha256 = "0868f810699a8ff3c12997ce6a002c1437f95bedb0c496c2e192d230a6d165d7",
     url = "gs://emu-next-bazel/apps/hellovk/2026-09-17/hellovk.zip",
+)
+
+gcs_archive(
+    name = "memtest_vulkan",
+    build_file_content = _generic_build,
+    sha256 = "109db9e39df9f4fb38ea2ad665e081439faffd1a36407516fe5075b4498e3a27",
+    url = "gs://emu-next-bazel/apps/memtest_vulkan/2026-11-11/memtest_vulkan.zip",
 )
 
 gcs_archive(

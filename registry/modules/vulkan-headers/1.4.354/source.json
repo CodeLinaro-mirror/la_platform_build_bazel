@@ -1,0 +1,9 @@
+{
+    "url": "https://github.com/KhronosGroup/Vulkan-Headers/archive/refs/tags/v1.4.354.tar.gz",
+    "integrity": "sha256-TKNgbldyj+v4rvCXyde6bFI4WVW7Sm3Ab8+fw9dlQd4=",
+    "strip_prefix": "Vulkan-Headers-1.4.354",
+    "overlay": {
+        "BUILD.bazel": "sha256-V87LO4MApPKx6IYezlkejMD+Ae+GULy2X/I/M3dr414=",
+        "MODULE.bazel": "sha256-jMS0zp+7GRw79gRqsbEUPskh55c+QEWT9ZF9On3WPJs="
+    }
+}

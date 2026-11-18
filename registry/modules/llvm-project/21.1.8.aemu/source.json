@@ -5,15 +5,15 @@
     "overlay": {
         "BUILD.bazel": "sha256-2fqdFreuWkNqMCXe7ZTgRx4u4hq2Ed5874fBUh28/ic=",
         "MODULE.bazel": "sha256-SRgjT3Sk9y7sQ+Ito1d8fKJHW9JbZ4ylAkPKgBZbY6w=",
+        "REPO.bazel": "sha256-WfHTKm4lLUguFFcwC3VfW2hLp3nwO/H8MEx+MRoff8U=",
         "clang/BUILD.bazel": "sha256-bCU9PoY+JYI4EyW4cQvvso3au/w8WjLQuYU5aFx2xbU=",
         "clang/include/clang/Config/config.h": "sha256-7L+HpE/FzKiUWtgOfKpd/naU8GJ+J9DuFS3Ng7YQ21M=",
-        "llvm/BUILD.bazel": "sha256-+gWrS+u5ZvgL+K9+tLHIvIDtyGthPssPwPlezXnYirs=",
+        "llvm/BUILD.bazel": "sha256-S17stWrikzrj8PJElLXJmWeH/6RY+PROjul+cH1stlk=",
         "llvm/binary_alias.bzl": "sha256-yGIb97Tjj+hlGvJtWqRFlERhJJbEz6KEEHR2Dzr8i8k=",
-        "llvm/cc_plugin_library.bzl": "sha256-pP6Z+3GHRPWEX2SeVtW1D595I29R6+bu/TmcIf2TRhs=",
+        "llvm/cc_plugin_library.bzl": "sha256-48p7Fg8vO+tt1FcOs/yZQN2EiqghvcvQfCGhSDHT1ks=",
         "llvm/config.bzl": "sha256-5pVwGzCIXpv5B/444CMo9rKhSStfjMR23h4tjQkFyp0=",
-        "llvm/driver.bzl": "sha256-xRCpgWq32NZf/qE+pUWmgKZIh/k+T99WNY0cbMkWuLk=",
+        "llvm/driver.bzl": "sha256-riA+YwU6nOBGAxlSt1Nvzu46WzQmcH6CQ+PYnMxi/Jc=",
         "llvm/enum_targets_gen.bzl": "sha256-cOC1aQxaZ6V+e5rOLKOs6SZ1JMz/fqe5DEbMg4al7zA=",
-        "llvm/include/llvm/CodeGen/RDFRegisters.h": "sha256-mAZ1ZhlTmAWp9GdsF5xxJ37PJ/zRq+CoGiHkPkqbt1s=",
         "llvm/include/llvm/Config/Targets.h": "sha256-mDY/kGoEXWJgpYCHF/C1SmxwwT2BICOnbYCixs3Rq1o=",
         "llvm/include/llvm/Config/config.h": "sha256-ZuiyH1hUYbU/tjYxbiTtOyqZCbsbDYDuRjVfgmOGWnI=",
         "llvm/include/llvm/Config/llvm-config.h": "sha256-xwZ4JgnIqWyc0FLbLV/E12tC3kJPkt54ao0NB7ZbFDQ=",
@@ -25,5 +25,9 @@
         "third-party/unittest/BUILD.bazel": "sha256-d27bkrjiaKExxHx8AQ61/Ffg3WC2bHs2o+xO7WTcyE0=",
         "vars.bzl": "sha256-UyeQ2MoqTPyOPJ8ZDLA7NIcRrVAC3dy+dNbAw9/XrX8=",
         "workspace_root.bzl": "sha256-vlpadEI8CD11B7eHK+TgrgGdUL26tNx4VOjCUZUWgyY="
+    },
+    "patch_strip": 1,
+    "patches": {
+        "a558d656043734cc4d02e0a0a12e4c308c28f8c7.patch": "sha256-DiEF2qW/MuAZ/0r6m+BZVAjEYbMSoorETIFJS3gO0Ws="
     }
 }

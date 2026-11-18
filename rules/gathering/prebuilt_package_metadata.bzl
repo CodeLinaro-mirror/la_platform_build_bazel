@@ -2,10 +2,7 @@
 This file contains the implementation of the prebuilt_package_metadata rule.
 """
 
-load(
-    "//build/bazel/rules/gathering:providers.bzl",
-    "PrebuiltPackageInfo",
-)
+load("//rules/gathering:providers.bzl", "PrebuiltPackageInfo")
 
 def _prebuilt_package_metadata_impl(ctx):
     # TODO b/337111620: Add validation action to check the third_party_dependencies file

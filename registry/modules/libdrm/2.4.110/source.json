@@ -1,4 +1,10 @@
 {
-  "type": "local_path",
-  "path": "third_party/libdrm"
+    "url": "https://dri.freedesktop.org/libdrm/libdrm-2.4.110.tar.xz",
+    "integrity": "sha256-7s7kxLR+1tbOGpvj1tkhAlSOo15EIoIhbUfQUpPPlzc=",
+    "strip_prefix": "libdrm-2.4.110",
+    "overlay": {
+        "BUILD.bazel": "sha256-Ik8mMOwo9TlugZYey4bOaKkW8nAPw+TlBtYjexry12Q=",
+        "LICENSE": "sha256-+7zd/+lyZs4igqOctq0FKMXEfl66DJsBBsAEJa1tKtw=",
+        "MODULE.bazel": "sha256-QjjYwfyvHeIJ2NMuSmpMX1SDyd9bZu4pEU7ctPRErak="
+    }
 }
