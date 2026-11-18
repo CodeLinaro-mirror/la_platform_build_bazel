@@ -155,6 +155,119 @@ def _create_empty_zip(output_path: Path) -> None:
         pass
 
 
+def _is_intra_tree_relative_symlink(entry_path: Path, src_root: Path) -> str | None:
+    """Returns the POSIX relative target if entry_path is a live symlink within src_root."""
+    link_target = os.readlink(entry_path)
+    if os.path.isabs(link_target) or not entry_path.exists():
+        return None
+    resolved = (entry_path.parent / link_target).resolve(strict=False)
+    if not resolved.is_relative_to(src_root):
+        return None
+    return link_target.replace("\\", "/")
+
+
+def _resolve_unsandboxed_tree_root(src_dir: Path) -> Path:
+    """Unwraps a Bazel sandbox symlink forest to the real execroot TreeArtifact directory.
+
+    Bazel's TreeArtifact sandbox materialization expands intra-tree directory
+    symlinks (such as macOS `.framework/Versions/Current -> A`) into real
+    directories populated with absolute symlinks back to `<execroot>/<src_dir>/...`.
+    Walking the real `<execroot>/<src_dir>` preserves intra-tree directory and
+    file symlinks intact.
+    """
+    if src_dir.is_symlink():
+        return src_dir
+    expected_suffix = (
+        None if src_dir.is_absolute() else "/" + src_dir.as_posix().lstrip("./")
+    )
+    resolved_src = src_dir.resolve()
+    pending: list[tuple[Path, str]] = [(src_dir, "")]
+    while pending:
+        cur_dir, rel_prefix = pending.pop()
+        with os.scandir(cur_dir) as it:
+            entries = sorted(it, key=lambda e: e.name)
+        for item in entries:
+            rel_posix = f"{rel_prefix}/{item.name}" if rel_prefix else item.name
+            item_path = Path(item.path)
+            if item.is_symlink():
+                link_target = os.readlink(item_path).replace("\\", "/")
+                leaf_suffix = f"/{rel_posix}"
+                if os.path.isabs(link_target) and link_target.endswith(leaf_suffix):
+                    cand = Path(link_target[: -len(leaf_suffix)])
+                    if (
+                        cand != resolved_src
+                        and cand.is_dir()
+                        and (
+                            expected_suffix is None
+                            or cand.as_posix().endswith(expected_suffix)
+                        )
+                    ):
+                        return cand
+            elif item.is_dir(follow_symlinks=False):
+                pending.append((item_path, rel_posix))
+    return src_dir
+
+
+def _expand_tree_into_dest_map(
+    src_dir: Path,
+    dest_rel: str,
+    mode_str: str | None,
+    default_mode: int,
+    dest_map: dict[str, dict],
+) -> None:
+    """Expands a directory tree into dest_map, preserving intra-tree relative symlinks."""
+    tree_dir = _resolve_unsandboxed_tree_root(src_dir)
+    src_root = tree_dir.resolve()
+    dest_map[dest_rel.rstrip("/") + "/"] = {
+        "type": "dir",
+        "mode": 0o755,
+    }
+    pending: list[tuple[Path, str]] = [(tree_dir, "")]
+    while pending:
+        cur_dir, rel_prefix = pending.pop()
+        with os.scandir(cur_dir) as it:
+            entries = sorted(it, key=lambda e: e.name)
+        for item in entries:
+            rel_posix = f"{rel_prefix}/{item.name}" if rel_prefix else item.name
+            item_dest = _combine_paths(dest_rel, rel_posix)
+            item_path = Path(item.path)
+
+            if item.is_symlink():
+                intra_target = _is_intra_tree_relative_symlink(item_path, src_root)
+                if intra_target is not None:
+                    dest_map[item_dest.rstrip("/")] = {
+                        "type": "symlink",
+                        "src": intra_target,
+                        "mode": 0o777,
+                    }
+                    continue
+                if item_path.is_dir():
+                    dest_map[item_dest.rstrip("/") + "/"] = {
+                        "type": "dir",
+                        "mode": 0o755,
+                    }
+                    pending.append((item_path, rel_posix))
+                    continue
+
+            if item.is_dir(follow_symlinks=False):
+                dest_map[item_dest.rstrip("/") + "/"] = {
+                    "type": "dir",
+                    "mode": 0o755,
+                }
+                pending.append((item_path, rel_posix))
+            elif item_path.is_file():
+                file_mode = (
+                    int(mode_str, 8)
+                    if mode_str
+                    else (0o755 if os.access(item_path, os.X_OK) else default_mode)
+                )
+                dest_map[item_dest] = {
+                    "type": "file",
+                    "src": str(item_path),
+                    "mode": file_mode,
+                }
+
+
 def _build_dest_map(
     entries: list[dict],
     dir_prefix: str,
@@ -180,31 +293,13 @@ def _build_dest_map(
             src_dir = Path(src_str)
             if not src_dir.exists():
                 raise FileNotFoundError(f"Manifest source tree not found: {src_dir}")
-            dest_map[dest_rel.rstrip("/") + "/"] = {
-                "type": "dir",
-                "mode": 0o755,
-            }
-            for root, dirs, files in os.walk(src_dir, followlinks=True):
-                rel_root = Path(root).relative_to(src_dir)
-                for d in dirs:
-                    d_dest = _combine_paths(dest_rel, str(rel_root / d).replace("\\", "/")) + "/"
-                    dest_map[d_dest] = {
-                        "type": "dir",
-                        "mode": 0o755,
-                    }
-                for f in files:
-                    fp = Path(root) / f
-                    f_dest = _combine_paths(dest_rel, str(rel_root / f).replace("\\", "/"))
-                    file_mode = (
-                        int(mode_str, 8)
-                        if mode_str
-                        else (0o755 if os.access(fp, os.X_OK) else default_mode)
-                    )
-                    dest_map[f_dest] = {
-                        "type": "file",
-                        "src": str(fp),
-                        "mode": file_mode,
-                    }
+            _expand_tree_into_dest_map(
+                src_dir=src_dir,
+                dest_rel=dest_rel,
+                mode_str=mode_str,
+                default_mode=default_mode,
+                dest_map=dest_map,
+            )
         elif etype == "dir":
             dest_map[dest_rel.rstrip("/") + "/"] = {
                 "type": "dir",

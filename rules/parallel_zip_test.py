@@ -227,6 +227,138 @@ class ParallelZipStoredStreamTest(unittest.TestCase):
                 extract_dir.chmod(0o755)
 
 
+    def test_tree_preserves_intra_tree_symlinks_and_dereferences_external(self):
+        if os.name != "posix":
+            return
+        external_file = self.root / "external_execroot_bin.txt"
+        external_file.write_bytes(b"EXTERNAL_BYTES")
+
+        tree_dir = self.root / "App.framework"
+        (tree_dir / "Resources").mkdir(parents=True)
+        (tree_dir / "Resources" / "täst_中文_🚀.txt").write_bytes(b"UTF8_RESOURCE")
+        (tree_dir / "Versions" / "A").mkdir(parents=True)
+        (tree_dir / "Versions" / "A" / "App").write_bytes(b"MACH_O_BINARY")
+        (tree_dir / "Versions" / "Current").symlink_to("A")
+        (tree_dir / "App").symlink_to("Versions/Current/App")
+        (tree_dir / "sandbox_input").symlink_to(external_file)
+
+        manifest = [
+            {"type": "tree", "src": str(tree_dir), "dest": "App.framework", "mode": "0755"},
+        ]
+
+        parallel_zip.create_zip_stored(
+            output_path=self.output_zip,
+            entries=manifest,
+            dir_prefix="emulator",
+            default_mode=0o555,
+            timestamp=parallel_zip.DEFAULT_EPOCH,
+        )
+
+        with zipfile.ZipFile(self.output_zip, "r") as zf:
+            self.assertEqual(
+                zf.namelist(),
+                [
+                    "emulator/",
+                    "emulator/App.framework/",
+                    "emulator/App.framework/App",
+                    "emulator/App.framework/Resources/",
+                    "emulator/App.framework/Resources/täst_中文_🚀.txt",
+                    "emulator/App.framework/Versions/",
+                    "emulator/App.framework/Versions/A/",
+                    "emulator/App.framework/Versions/A/App",
+                    "emulator/App.framework/Versions/Current",
+                    "emulator/App.framework/sandbox_input",
+                ],
+            )
+            self.assertEqual(
+                zf.read("emulator/App.framework/Resources/täst_中文_🚀.txt"),
+                b"UTF8_RESOURCE",
+            )
+            current_info = zf.getinfo("emulator/App.framework/Versions/Current")
+            self.assertEqual(stat.S_IFMT(current_info.external_attr >> 16), stat.S_IFLNK)
+            self.assertEqual(zf.read("emulator/App.framework/Versions/Current"), b"A")
+
+            app_info = zf.getinfo("emulator/App.framework/App")
+            self.assertEqual(stat.S_IFMT(app_info.external_attr >> 16), stat.S_IFLNK)
+            self.assertEqual(
+                zf.read("emulator/App.framework/App"),
+                b"Versions/Current/App",
+            )
+
+            ext_info = zf.getinfo("emulator/App.framework/sandbox_input")
+            self.assertEqual(stat.S_IFMT(ext_info.external_attr >> 16), stat.S_IFREG)
+            self.assertEqual(zf.read("emulator/App.framework/sandbox_input"), b"EXTERNAL_BYTES")
+
+    def test_tree_unwraps_bazel_sandbox_symlink_forest_for_directory_symlinks(self):
+        if os.name != "posix":
+            return
+        rel_tree = Path("bazel-out/darwin_arm64-opt/bin/App.framework")
+        real_tree = self.root / "execroot" / "_main" / rel_tree
+        (real_tree / "Versions" / "A" / "Resources").mkdir(parents=True)
+        (real_tree / "Versions" / "A" / "App").write_bytes(b"MACH_O_BINARY")
+        (real_tree / "Versions" / "A" / "Resources" / "Info.plist").write_bytes(b"PLIST")
+        (real_tree / "Versions" / "Current").symlink_to("A")
+        (real_tree / "Resources").symlink_to("Versions/Current/Resources")
+        (real_tree / "App").symlink_to("Versions/Current/App")
+
+        # Simulate Bazel darwin-sandbox / linux-sandbox TreeArtifact materialization:
+        # directory symlinks become real directories populated with absolute leaf symlinks.
+        sandbox_root = self.root / "sandbox" / "darwin-sandbox" / "1" / "execroot" / "_main"
+        sandbox_tree = sandbox_root / rel_tree
+        (sandbox_tree / "Versions" / "A" / "Resources").mkdir(parents=True)
+        (sandbox_tree / "Versions" / "Current" / "Resources").mkdir(parents=True)
+        (sandbox_tree / "Resources").mkdir(parents=True)
+        for rel_leaf in [
+            "App",
+            "Resources/Info.plist",
+            "Versions/A/App",
+            "Versions/A/Resources/Info.plist",
+            "Versions/Current/App",
+            "Versions/Current/Resources/Info.plist",
+        ]:
+            (sandbox_tree / rel_leaf).symlink_to(real_tree / rel_leaf)
+
+        prev_cwd = os.getcwd()
+        os.chdir(sandbox_root)
+        try:
+            manifest = [
+                {"type": "tree", "src": rel_tree.as_posix(), "dest": "App.framework", "mode": "0755"},
+            ]
+            parallel_zip.create_zip_stored(
+                output_path=self.output_zip,
+                entries=manifest,
+                dir_prefix="emulator",
+                default_mode=0o555,
+                timestamp=parallel_zip.DEFAULT_EPOCH,
+            )
+        finally:
+            os.chdir(prev_cwd)
+
+        with zipfile.ZipFile(self.output_zip, "r") as zf:
+            self.assertEqual(
+                zf.namelist(),
+                [
+                    "emulator/",
+                    "emulator/App.framework/",
+                    "emulator/App.framework/App",
+                    "emulator/App.framework/Resources",
+                    "emulator/App.framework/Versions/",
+                    "emulator/App.framework/Versions/A/",
+                    "emulator/App.framework/Versions/A/App",
+                    "emulator/App.framework/Versions/A/Resources/",
+                    "emulator/App.framework/Versions/A/Resources/Info.plist",
+                    "emulator/App.framework/Versions/Current",
+                ],
+            )
+            for link_entry, expected_target in [
+                ("emulator/App.framework/App", b"Versions/Current/App"),
+                ("emulator/App.framework/Resources", b"Versions/Current/Resources"),
+                ("emulator/App.framework/Versions/Current", b"A"),
+            ]:
+                info = zf.getinfo(link_entry)
+                self.assertEqual(stat.S_IFMT(info.external_attr >> 16), stat.S_IFLNK)
+                self.assertEqual(zf.read(link_entry), expected_target)
+
     def test_deterministic_utc_timestamp(self):
         file1 = self.root / "file1.txt"
         file1.write_bytes(b"CONTENT")
@@ -464,6 +596,121 @@ class ParallelZipDeflatedTest(unittest.TestCase):
                     if p.is_dir():
                         p.chmod(0o755)
                 extract_dir.chmod(0o755)
+
+    def test_deflated_tree_preserves_intra_tree_symlinks_and_dereferences_external(self):
+        if os.name != "posix":
+            return
+        external_file = self.root / "external_execroot_bin.txt"
+        external_file.write_bytes(b"EXTERNAL_BYTES")
+
+        tree_dir = self.root / "App.framework"
+        (tree_dir / "Versions" / "A").mkdir(parents=True)
+        (tree_dir / "Versions" / "A" / "App").write_bytes(b"MACH_O_BINARY")
+        (tree_dir / "Versions" / "Current").symlink_to("A")
+        (tree_dir / "App").symlink_to("Versions/Current/App")
+        (tree_dir / "sandbox_input").symlink_to(external_file)
+
+        manifest = [
+            {"type": "tree", "src": str(tree_dir), "dest": "App.framework", "mode": "0755"},
+        ]
+
+        parallel_zip.create_zip_deflated(
+            sevenzip_bin=self.sevenzip_bin,
+            output_path=self.output_zip,
+            entries=manifest,
+            dir_prefix="emulator",
+            default_mode=0o555,
+            timestamp=parallel_zip.DEFAULT_EPOCH,
+            compression_args=["-mm=Deflate", "-mx=6"],
+        )
+
+        with zipfile.ZipFile(self.output_zip, "r") as zf:
+            current_info = zf.getinfo("emulator/App.framework/Versions/Current")
+            self.assertEqual(stat.S_IFMT(current_info.external_attr >> 16), stat.S_IFLNK)
+            self.assertEqual(zf.read("emulator/App.framework/Versions/Current"), b"A")
+
+            app_info = zf.getinfo("emulator/App.framework/App")
+            self.assertEqual(stat.S_IFMT(app_info.external_attr >> 16), stat.S_IFLNK)
+            self.assertEqual(
+                zf.read("emulator/App.framework/App"),
+                b"Versions/Current/App",
+            )
+
+            ext_info = zf.getinfo("emulator/App.framework/sandbox_input")
+            self.assertEqual(stat.S_IFMT(ext_info.external_attr >> 16), stat.S_IFREG)
+            self.assertEqual(zf.read("emulator/App.framework/sandbox_input"), b"EXTERNAL_BYTES")
+
+    def test_deflated_tree_unwraps_bazel_sandbox_symlink_forest_for_directory_symlinks(self):
+        if os.name != "posix":
+            return
+        rel_tree = Path("bazel-out/darwin_arm64-opt/bin/App.framework")
+        real_tree = self.root / "execroot" / "_main" / rel_tree
+        (real_tree / "Versions" / "A" / "Resources").mkdir(parents=True)
+        (real_tree / "Versions" / "A" / "App").write_bytes(b"MACH_O_BINARY")
+        (real_tree / "Versions" / "A" / "Resources" / "Info.plist").write_bytes(b"PLIST")
+        (real_tree / "Versions" / "Current").symlink_to("A")
+        (real_tree / "Resources").symlink_to("Versions/Current/Resources")
+        (real_tree / "App").symlink_to("Versions/Current/App")
+
+        # Simulate Bazel darwin-sandbox / linux-sandbox TreeArtifact materialization:
+        # directory symlinks become real directories populated with absolute leaf symlinks.
+        sandbox_root = self.root / "sandbox" / "darwin-sandbox" / "1" / "execroot" / "_main"
+        sandbox_tree = sandbox_root / rel_tree
+        (sandbox_tree / "Versions" / "A" / "Resources").mkdir(parents=True)
+        (sandbox_tree / "Versions" / "Current" / "Resources").mkdir(parents=True)
+        (sandbox_tree / "Resources").mkdir(parents=True)
+        for rel_leaf in [
+            "App",
+            "Resources/Info.plist",
+            "Versions/A/App",
+            "Versions/A/Resources/Info.plist",
+            "Versions/Current/App",
+            "Versions/Current/Resources/Info.plist",
+        ]:
+            (sandbox_tree / rel_leaf).symlink_to(real_tree / rel_leaf)
+
+        prev_cwd = os.getcwd()
+        os.chdir(sandbox_root)
+        try:
+            manifest = [
+                {"type": "tree", "src": rel_tree.as_posix(), "dest": "App.framework", "mode": "0755"},
+            ]
+            parallel_zip.create_zip_deflated(
+                sevenzip_bin=self.sevenzip_bin,
+                output_path=self.output_zip,
+                entries=manifest,
+                dir_prefix="emulator",
+                default_mode=0o555,
+                timestamp=parallel_zip.DEFAULT_EPOCH,
+                compression_args=["-mm=Deflate", "-mx=6"],
+            )
+        finally:
+            os.chdir(prev_cwd)
+
+        with zipfile.ZipFile(self.output_zip, "r") as zf:
+            self.assertEqual(
+                zf.namelist(),
+                [
+                    "emulator/",
+                    "emulator/App.framework/",
+                    "emulator/App.framework/App",
+                    "emulator/App.framework/Resources",
+                    "emulator/App.framework/Versions/",
+                    "emulator/App.framework/Versions/A/",
+                    "emulator/App.framework/Versions/A/App",
+                    "emulator/App.framework/Versions/A/Resources/",
+                    "emulator/App.framework/Versions/A/Resources/Info.plist",
+                    "emulator/App.framework/Versions/Current",
+                ],
+            )
+            for link_entry, expected_target in [
+                ("emulator/App.framework/App", b"Versions/Current/App"),
+                ("emulator/App.framework/Resources", b"Versions/Current/Resources"),
+                ("emulator/App.framework/Versions/Current", b"A"),
+            ]:
+                info = zf.getinfo(link_entry)
+                self.assertEqual(stat.S_IFMT(info.external_attr >> 16), stat.S_IFLNK)
+                self.assertEqual(zf.read(link_entry), expected_target)
 
     def test_deflated_deterministic_timestamp(self):
         file1 = self.root / "file1.txt"
