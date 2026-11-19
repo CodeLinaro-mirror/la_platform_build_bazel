@@ -1,0 +1,182 @@
+From 1e9b22891ea88a169fb5857038358a579ef280a3 Mon Sep 17 00:00:00 2001
+From: Corentin Kerisit <corentin.kerisit@gmail.com>
+Date: Fri, 28 Aug 2026 14:55:46 +0000
+Subject: [PATCH] Fix clang-cl paths in Cargo build script flags (#4247)
+
+Upstream of what was required to build codex-cli for Windows MSVC using
+windows_support and hermetic-llvm new hermetic Windows MSVC hermetic
+cross link env.
+
+## Summary
+
+- rewrite execroot-relative clang-cl `/imsvc` and slash `/LIBPATH` paths
+exported to Cargo build scripts
+- rewrite VFS overlay paths, including arguments forwarded through
+clang-cl's `/clang:` wrapper
+- preserve absolute paths and restore `/clang:` after applying the
+existing path-rewrite passes
+
+## Motivation
+
+`cargo_build_script` runs build scripts from their manifest directory,
+while C/C++ toolchain arguments are commonly relative to Bazel's
+execroot. `rules_rust` already prefixes recognized relative paths with
+`${pwd}`, which the build-script runner expands to the execroot.
+
+clang-cl toolchains can express the same inputs with `/imsvc`,
+`/LIBPATH`, VFS-overlay flags, and `/clang:`-forwarded arguments. Those
+spellings bypassed the existing passes, leaving paths relative to the
+wrong working directory.
+
+This was reproduced while cross-compiling the real `openai/codex` CLI to
+`x86_64-pc-windows-msvc` with Linux remote execution. A `tree-sitter`
+Cargo build script received execroot-relative `/imsvc` and
+`/clang:-ivfsoverlay` arguments and clang-cl could not open the overlay.
+
+Assisted-by: OpenAI Codex. The contributor reviewed and owns the
+submitted change.
+(cherry picked from commit 1e9b22891ea88a169fb5857038358a579ef280a3)
+---
+ cargo/private/cargo_build_script.bzl          | 18 ++++--
+ .../cc_args_and_env/BUILD.bazel               |  6 ++
+ .../cc_args_and_env/cc_args_and_env_test.bzl  | 56 +++++++++++++++++++
+ 3 files changed, 76 insertions(+), 4 deletions(-)
+
+diff --git a/cargo/private/cargo_build_script.bzl b/cargo/private/cargo_build_script.bzl
+index 4023621..ad525bc 100644
+--- a/cargo/private/cargo_build_script.bzl
++++ b/cargo/private/cargo_build_script.bzl
+@@ -248,12 +248,12 @@ def _pwd_flags_fsanitize_ignorelist(args):
+     return _prefix_pwd_to_flag(args, ["-fsanitize-ignorelist="])
+ 
+ def _pwd_flags_isystem(args):
+-    """Prefix execroot-relative paths in -isystem and -Xclang -internal-isystem arguments with ${pwd}."""
+-    return _prefix_pwd_to_flag(args, ["-isystem", "-internal-isystem"])
++    """Prefix execroot-relative paths in -isystem-like arguments with ${pwd}."""
++    return _prefix_pwd_to_flag(args, ["-isystem", "-internal-isystem", "/imsvc"])
+ 
+ def _pwd_flags_L(args):
+     """Prefix execroot-relative paths in -L arguments with ${pwd}."""
+-    return _prefix_pwd_to_flag(args, ["-LIBPATH=", "-LIBPATH:", "-LIBPATH", "-L"])
++    return _prefix_pwd_to_flag(args, ["-LIBPATH=", "-LIBPATH:", "-LIBPATH", "/LIBPATH:", "/LIBPATH", "-L"])
+ 
+ def _pwd_flags_B(args):
+     """Prefix execroot-relative paths in -B arguments with ${pwd}."""
+@@ -263,12 +263,22 @@ def _pwd_flags_resource_dir(args):
+     """Prefix execroot-relative paths in -resource-dir arguments with ${pwd}."""
+     return _prefix_pwd_to_flag(args, ["-resource-dir=", "-resource-dir"])
+ 
++def _pwd_flags_vfsoverlay(args):
++    """Prefix execroot-relative paths in VFS overlay arguments with ${pwd}."""
++    return _prefix_pwd_to_flag(args, ["-ivfsoverlay", "-vfsoverlay=", "-vfsoverlay", "/vfsoverlay:", "/vfsoverlay"])
++
+ def _pwd_paths(args):
+     """Prefix execroot-relative paths with ${pwd}."""
+     return _prefix_pwd_to_paths(args)
+ 
+ def _pwd_flags(args):
+-    return _pwd_flags_fsanitize_ignorelist(_pwd_flags_isystem(_pwd_flags_L(_pwd_flags_B(_pwd_flags_resource_dir(_pwd_flags_sysroot(args))))))
++    clang_cl_prefix = "/clang:"
++    clang_cl_wrapped = [arg.startswith(clang_cl_prefix) for arg in args]
++    args = [arg[len(clang_cl_prefix):] if clang_cl_wrapped[i] else arg for i, arg in enumerate(args)]
++
++    args = _pwd_flags_vfsoverlay(_pwd_flags_fsanitize_ignorelist(_pwd_flags_isystem(_pwd_flags_L(_pwd_flags_B(_pwd_flags_resource_dir(_pwd_flags_sysroot(args)))))))
++
++    return [clang_cl_prefix + arg if clang_cl_wrapped[i] else arg for i, arg in enumerate(args)]
+ 
+ def _feature_enabled(ctx, feature_name, default = False):
+     """Check if a feature is enabled.
+diff --git a/cargo/tests/cargo_build_script/cc_args_and_env/BUILD.bazel b/cargo/tests/cargo_build_script/cc_args_and_env/BUILD.bazel
+index 4ebfdda..207de6c 100644
+--- a/cargo/tests/cargo_build_script/cc_args_and_env/BUILD.bazel
++++ b/cargo/tests/cargo_build_script/cc_args_and_env/BUILD.bazel
+@@ -2,6 +2,8 @@ load(
+     "cc_args_and_env_test.bzl",
+     "bindir_absolute_test",
+     "bindir_relative_test",
++    "clang_cl_paths_absolute_test",
++    "clang_cl_paths_relative_test",
+     "fsanitize_ignorelist_absolute_test",
+     "fsanitize_ignorelist_relative_test",
+     "include_absolute_test",
+@@ -39,6 +41,10 @@ bindir_relative_test(name = "bindir_relative_test")
+ 
+ bindir_absolute_test(name = "bindir_absolute_test")
+ 
++clang_cl_paths_relative_test(name = "clang_cl_paths_relative_test")
++
++clang_cl_paths_absolute_test(name = "clang_cl_paths_absolute_test")
++
+ fsanitize_ignorelist_absolute_test(name = "fsanitize_ignorelist_absolute_test")
+ 
+ fsanitize_ignorelist_relative_test(name = "fsanitize_ignorelist_relative_test")
+diff --git a/cargo/tests/cargo_build_script/cc_args_and_env/cc_args_and_env_test.bzl b/cargo/tests/cargo_build_script/cc_args_and_env/cc_args_and_env_test.bzl
+index 4b77969..8769f8c 100644
+--- a/cargo/tests/cargo_build_script/cc_args_and_env/cc_args_and_env_test.bzl
++++ b/cargo/tests/cargo_build_script/cc_args_and_env/cc_args_and_env_test.bzl
+@@ -394,6 +394,62 @@ def xclang_isystem_absolute_test(name):
+         expected_cflags = ["-Xclang", "-internal-isystem", "-Xclang", "/test/absolute/path"],
+     )
+ 
++def clang_cl_paths_relative_test(name):
++    cargo_build_script_with_extra_cc_compile_flags(
++        name = "%s/cargo_build_script" % name,
++        extra_cc_compile_flags = [
++            "/imsvctest/relative/include",
++            "/imsvc",
++            "test/relative/include2",
++            "/clang:-isystem",
++            "/clang:test/relative/include3",
++            "/clang:-resource-dir=test/relative/resources",
++            "/clang:-ivfsoverlay",
++            "/clang:test/relative/headers.yaml",
++            "/clang:/vfsoverlay:test/relative/libraries.yaml",
++            "/clang:/LIBPATH:test/relative/lib",
++        ],
++    )
++    cc_args_and_env_analysis_test(
++        name = name,
++        target_under_test = "%s/cargo_build_script" % name,
++        expected_cflags = [
++            "/imsvc${pwd}/test/relative/include",
++            "/imsvc",
++            "${pwd}/test/relative/include2",
++            "/clang:-isystem",
++            "/clang:${pwd}/test/relative/include3",
++            "/clang:-resource-dir=${pwd}/test/relative/resources",
++            "/clang:-ivfsoverlay",
++            "/clang:${pwd}/test/relative/headers.yaml",
++            "/clang:/vfsoverlay:${pwd}/test/relative/libraries.yaml",
++            "/clang:/LIBPATH:${pwd}/test/relative/lib",
++        ],
++    )
++
++def clang_cl_paths_absolute_test(name):
++    cargo_build_script_with_extra_cc_compile_flags(
++        name = "%s/cargo_build_script" % name,
++        extra_cc_compile_flags = [
++            "/imsvc/test/absolute/include",
++            "/clang:-ivfsoverlay",
++            "/clang:/test/absolute/headers.yaml",
++            "/clang:/vfsoverlay:/test/absolute/libraries.yaml",
++            "/clang:/LIBPATH:/test/absolute/lib",
++        ],
++    )
++    cc_args_and_env_analysis_test(
++        name = name,
++        target_under_test = "%s/cargo_build_script" % name,
++        expected_cflags = [
++            "/imsvc/test/absolute/include",
++            "/clang:-ivfsoverlay",
++            "/clang:/test/absolute/headers.yaml",
++            "/clang:/vfsoverlay:/test/absolute/libraries.yaml",
++            "/clang:/LIBPATH:/test/absolute/lib",
++        ],
++    )
++
+ def isystem_relative_test(name):
+     cargo_build_script_with_extra_cc_compile_flags(
+         name = "%s/cargo_build_script" % name,
+-- 
+2.56.1.750.gf70dc682cf-goog
+
