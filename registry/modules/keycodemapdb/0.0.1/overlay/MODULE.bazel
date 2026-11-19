@@ -1,0 +1,9 @@
+module(
+    name = "keycodemapdb",
+    version = "0.0.1",
+)
+
+bazel_dep(name = "platforms", version = "0.0.11")
+bazel_dep(name = "rules_cc", version = "0.0.14")
+bazel_dep(name = "rules_python", version = "1.6.3")
+bazel_dep(name = "rules_license", version = "1.0.0")

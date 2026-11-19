@@ -1,0 +1,10 @@
+--- a/meson.build
++++ b/meson.build
+@@ -1,6 +1,6 @@
+ project('keycodemapdb', meson_version: '>=0.46.0')
+ 
+-keymap_gen = find_program('tools/keymap-gen')
++keymap_gen = find_program('tools/keymap-gen.py')
+ meson.override_find_program('keymap-gen', keymap_gen)
+ 
+ keymaps_csv = files('data/keymaps.csv')
