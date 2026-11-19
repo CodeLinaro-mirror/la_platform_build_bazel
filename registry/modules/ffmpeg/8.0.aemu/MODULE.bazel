@@ -3,7 +3,9 @@ module(
     version = "8.0.aemu",
 )
 
+bazel_dep(name = "aom", version = "3.13.3")
 bazel_dep(name = "bazel_skylib", version = "1.8.1")
+bazel_dep(name = "dav1d", version = "1.5.3-58-g14c73c7d")
 bazel_dep(name = "libdrm", version = "2.4.110")
 bazel_dep(name = "libvpx", version = "1.16.0.bcr.beta.1")
 bazel_dep(name = "nasm", version = "2.16.03.bcr.2")

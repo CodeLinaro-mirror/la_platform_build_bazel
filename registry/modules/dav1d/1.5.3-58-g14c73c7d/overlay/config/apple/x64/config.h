@@ -93,4 +93,6 @@
 
 #define HAVE_UNISTD_H 1
 
+#define PREFIX 1
+
 #define TRIM_DSP_FUNCTIONS 1
