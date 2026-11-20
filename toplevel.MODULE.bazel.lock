@@ -804,7 +804,7 @@
     "@@goldfish_build+//extensions:multisource_repo.bzl%multisource_repo": {
       "general": {
         "bzlTransitiveDigest": "mjWaVE3YgLY4ddvdvfce1yl93i0nXJy3Fh8pDjlSEvs=",
-        "usagesDigest": "ZNn16EzOjHmyLcZaLViHES7YzLivlt/wkZ3y8d8neM8=",
+        "usagesDigest": "ub8aK//m32vK2DWYmm402aQVRBxbK+xPsg5gLA9ShlY=",
         "recordedInputs": [
           "REPO_MAPPING:goldfish_build+,bazel_tools bazel_tools",
           "REPO_MAPPING:goldfish_build+,rules_gcs rules_gcs+",
@@ -1558,34 +1558,6 @@
               "strip_prefix": "",
               "patch_strip": 0,
               "patches": []
-            }
-          },
-          "fishtank-linux": {
-            "repoRuleId": "@@rules_gcs+//gcs/private/repo_rules:gcs_file.bzl%gcs_file",
-            "attributes": {
-              "url": "gs://emu-next-bazel/fishtank/16314168/FISHTANK-sdk-repo-linux-emu-16314168.zip",
-              "sha256": "e3b926d5b6eebf5e66d55072441ecf088682853043800119c871ca138cf5d725"
-            }
-          },
-          "fishtank-linux_internal": {
-            "repoRuleId": "@@rules_gcs+//gcs/private/repo_rules:gcs_file.bzl%gcs_file",
-            "attributes": {
-              "url": "gs://emu-next-bazel/fishtank/16314168/internal/FISHTANK-sdk-repo-linux-emu-16314168.zip",
-              "sha256": "797c994fa2bac94725e5732c910379a464c3ef18df31aa4306fc8156987f7a0f"
-            }
-          },
-          "fishtank-mac": {
-            "repoRuleId": "@@rules_gcs+//gcs/private/repo_rules:gcs_file.bzl%gcs_file",
-            "attributes": {
-              "url": "gs://emu-next-bazel/fishtank/16314168/FISHTANK-sdk-repo-darwin_aarch64-emu-16314168.zip",
-              "sha256": "084a8654529dd28c107f39cec3a006c012794d8a1f9fefa03cae645b88f94b81"
-            }
-          },
-          "fishtank-windows": {
-            "repoRuleId": "@@rules_gcs+//gcs/private/repo_rules:gcs_file.bzl%gcs_file",
-            "attributes": {
-              "url": "gs://emu-next-bazel/fishtank/16314168/FISHTANK-sdk-repo-windows-emu-16314168.zip",
-              "sha256": "ae19aadd5745fff51da7ed41171aa0aa06459fba9c2ccb04e3dac6c62370e930"
             }
           }
         }

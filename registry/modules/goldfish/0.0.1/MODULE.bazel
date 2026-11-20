@@ -153,59 +153,12 @@ local_repository(
 
 multisource_repo = use_extension("@goldfish_build//extensions:multisource_repo.bzl", "multisource_repo")
 
-# BEGIN upload_fishtank
-multisource_repo.file(
-    name = "fishtank-linux",
-    aosp = {
-        "local_file": "@goldfish_build//utils:empty.zip",
-    },
-    goog = {
-        "sha256": "e3b926d5b6eebf5e66d55072441ecf088682853043800119c871ca138cf5d725",
-        "url": "gs://emu-next-bazel/fishtank/16314168/FISHTANK-sdk-repo-linux-emu-16314168.zip",
-    },
-)
-multisource_repo.file(
-    name = "fishtank-linux_internal",
-    aosp = {
-        "local_file": "@goldfish_build//utils:empty.zip",
-    },
-    goog = {
-        "sha256": "797c994fa2bac94725e5732c910379a464c3ef18df31aa4306fc8156987f7a0f",
-        "url": "gs://emu-next-bazel/fishtank/16314168/internal/FISHTANK-sdk-repo-linux-emu-16314168.zip",
-    },
-)
-multisource_repo.file(
-    name = "fishtank-mac",
-    aosp = {
-        "local_file": "@goldfish_build//utils:empty.zip",
-    },
-    goog = {
-        "sha256": "084a8654529dd28c107f39cec3a006c012794d8a1f9fefa03cae645b88f94b81",
-        "url": "gs://emu-next-bazel/fishtank/16314168/FISHTANK-sdk-repo-darwin_aarch64-emu-16314168.zip",
-    },
-)
-multisource_repo.file(
-    name = "fishtank-windows",
-    aosp = {
-        "local_file": "@goldfish_build//utils:empty.zip",
-    },
-    goog = {
-        "sha256": "ae19aadd5745fff51da7ed41171aa0aa06459fba9c2ccb04e3dac6c62370e930",
-        "url": "gs://emu-next-bazel/fishtank/16314168/FISHTANK-sdk-repo-windows-emu-16314168.zip",
-    },
-)
-# END upload_fishtank
-
 # System image archives (API 29-37) are defined in the compact catalog at
 # build/bazel/extensions/android_repos.bzl (updated via build/bazel/utils/update_sysimage.py).
 use_repo(
     multisource_repo,
     "android16k-arm64-v8a",
     "android16k-x86_64",
-    "fishtank-linux",
-    "fishtank-linux_internal",
-    "fishtank-mac",
-    "fishtank-windows",
     "sysimg-android-29-arm64-v8a",
     "sysimg-android-29-x86_64",
     "sysimg-android-30-arm64-v8a",
