@@ -276,6 +276,25 @@ def get_toolchain_include_paths_feature(import_config):
     return feature(
         name = "toolchain_include_paths",
         enabled = True,
+        flag_sets = [
+            flag_set(
+                # Exclude preprocess_assemble because x64 uses ml64.exe, which
+                # does not accept /imsvc (it reads INCLUDE from env_sets below).
+                actions = CPP_SOURCE_ACTIONS + C_COMPILE_ACTIONS + OBJC_COMPILE_ACTIONS + [
+                    ACTION_NAMES.linkstamp_compile,
+                ],
+                flag_groups = filter_none([
+                    check_args(
+                        len,
+                        flag_group,
+                        flags = [
+                            "/imsvc" + path
+                            for path in import_config.include_paths
+                        ],
+                    ),
+                ]),
+            ),
+        ],
         env_sets = [
             env_set(
                 actions = CPP_SOURCE_ACTIONS + C_COMPILE_ACTIONS + OBJC_COMPILE_ACTIONS + [

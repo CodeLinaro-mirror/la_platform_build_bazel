@@ -4,6 +4,7 @@
     "url": "https://github.com/bazelbuild/rules_rust/releases/download/0.70.0/rules_rust-0.70.0.tar.gz",
     "patch_strip": 1,
     "patches": {
-        "toolchain_debug_info_and_strip_level.patch": "sha256-K6huYLUyZTznSafCOAaI1R7bpDTftGztKlzbj120PGU="
+        "toolchain_debug_info_and_strip_level.patch": "sha256-K6huYLUyZTznSafCOAaI1R7bpDTftGztKlzbj120PGU=",
+        "1e9b22891ea88a169fb5857038358a579ef280a3.patch": "sha256-aH+l8Xyv88oFaXXjPV9NuZFWbO1wUWE91DnCuf9uK5E="
     }
 }
