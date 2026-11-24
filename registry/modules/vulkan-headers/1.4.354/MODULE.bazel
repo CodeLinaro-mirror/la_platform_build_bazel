@@ -1,6 +1,6 @@
 module(
     name = "vulkan-headers",
-    version = "0.0.1",
+    version = "1.4.354",
 )
 
 bazel_dep(name = "platforms", version = "0.0.11")

@@ -1,0 +1,12 @@
+{
+    "homepage": "https://gitlab.freedesktop.org/mesa/libdrm",
+    "maintainers": [],
+    "repository": [
+        "https://gitlab.freedesktop.org/mesa/libdrm",
+        "https://dri.freedesktop.org/libdrm"
+    ],
+    "versions": [
+        "2.4.110"
+    ],
+    "yanked_versions": {}
+}

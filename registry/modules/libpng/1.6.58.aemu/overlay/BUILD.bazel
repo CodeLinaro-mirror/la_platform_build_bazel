@@ -1,0 +1,111 @@
+load("@bazel_skylib//rules:copy_file.bzl", "copy_file")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_license//rules:license.bzl", "license")
+
+package(
+    default_applicable_licenses = [":license"],
+)
+
+license(
+    name = "license",
+    package_name = "libpng",
+    copyright_notice = "Copyright (c) 1995-2026 The PNG Reference Library Authors.",
+    license_kinds = ["@rules_license//licenses/spdx:libpng-2.0"],
+    license_text = "LICENSE",
+    visibility = ["//visibility:public"],
+)
+
+exports_files(["LICENSE"])
+
+copy_file(
+    name = "pnglibconf",
+    src = "scripts/pnglibconf.h.prebuilt",
+    out = "pnglibconf.h",
+)
+
+cc_library(
+    name = "png",
+    srcs = [
+        "png.c",
+        "pngerror.c",
+        "pngget.c",
+        "pngmem.c",
+        "pngpread.c",
+        "pngread.c",
+        "pngrio.c",
+        "pngrtran.c",
+        "pngrutil.c",
+        "pngset.c",
+        "pngtrans.c",
+        "pngwio.c",
+        "pngwrite.c",
+        "pngwtran.c",
+        "pngwutil.c",
+    ] + select({
+        "@platforms//cpu:arm64": [
+            "arm/arm_init.c",
+            "arm/filter_neon.S",
+            "arm/filter_neon_intrinsics.c",
+            "arm/palette_neon_intrinsics.c",
+        ],
+        "@platforms//cpu:armv7": [
+            "arm/arm_init.c",
+            "arm/filter_neon.S",
+            "arm/filter_neon_intrinsics.c",
+            "arm/palette_neon_intrinsics.c",
+        ],
+        "@platforms//cpu:i386": [
+            "intel/filter_sse2_intrinsics.c",
+            "intel/intel_init.c",
+        ],
+        "@platforms//cpu:x86_32": [
+            "intel/filter_sse2_intrinsics.c",
+            "intel/intel_init.c",
+        ],
+        "@platforms//cpu:x86_64": [
+            "intel/filter_sse2_intrinsics.c",
+            "intel/intel_init.c",
+        ],
+        "//conditions:default": [],
+    }),
+    hdrs = [
+        "png.h",
+        "pngconf.h",
+        "pngdebug.h",
+        "pnginfo.h",
+        "pnglibconf.h",
+        "pngpriv.h",
+        "pngstruct.h",
+    ],
+    includes = ["."],
+    linkopts = select({
+        "@platforms//os:windows": [],
+        "//conditions:default": ["-lm"],
+    }),
+    local_defines = select({
+        "@platforms//cpu:arm64": [
+            "PNG_ARM_NEON_OPT=2",
+        ],
+        "@platforms//cpu:armv7": [
+            "PNG_ARM_NEON_OPT=2",
+        ],
+        "@platforms//cpu:i386": [
+            "PNG_INTEL_SSE_OPT=1",
+        ],
+        "@platforms//cpu:x86_32": [
+            "PNG_INTEL_SSE_OPT=1",
+        ],
+        "@platforms//cpu:x86_64": [
+            "PNG_INTEL_SSE_OPT=1",
+        ],
+        "//conditions:default": [],
+    }),
+    visibility = ["//visibility:public"],
+    deps = ["@zlib"],
+)
+
+alias(
+    name = "libpng",
+    actual = ":png",
+    visibility = ["//visibility:public"],
+)

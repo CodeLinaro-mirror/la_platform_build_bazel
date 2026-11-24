@@ -1,0 +1,166 @@
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_license//rules:license.bzl", "license")
+
+package(
+    default_applicable_licenses = [":license"],
+    default_visibility = ["//visibility:public"],
+)
+
+license(
+    name = "license",
+    package_name = "dtc",
+    copyright_notice = "Copyright 2005 David Gibson <dwg@au1.ibm.com>, IBM Corporation.",
+    license_kinds = ["@rules_license//licenses/spdx:GPL-2.0-or-later"],
+    license_text = "GPL",
+    visibility = ["//visibility:public"],
+)
+
+license(
+    name = "libfdt_license",
+    package_name = "libfdt",
+    copyright_notice = "Copyright (C) 2006 David Gibson, IBM Corporation.",
+    license_kinds = [
+        "@rules_license//licenses/spdx:GPL-2.0-or-later",
+        "@rules_license//licenses/spdx:BSD-2-Clause",
+    ],
+    license_text = "BSD-2-Clause",
+    visibility = ["//visibility:public"],
+)
+
+licenses(["restricted"])
+
+exports_files([
+    "GPL",
+    "BSD-2-Clause",
+])
+
+COPTS = [
+    "-Wall",
+    "-Werror",
+    "-Wno-macro-redefined",
+    "-Wno-missing-field-initializers",
+    "-Wno-sign-compare",
+    "-Wno-unused-parameter",
+    "-Wno-unsafe-buffer-usage",
+    "-Wno-bad-function-cast",
+    "-Wno-sign-conversion",
+    "-Wno-zero-length-array",
+    "-Wno-documentation-unknown-command",
+    "-Wno-extra-semi",
+    "-Wno-extra-semi-stmt",
+    "-Wno-shorten-64-to-32",
+    "-Wno-implicit-int-conversion",
+    "-Wno-cast-align",
+    "-Wno-reserved-macro-identifier",
+    "-Wno-switch-default",
+]
+
+cc_library(
+    name = "libfdt",
+    srcs = glob([
+        "libfdt/*.h",
+        "libfdt/*.c",
+    ]),
+    applicable_licenses = [":libfdt_license"],
+    copts = COPTS,
+    includes = ["libfdt"],
+    visibility = ["//visibility:public"],
+)
+
+genrule(
+    name = "dtc_lexer_srcs",
+    srcs = ["dtc-lexer.l"],
+    outs = ["dtc-lexer.lex.c"],
+    cmd = "lex -o $@ $<",
+)
+
+genrule(
+    name = "dtc_parser_srcs",
+    srcs = ["dtc-parser.y"],
+    outs = [
+        "dtc-parser.tab.c",
+        "dtc-parser.tab.h",
+    ],
+    cmd = "bison -d -o $(location dtc-parser.tab.c) $(location dtc-parser.y)",
+)
+
+genrule(
+    name = "version_gen_header",
+    srcs = [
+        "VERSION.txt",
+        "version_gen.h.in",
+    ],
+    outs = ["version_gen.h"],
+    cmd = """
+      version="$$(tr -d '\\n' < $(location VERSION.txt))-Android-build"
+      sed s/@VCS_TAG@/$${version}/ $(location version_gen.h.in) > $@
+    """,
+)
+
+cc_library(
+    name = "dtc_common",
+    srcs = [
+        "checks.c",
+        "data.c",
+        "flattree.c",
+        "fstree.c",
+        "livetree.c",
+        "srcpos.c",
+        "treesource.c",
+        "util.c",
+        ":dtc_lexer_srcs",
+        ":dtc_parser_srcs",
+    ],
+    hdrs = [
+        "dtc.h",
+        "srcpos.h",
+        "util.h",
+        ":version_gen_header",
+    ],
+    copts = COPTS,
+    defines = ["NO_YAML"],
+    includes = ["."],
+    deps = [":libfdt"],
+)
+
+cc_binary(
+    name = "dtc",
+    srcs = ["dtc.c"],
+    copts = COPTS,
+    defines = ["NO_YAML"],
+    deps = [":dtc_common"],
+)
+
+cc_binary(
+    name = "fdtget",
+    srcs = ["fdtget.c"],
+    copts = COPTS,
+    defines = ["NO_YAML"],
+    deps = [":dtc_common"],
+)
+
+cc_binary(
+    name = "fdtput",
+    srcs = ["fdtput.c"],
+    copts = COPTS,
+    defines = ["NO_YAML"],
+    deps = [":dtc_common"],
+)
+
+cc_binary(
+    name = "fdtdump",
+    srcs = ["fdtdump.c"],
+    copts = COPTS,
+    defines = ["NO_YAML"],
+    deps = [":dtc_common"],
+)
+
+cc_binary(
+    name = "fdtoverlay",
+    srcs = ["fdtoverlay.c"],
+    copts = COPTS,
+    defines = ["NO_YAML"],
+    visibility = ["//visibility:public"],
+    deps = [":dtc_common"],
+)

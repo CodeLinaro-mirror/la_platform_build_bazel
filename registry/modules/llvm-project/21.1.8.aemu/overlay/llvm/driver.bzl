@@ -1,5 +1,3 @@
-load("@rules_cc//cc:defs.bzl", "cc_binary")
-load("@rules_cc//cc/common:cc_info.bzl", "CcInfo")
 # This file is licensed under the Apache License v2.0 with LLVM Exceptions.
 # See https://llvm.org/LICENSE.txt for license information.
 # SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
@@ -8,13 +6,14 @@ load("@rules_cc//cc/common:cc_info.bzl", "CcInfo")
 
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load("@bazel_skylib//rules:expand_template.bzl", "expand_template")
+load("@rules_cc//cc:defs.bzl", "cc_binary")
+load("@rules_cc//cc/common:cc_info.bzl", "CcInfo")
 
 # Mapping from every tool to the cc_library that implements the tool's entrypoint.
 _TOOLS = {
     "clang-scan-deps": "//clang:clang-scan-deps-lib",
     "clang": "//clang:clang-driver",
     "dsymutil": "//llvm:dsymutil-lib",
-    "lld": "//lld:lld-lib",
     "llvm-ar": "//llvm:llvm-ar-lib",
     "llvm-cgdata": "//llvm:llvm-cgdata-lib",
     "llvm-cxxfilt": "//llvm:llvm-cxxfilt-lib",
@@ -41,7 +40,6 @@ _TOOLS = {
 # aliases for a given tool.
 _EXTRA_ALIASES = {
     "clang": ["clang++", "clang-cl", "clang-cpp"],
-    "lld": ["ld", "lld-link", "ld.lld", "ld64.lld", "wasm-ld"],
     "llvm-ar": ["ranlib", "lib", "dlltool"],
     "llvm-cxxfilt": ["c++filt"],
     "llvm-objcopy": ["bitcode-strip", "install-name-tool", "strip"],
