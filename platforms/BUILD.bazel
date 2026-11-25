@@ -55,7 +55,7 @@ platform(
     exec_properties = dicts.add(
         EXEC_PROPERTIES,
         create_rbe_exec_properties_dict(
-            container_image = "docker://us-central1-docker.pkg.dev/kokoro-container-bakery/android-devtools/emulator-linux@sha256:bc31047c28b82531cc4011cbe507b8f99674d28d88cdc8bd4688d108d30b4813",
+            container_image = "docker://us-central1-docker.pkg.dev/kokoro-container-bakery/android-devtools/emulator-linux@sha256:b95cb79e00ebba7a4e74716929923826ac4d84c0d53f49f92645c1153ad45f78",
             docker_add_capabilities = "SYS_NICE",
             docker_network = "off",
             docker_privileged = True,  # This is required to support emulators/nested KVM.
